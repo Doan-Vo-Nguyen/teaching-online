@@ -30,6 +30,7 @@ export class Application {
     const name = process.env.APP_SERVER || 'Server 44b';
     this.app.listen(port, () => {
       console.info(`Server ${name} is running at port ${port}`);
+      console.log('Test for git');
     });
   }
 }
