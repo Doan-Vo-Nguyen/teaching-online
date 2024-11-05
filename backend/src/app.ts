@@ -3,6 +3,7 @@ import express from 'express';
 import {Express} from 'express-serve-static-core';
 import 'dotenv/config'
 import { sendResponse } from './common/interfaces/base-response';
+import { AppDataSource } from './data-source';
 
 export class Application {
   private _app: Express | undefined;
@@ -31,5 +32,7 @@ export class Application {
     this.app.listen(port, () => {
       console.info(`Server ${name} is running at port ${port}`);
     });
+    await AppDataSource.initialize()
+    console.info("Data Source has been initialized!")
   }
 }
