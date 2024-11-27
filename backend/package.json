@@ -24,6 +24,7 @@
     "dotenv": "^16.4.5",
     "es6-shim": "^0.35.8",
     "jsonwebtoken": "^9.0.2",
+    "mongodb": "^5.9.2",
     "morgan": "^1.10.0",
     "mysql2": "^3.11.3",
     "nodemon": "^3.1.4",
