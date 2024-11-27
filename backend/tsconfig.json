@@ -10,6 +10,9 @@
     "sourceMap": true,
     "outDir": "./dist",
     "baseUrl": "./",
+    "paths": {
+      "src/*": ["src/*"] 
+    },
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
@@ -20,11 +23,11 @@
     "esModuleInterop": true,
     "moduleResolution": "Node",
     "strict": true,
-    "alwaysStrict": false,
+    "alwaysStrict": false
   },
   "ts-node": {
     "esm": true,
-    "experimentalSpecifierResolution": "node",       
+    "experimentalSpecifierResolution": "node"
   },
   "include": [
     "src/**/*.ts"
