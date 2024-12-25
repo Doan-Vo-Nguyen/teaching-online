@@ -16,5 +16,4 @@ export class CommentRepository implements ICommentRepository {
     async save(comment: Comment): Promise<Comment> {
         return this.repository.save(comment);
     }
-
 }

@@ -9,7 +9,7 @@ export class ExamSubmission {
     exam_id: number
 
     @Column({type: "int"})
-    student_id: number
+    student_class_id: number
 
     @Column({type: "text"})
     file_content: string
