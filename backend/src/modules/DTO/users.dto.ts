@@ -7,7 +7,7 @@ export class UserDTO {
     username: string
     fullname: string
     password: string
-    Role: Role
+    role: Role
     email: string
     profile_picture: string
     phone: string
