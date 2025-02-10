@@ -4,8 +4,9 @@ import {Express} from 'express-serve-static-core';
 import 'dotenv/config'
 import { sendResponse } from './common/interfaces/base-response';
 import { AppDataSource, AppDataSource2 } from './data-source';
-import { Comment, Type } from './modules/entity/Comment.mongo';
 import { CommentController } from './modules/controller/comment.controller';
+import { seedData } from './modules/seed/seeder';
+import { UserController } from './modules/controller/users.controller';
 
 export class Application {
   private _app: Express | undefined;
@@ -23,34 +24,37 @@ export class Application {
     })
     const commentController = new CommentController('/comment');
     this._app?.use(commentController.path, commentController.router);
+
+    const userController = new UserController('/user');
+    this._app?.use(userController.path, userController.router);
   }
 
   public init() {
     this._app = express();
+    this._app.use(express.json()); // Add this to parse JSON payloads
+    this._app.use(express.urlencoded({ extended: true })); // Optional for form-encoded payloads
     this.initControllers()
   }
 
   public async start() {
     const port = process.env.APP_PORT || 3000;
     const name = process.env.APP_SERVER || 'Server 44b';
-    this.app.listen(port, () => {
-      console.info(`Server ${name} is running at port ${port}`);
-    });
-    await AppDataSource.initialize()
-    await AppDataSource2.initialize()
-    console.info("Data Source has been initialized!")
-  }
-  public async exampleaddData() {
-    const user = new Comment()
-    user.comment_id = 1
-    user.user_id = 1
-    user.target_id = 2
-    user.target_type = Type.ASSIGNMENT
-    user.content = "Tree School"
-    user.is_private = true
-    user.created_id = new Date()
+    try {
+      
+      await AppDataSource.initialize();
+      await AppDataSource2.initialize();
+      console.info('Data Source has been initialized!');
 
-  const manager = AppDataSource2.mongoManager
-  await manager.save(user)
+      if (process.env.SEED_DATA === 'false') {
+        console.info('Seeding database...');
+        await seedData(AppDataSource);
+      }
+
+      this.app.listen(port, () => {
+        console.info(`Server ${name} is running at port ${port}`);
+      });
+    } catch (error) {
+      console.error('Error during app startup:', error);
+    }
   }
 }

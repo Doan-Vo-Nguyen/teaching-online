@@ -18,6 +18,15 @@ class CommentService {
             throw new Error('Error fetching comments');
         }
     }
+
+    async getById(comment_id: number): Promise<CommentDTO> {
+        try {
+            const comment = await this.commentRepository.findById(comment_id);
+            return comment;
+        } catch (error) {
+            throw new Error('Error fetching comment');
+        }
+    }
 }
 
 export default CommentService;
