@@ -18,7 +18,9 @@ export class UserController extends BaseController {
         this.router.get('/', this.getAll);
         this.router.get('/:user_id', this.getById);
         this.router.post('/', this.create);
+        this.router.put('/:user_id', this.update);
         this.router.put('/:user_id', this.updateRole);
+        this.router.delete('/:user_id', this.delete);
     }
 
     private readonly getAll = async (
@@ -50,6 +52,19 @@ export class UserController extends BaseController {
         return sendResponse(res, true, 200, "Create user successfully", newUser);
     }
 
+    private readonly update = async (
+        req: Request,
+        res: Response,
+        next: NextFunction,
+    ) => {
+        const user_id = parseInt(req.params.user_id, 10);
+        const user = req.body;
+        user.updated_at = new Date();
+        const updatedUser = await this._service.update(user_id, user);
+        return sendResponse(res, true, 200, "Update user successfully", updatedUser);
+    }
+
+
     private readonly updateRole = async (
         req: Request,
         res: Response,
@@ -59,5 +74,15 @@ export class UserController extends BaseController {
         const role = req.body.role;
         const updatedUser = await this._service.updateRole(user_id, role);
         return sendResponse(res, true, 200, "Update user role successfully", updatedUser);
+    }
+
+    private readonly delete = async (
+        req: Request,
+        res: Response,
+        next: NextFunction,
+    ) => {
+        const user_id = parseInt(req.params.user_id, 10);
+        const user = await this._service.delete(user_id);
+        return sendResponse(res, true, 200, "Delete user successfully", user);
     }
 }

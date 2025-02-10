@@ -37,12 +37,30 @@ class UserService {
         }
     }
 
+    async update(user_id: number, user: UserDTO): Promise<UserDTO> {
+        try {
+            const updatedUser = await this.userRepository.update(user_id, user);
+            return updatedUser;
+        } catch (error) {
+            throw new Error('Error updating user');
+        }
+    }
+
     async updateRole(user_id: number, role: string): Promise<UserDTO> {
         try {
             const updatedUser = await this.userRepository.updateRole(user_id, role);
             return updatedUser;
         } catch (error) {
             throw new Error('Error updating user role');
+        }
+    }
+
+    async delete(user_id: number): Promise<UserDTO> {
+        try {
+            const deletedUser = await this.userRepository.delete(user_id);
+            return deletedUser;
+        } catch (error) {
+            throw new Error('Error deleting user');
         }
     }
 }
