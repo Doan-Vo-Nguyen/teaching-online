@@ -1,14 +1,15 @@
 import {IsString, IsNotEmpty, IsNumber} from 'class-validator'
 
-export class ClassDTO {
+export class ClassesDTO {
     class_id: number
     class_name: string
     description: string
     teacher_id: number
-    created_id: Date
+    created_at: Date
+    updated_at: Date
 }
 
-export class ClassDTOPost {
+export class ClassesDTOPost {
     @IsString()
     @IsNotEmpty()
     class_name: string

@@ -64,7 +64,6 @@ export class UserController extends BaseController {
         return sendResponse(res, true, 200, "Update user successfully", updatedUser);
     }
 
-
     private readonly updateRole = async (
         req: Request,
         res: Response,

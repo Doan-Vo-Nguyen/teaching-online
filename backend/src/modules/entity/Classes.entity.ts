@@ -15,5 +15,8 @@ export class Classes {
     teacher_id: number
 
     @CreateDateColumn()
-    created_id: Date
+    created_at: Date
+
+    @CreateDateColumn()
+    updated_at: Date
 }

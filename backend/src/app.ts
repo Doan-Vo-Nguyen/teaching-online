@@ -7,6 +7,7 @@ import { AppDataSource, AppDataSource2 } from './data-source';
 import { CommentController } from './modules/controller/comment.controller';
 import { seedData } from './modules/seed/seeder';
 import { UserController } from './modules/controller/users.controller';
+import { ClassesController } from './modules/controller/classes.controller';
 
 export class Application {
   private _app: Express | undefined;
@@ -27,6 +28,9 @@ export class Application {
 
     const userController = new UserController('/user');
     this._app?.use(userController.path, userController.router);
+
+    const classesController = new ClassesController('/classes');
+    this._app?.use(classesController.path, classesController.router);
   }
 
   public init() {
