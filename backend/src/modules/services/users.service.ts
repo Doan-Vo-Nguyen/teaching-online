@@ -2,11 +2,7 @@ import { UserDTO } from "../DTO/users.dto";
 import { IUserRepository } from "../interfaces/users.interface";
 
 class UserService {
-    private readonly userRepository: IUserRepository;
-
-    constructor(userRepository: IUserRepository) {
-        this.userRepository = userRepository;
-    }
+    constructor(private readonly userRepository: IUserRepository) {}
 
     async getAll(): Promise<UserDTO[]> {
         try {
@@ -39,7 +35,8 @@ class UserService {
 
     async update(user_id: number, user: UserDTO): Promise<UserDTO> {
         try {
-            const updatedUser = await this.userRepository.update(user_id, user);
+            await this.userRepository.update(user_id, user);
+            const updatedUser = await this.userRepository.findById(user_id);
             return updatedUser;
         } catch (error) {
             throw new Error('Error updating user');
