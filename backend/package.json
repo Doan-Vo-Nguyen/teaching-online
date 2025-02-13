@@ -4,6 +4,9 @@
   "description": "NCC Training NodeJS",
   "type": "module",
   "main": "index.ts",
+  "engines": {
+    "node": "14.x"
+  },
   "scripts": {
     "dev": "nodemon --exec node --no-warnings=ExperimentalWarning --loader ts-node/esm src/index.ts",
     "build": "tsc",
