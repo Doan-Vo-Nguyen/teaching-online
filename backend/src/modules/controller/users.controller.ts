@@ -3,6 +3,7 @@ import BaseController from "../abstracts/base-controller";
 import UserService from "../services/users.service";
 import { UserRepository } from "../repositories/users.repository";
 import { NextFunction, Request, Response } from "express";
+import { authentication } from "../middleware/auth.middleware";
 
 export class UserController extends BaseController {
     private readonly _service: UserService;
@@ -15,12 +16,12 @@ export class UserController extends BaseController {
     }
 
     public initRoutes(): void {
-        this.router.get('/', this.getAll);
-        this.router.get('/:user_id', this.getById);
-        this.router.post('/', this.create);
-        this.router.put('/:user_id', this.update);
-        this.router.put('/:user_id', this.updateRole);
-        this.router.delete('/:user_id', this.delete);
+        this.router.get('/' ,this.getAll);
+        this.router.get('/:user_id', authentication,this.getById);
+        this.router.post('/', authentication,this.create);
+        this.router.put('/:user_id', authentication, this.update);
+        this.router.put('/:user_id',authentication ,this.updateRole);
+        this.router.delete('/:user_id', authentication ,this.delete);
     }
 
     private readonly getAll = async (

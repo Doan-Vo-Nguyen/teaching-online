@@ -7,6 +7,10 @@ import { AppDataSource, AppDataSource2 } from './data-source';
 import { CommentController } from './modules/controller/comment.controller';
 import { UserController } from './modules/controller/users.controller';
 import { ClassesController } from './modules/controller/classes.controller';
+import { Logger } from './modules/config/logger';
+import swaggerJsDocs from 'swagger-jsdoc';
+import * as swaggerUi from 'swagger-ui-express';
+import options from './docs/swagger/config/swagger.config';
 
 export class Application {
   private _app: Express | undefined;
@@ -25,7 +29,7 @@ export class Application {
     const commentController = new CommentController('/comment');
     this._app?.use(commentController.path, commentController.router);
 
-    const userController = new UserController('/user');
+    const userController = new UserController('/users');
     this._app?.use(userController.path, userController.router);
 
     const classesController = new ClassesController('/classes');
@@ -37,6 +41,12 @@ export class Application {
     this._app.use(express.json()); // Add this to parse JSON payloads
     this._app.use(express.urlencoded({ extended: true })); // Optional for form-encoded payloads
     this.initControllers()
+    this.initSwagger();
+  }
+
+  private initSwagger() {
+    const specs = swaggerJsDocs(options);
+    this.app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
   }
 
   public async start() {
@@ -48,10 +58,10 @@ export class Application {
       await AppDataSource2.initialize();
       console.info('Data Source has been initialized!');
       this.app.listen(port, () => {
-        console.info(`Server ${name} is running at port ${port}`);
+        Logger.info(`Server ${name} is running at port ${port}`);
       });
     } catch (error) {
-      console.error('Error during app startup:', error);
+      Logger.error(error);
     }
   }
 }

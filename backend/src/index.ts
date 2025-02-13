@@ -1,5 +1,5 @@
 import { Application } from './app';
-// import { Logger } from './core/logger/logger.service';
+import { Logger } from './modules/config/logger';
 
 async function bootstrap() {
   const app = new Application();
@@ -7,7 +7,7 @@ async function bootstrap() {
     app.init();
     await app.start();
   } catch (err) {
-    console.error(err);
+    Logger.error(err);
   }
 }
 

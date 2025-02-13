@@ -1,6 +1,8 @@
+import { Logger } from "../config/logger";
 import { UserDTO } from "../DTO/users.dto";
 import { IUserRepository } from "../interfaces/users.interface";
-
+import dotenv from 'dotenv';
+dotenv.config();
 class UserService {
     constructor(private readonly userRepository: IUserRepository) {}
 
@@ -20,7 +22,7 @@ class UserService {
             const user = await this.userRepository.findById(user_id);
             return user;
         } catch (error) {
-            throw new Error('Error fetching user');
+            Logger.error(error);
         }
     }
 
