@@ -5,7 +5,6 @@ import 'dotenv/config'
 import { sendResponse } from './common/interfaces/base-response';
 import { AppDataSource, AppDataSource2 } from './data-source';
 import { CommentController } from './modules/controller/comment.controller';
-import { seedData } from './modules/seed/seeder';
 import { UserController } from './modules/controller/users.controller';
 import { ClassesController } from './modules/controller/classes.controller';
 
@@ -48,12 +47,6 @@ export class Application {
       await AppDataSource.initialize();
       await AppDataSource2.initialize();
       console.info('Data Source has been initialized!');
-
-      if (process.env.SEED_DATA === 'false') {
-        console.info('Seeding database...');
-        await seedData(AppDataSource);
-      }
-
       this.app.listen(port, () => {
         console.info(`Server ${name} is running at port ${port}`);
       });

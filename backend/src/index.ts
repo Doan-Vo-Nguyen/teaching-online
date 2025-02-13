@@ -6,7 +6,6 @@ async function bootstrap() {
   try {
     app.init();
     await app.start();
-    // await app.exampleaddData();
   } catch (err) {
     console.error(err);
   }

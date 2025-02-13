@@ -1,6 +1,6 @@
 import { AppDataSource } from './../../data-source';
 // src/repositories/BaseRepository.ts
-import { Repository, EntityTarget, FindOptionsWhere, UpdateResult, DeepPartial} from 'typeorm';
+import { Repository, EntityTarget, UpdateResult, DeepPartial} from 'typeorm';
 
 export class BaseRepository<T> {
     protected readonly repository: Repository<T>;
@@ -45,6 +45,4 @@ export class BaseRepository<T> {
         }
         return this.repository.remove(entity);
     }
-
-    // Other common methods can be added here
 }
