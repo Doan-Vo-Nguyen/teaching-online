@@ -8,8 +8,10 @@
     "node": "22.x"
   },
   "scripts": {
-    "dev": "nodemon --exec node --no-warnings=ExperimentalWarning --loader ts-node/esm src/index.ts",
+    "dev": "node --no-warnings=ExperimentalWarning --loader ts-node/esm src/index.ts",
     "build": "tsc",
+    "dev_prod": "cross-env NODE_ENV=development node ./dist/index.js",
+    "production": "cross-env NODE_ENV=production node ./dist/index.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
   },
