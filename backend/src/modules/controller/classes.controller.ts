@@ -17,10 +17,10 @@ export class ClassesController extends BaseController {
 
     public initRoutes(): void {
         this.router.get('/', this.getAll);
-        this.router.get('/:class_id', this.getById);
+        this.router.get('/:id', this.getById);
         this.router.post('/', this.create);
-        this.router.put('/:class_id', this.update);
-        this.router.delete('/:class_id', this.delete);
+        this.router.put('/:id', this.update);
+        this.router.delete('/:id', this.delete);
     }
 
     private readonly getAll = async (
@@ -37,7 +37,7 @@ export class ClassesController extends BaseController {
         res: Response,
         next: NextFunction,
     ) => {
-        const class_id = parseInt(req.params.class_id, 10);
+        const class_id = parseInt(req.params.id, 10);
         const classes = await this._service.getById(class_id);
         return sendResponse(res, true, 200, "Get class by id successfully", classes);
     }
@@ -57,7 +57,7 @@ export class ClassesController extends BaseController {
         res: Response,
         next: NextFunction,
     ) => {
-        const class_id = parseInt(req.params.class_id, 10);
+        const class_id = parseInt(req.params.id, 10);
         const classes = req.body;
         const updatedClasses = await this._service.update(class_id, classes);
         return sendResponse(res, true, 200, "Update class successfully", updatedClasses);
@@ -68,7 +68,7 @@ export class ClassesController extends BaseController {
         res: Response,
         next: NextFunction,
     ) => {
-        const class_id = parseInt(req.params.class_id, 10);
+        const class_id = parseInt(req.params.id, 10);
         const deletedClasses = await this._service.delete(class_id);
         return sendResponse(res, true, 200, "Delete class successfully", deletedClasses);
     }

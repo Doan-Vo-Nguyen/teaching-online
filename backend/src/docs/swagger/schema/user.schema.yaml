@@ -1,24 +1,12 @@
-# src/docs/swagger/openapi.yaml
-openapi: 3.0.0
-info:
-  title: User Management API
-  version: 1.0.0
-  description: API documentation for Teaching Online Web Application
-  contact:
-    name: Nguyen Doan Vo BE
-    email: wwwnguyendoan123@gmail.com
-
-servers:
-  - url: http://localhost:3000
-    description: Development server
-
 components:
   schemas:
     User:
       type: object
       required:
         - username
+        - fullname
         - password
+        - email
         - role
       properties:
         id:
@@ -27,9 +15,16 @@ components:
         username:
           type: string
           description: The username
+        fullname:
+          type: string
+          description: The user fullname
         password:
           type: string
           description: The user password
+        email:
+          type: string
+          format: email
+          description: The user email
         role:
           type: array
           items:
@@ -41,27 +36,6 @@ components:
         updated_at:
           type: string
           format: date-time
-    
-    BaseResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-        status:
-          type: integer
-        message:
-          type: string
-        data:
-          type: object
-
-    Error:
-      type: object
-      properties:
-        code:
-          type: string
-        message:
-          type: string
-
   securitySchemes:
     bearerAuth:
       type: http
@@ -69,7 +43,7 @@ components:
       bearerFormat: JWT
 
 security:
-  - bearerAuth: []
+  - bearerAuth: [process.env.JWT_TOKEN_AUTH]
 
 paths:
   /users:
@@ -120,20 +94,25 @@ paths:
               type: object
               required:
                 - username
+                - fullname
                 - password
-                - role
+                - email
+                - phone
               properties:
                 username:
                   type: string
-                  example: "newuser"
+                  example: "User A"
+                fullname:
+                  type: string
+                  example: "New User"
                 password:
                   type: string
                   example: "password123"
-                role:
-                  type: array
-                  items:
-                    type: string
-                  example: ["user"]
+                email:
+                  type: string
+                  example: "abc@gmail.com"
+                phone:
+                  
       responses:
         '200':
           description: User created successfully
@@ -147,14 +126,14 @@ paths:
                       data:
                         $ref: '#/components/schemas/User'
 
-  /users/{user_id}:
+  /users/{id}:
     get:
       tags:
         - Users
       summary: Get user by ID
       parameters:
         - in: path
-          name: user_id
+          name: id
           required: true
           schema:
             type: integer
@@ -178,7 +157,7 @@ paths:
       summary: Update user
       parameters:
         - in: path
-          name: user_id
+          name: id
           required: true
           schema:
             type: integer
@@ -192,7 +171,11 @@ paths:
               properties:
                 username:
                   type: string
-                password:
+                fullname:
+                  type: string
+                email:
+                  type: string
+                phone:
                   type: string
       responses:
         '200':
@@ -213,7 +196,7 @@ paths:
       summary: Delete user
       parameters:
         - in: path
-          name: user_id
+          name: id
           required: true
           schema:
             type: integer
@@ -231,14 +214,14 @@ paths:
                       data:
                         $ref: '#/components/schemas/User'
 
-  /users/{user_id}/role:
+  /users/{id}/roles/{role}:
     put:
       tags:
         - Users
       summary: Update user role
       parameters:
         - in: path
-          name: user_id
+          name: id
           required: true
           schema:
             type: integer

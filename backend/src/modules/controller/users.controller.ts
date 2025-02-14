@@ -17,11 +17,11 @@ export class UserController extends BaseController {
 
     public initRoutes(): void {
         this.router.get('/' ,this.getAll);
-        this.router.get('/:user_id', authentication,this.getById);
+        this.router.get('/:id',this.getById);
         this.router.post('/', authentication,this.create);
-        this.router.put('/:user_id', authentication, this.update);
-        this.router.put('/:user_id',authentication ,this.updateRole);
-        this.router.delete('/:user_id', authentication ,this.delete);
+        this.router.patch('/:id', authentication, this.update);
+        this.router.patch('/:id/roles/:role',authentication ,this.updateRole);
+        this.router.delete('/:id', authentication ,this.delete);
     }
 
     private readonly getAll = async (
@@ -38,7 +38,7 @@ export class UserController extends BaseController {
         res: Response,
         next: NextFunction,
     ) => {
-        const user_id = parseInt(req.params.user_id, 10);
+        const user_id = parseInt(req.params.id, 10);
         const user = await this._service.getById(user_id);
         return sendResponse(res, true, 200, "Get user by id successfully", user);
     }
@@ -58,10 +58,10 @@ export class UserController extends BaseController {
         res: Response,
         next: NextFunction,
     ) => {
-        const user_id = parseInt(req.params.user_id, 10);
+        const id = parseInt(req.params.id, 10);
         const user = req.body;
         user.updated_at = new Date();
-        const updatedUser = await this._service.update(user_id, user);
+        const updatedUser = await this._service.update(id, user);
         return sendResponse(res, true, 200, "Update user successfully", updatedUser);
     }
 
@@ -70,7 +70,7 @@ export class UserController extends BaseController {
         res: Response,
         next: NextFunction,
     ) => {
-        const user_id = parseInt(req.params.user_id, 10);
+        const user_id = parseInt(req.params.id, 10);
         const role = req.body.role;
         const updatedUser = await this._service.updateRole(user_id, role);
         return sendResponse(res, true, 200, "Update user role successfully", updatedUser);
