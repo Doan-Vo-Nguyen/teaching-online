@@ -51,7 +51,7 @@ export class Application {
 
   public async start() {
     const port = process.env.APP_PORT || 3000;
-    const name = process.env.APP_SERVER || 'Server 44b';
+    const name = process.env.APP_SERVER || '44B';
     try {
       
       await AppDataSource.initialize();
