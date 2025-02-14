@@ -50,7 +50,7 @@ export class Application {
   }
 
   public async start() {
-    const port = process.env.APP_PORT || 3000;
+    const port = process.env.APP_PORT || 10000;
     const name = process.env.APP_SERVER || '44B';
     try {
       
