@@ -1,0 +1,13 @@
+# src/docs/swagger/openapi.yaml
+openapi: 3.0.0
+info:
+  title: Teaching online Management API
+  version: 1.0.0
+  description: API documentation for Teaching Online Web Application
+  contact:
+    name: Nguyen Doan Vo BE
+    email: wwwnguyendoan123@gmail.com
+
+servers:
+  - url: http://localhost:3000
+    description: Development server
