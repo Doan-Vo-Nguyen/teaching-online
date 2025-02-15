@@ -18,6 +18,9 @@ export class Users {
     @Column({type: "varchar", length: 50})
     fullname: string
 
+    @Column({type: "varchar", length: 10})
+    gender: string
+
     @Column()
     password: string
 
@@ -27,6 +30,9 @@ export class Users {
         default: Role.STUDENT
     })
     role: Role
+
+    @Column({type: "varchar", length: 50})
+    address: string
 
     @Column({type: "varchar", length: 50})
     email: string

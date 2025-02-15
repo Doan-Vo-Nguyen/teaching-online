@@ -9,7 +9,7 @@ class UserService {
     async getAll(): Promise<UserDTO[]> {
         try {
             const listUser = await this.userRepository.find({
-                select: ['user_id', 'username' ,'fullname' ,'email', 'phone', 'role'],
+                select: ['user_id', 'username' ,'fullname' ,'gender','email', 'phone','address', 'role'],
             });
             return listUser;
         } catch (error) {
