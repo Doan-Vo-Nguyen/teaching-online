@@ -1,8 +1,8 @@
-import BaseController from "../abstracts/base-controller";
-import ClassesService from "../services/classes.service";
-import { sendResponse } from "../../common/interfaces/base-response";
-import { Classes } from "../entity/Classes.entity";
-import { BaseRepository } from "../repositories/base.repository";
+import BaseController from "../abstracts/base-controller.js";
+import ClassesService from "../services/classes.service.js";
+import { sendResponse } from "../../common/interfaces/base-response.js";
+import { Classes } from "../entity/Classes.entity.js";
+import { BaseRepository } from "../repositories/base.repository.js";
 export class ClassesController extends BaseController {
     _service;
     constructor(path) {

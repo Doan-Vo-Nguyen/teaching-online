@@ -1,15 +1,15 @@
 import 'reflect-metadata';
 import express from 'express';
 import 'dotenv/config';
-import { sendResponse } from './common/interfaces/base-response';
-import { AppDataSource, AppDataSource2 } from './data-source';
-import { CommentController } from './modules/controller/comment.controller';
-import { UserController } from './modules/controller/users.controller';
-import { ClassesController } from './modules/controller/classes.controller';
-import { Logger } from './modules/config/logger';
+import { sendResponse } from './common/interfaces/base-response.js';
+import { AppDataSource, AppDataSource2 } from './data-source.js';
+import { CommentController } from './modules/controller/comment.controller.js';
+import { UserController } from './modules/controller/users.controller.js';
+import { ClassesController } from './modules/controller/classes.controller.js';
+import { Logger } from './modules/config/logger.js';
 import swaggerJsDocs from 'swagger-jsdoc';
 import * as swaggerUi from 'swagger-ui-express';
-import options from './docs/swagger/config/swagger.config';
+import options from './docs/swagger/config/swagger.config.js';
 export class Application {
     _app;
     get app() {

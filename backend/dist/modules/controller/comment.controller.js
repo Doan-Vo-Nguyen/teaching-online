@@ -1,7 +1,7 @@
-import { sendResponse } from "../../../src/common/interfaces/base-response";
-import BaseController from "../abstracts/base-controller";
-import { CommentRepository } from "../repositories/comment.repository";
-import CommentService from "../services/comment.service";
+import { sendResponse } from "../../../src/common/interfaces/base-response.js";
+import BaseController from "../abstracts/base-controller.js";
+import { CommentRepository } from "../repositories/comment.repository.js";
+import CommentService from "../services/comment.service.js";
 export class CommentController extends BaseController {
     _service;
     constructor(path) {

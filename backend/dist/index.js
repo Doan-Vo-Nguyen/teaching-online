@@ -1,5 +1,5 @@
-import { Application } from './app';
-import { Logger } from './modules/config/logger';
+import { Application } from './app.js';
+import { Logger } from './modules/config/logger.js';
 async function bootstrap() {
     const app = new Application();
     try {
