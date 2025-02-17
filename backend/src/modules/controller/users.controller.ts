@@ -17,6 +17,7 @@ export class UserController extends BaseController {
 
     public initRoutes(): void {
         this.router.get('/' ,this.getAll);
+        this.router.get('/search', this.getByName);
         this.router.get('/:id',this.getById);
         this.router.post('/', authentication,this.create);
         this.router.patch('/:id', authentication, this.update);
@@ -41,6 +42,16 @@ export class UserController extends BaseController {
         const user_id = parseInt(req.params.id, 10);
         const user = await this._service.getById(user_id);
         return sendResponse(res, true, 200, "Get user by id successfully", user);
+    }
+
+    private readonly getByName = async (
+        req: Request,
+        res: Response,
+        next: NextFunction,
+    ) => {
+        const fullname = req.query.name as string;
+        const user = await this._service.findByName(fullname);
+        return sendResponse(res, true, 200, "Get user by name successfully", user);
     }
 
     private readonly create = async (
@@ -71,7 +82,7 @@ export class UserController extends BaseController {
         next: NextFunction,
     ) => {
         const user_id = parseInt(req.params.id, 10);
-        const role = req.body.role;
+        const role = req.params.role;
         const updatedUser = await this._service.updateRole(user_id, role);
         return sendResponse(res, true, 200, "Update user role successfully", updatedUser);
     }
@@ -81,7 +92,7 @@ export class UserController extends BaseController {
         res: Response,
         next: NextFunction,
     ) => {
-        const user_id = parseInt(req.params.user_id, 10);
+        const user_id = parseInt(req.params.id, 10);
         const user = await this._service.delete(user_id);
         return sendResponse(res, true, 200, "Delete user successfully", user);
     }

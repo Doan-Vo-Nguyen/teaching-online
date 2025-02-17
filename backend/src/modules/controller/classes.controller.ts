@@ -2,15 +2,14 @@ import { Request, Response, NextFunction } from "express";
 import BaseController from "../abstracts/base-controller";
 import ClassesService from "../services/classes.service";
 import { sendResponse } from "../../common/interfaces/base-response";
-import { Classes } from "../entity/Classes.entity";
-import { BaseRepository } from "../repositories/base.repository";
+import { ClassesRepository } from "../repositories/classes.repository";
 
 export class ClassesController extends BaseController {
     private readonly _service: ClassesService;
 
     constructor(path: string) {
         super(path);
-        const classesRepository = new BaseRepository<Classes>(Classes);
+        const classesRepository = new ClassesRepository();
         this._service = new ClassesService(classesRepository);
         this.initRoutes();
     }

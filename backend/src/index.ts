@@ -14,9 +14,9 @@ async function bootstrap() {
 bootstrap();
 
 process.on('uncaughtException', (error) => {
-  console.log('uncaughtException', error);
+  console.error('uncaughtException', error);
 });
 
 process.on('unhandledRejection', (error) => {
-  console.log('unhandledRejection', error);
+  console.error('unhandledRejection', error);
 });

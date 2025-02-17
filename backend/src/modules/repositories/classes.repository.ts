@@ -1,9 +1,10 @@
-import { AppDataSource } from "../../data-source";
 import { Classes } from "../entity/Classes.entity";
-import { IClassesRepository } from "../interfaces/classes.interface";
+import { BaseRepository } from "./base.repository";
 
-export class ClassesRepository implements IClassesRepository {
-    private readonly repository = AppDataSource.getRepository(Classes);
+export class ClassesRepository extends BaseRepository<Classes> {
+    constructor() {
+        super(Classes);
+    }
 
     async find(options: any): Promise<Classes[]> {
         return this.repository.find(options);
