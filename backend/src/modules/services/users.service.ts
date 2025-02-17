@@ -6,14 +6,12 @@ dotenv.config();
 class UserService {
     constructor(private readonly userRepository: IUserRepository) {}
 
-    async getAll(): Promise<UserDTO[]> {
+    async getAll(options: Partial<UserDTO> = {}): Promise<UserDTO[]> {
         try {
-            const listUser = await this.userRepository.find({
-                select: ['user_id', 'username' ,'fullname', 'dob', 'gender', 'email', 'phone', 'address', 'role', 'profile_picture'],
-            });
-            return listUser;
+            return await this.userRepository.find(options);
         } catch (error) {
-            throw new Error('Error fetching users');
+            Logger.error(error);
+            throw new Error('Failed to fetch users');
         }
     }
 
@@ -31,6 +29,7 @@ class UserService {
             const newUser = await this.userRepository.save(user);
             return newUser;
         } catch (error) {
+            Logger.error(error);
             throw new Error('Error creating user');
         }
     }
@@ -45,6 +44,15 @@ class UserService {
         }
     }
 
+    async delete(user_id: number): Promise<UserDTO> {
+        try {
+            const deletedUser = await this.userRepository.delete(user_id);
+            return deletedUser;
+        } catch (error) {
+            throw new Error('Error deleting user');
+        }
+    }
+
     async updateRole(user_id: number, role: string): Promise<UserDTO> {
         try {
             const updatedUser = await this.userRepository.updateRole(user_id, role);
@@ -54,12 +62,12 @@ class UserService {
         }
     }
 
-    async delete(user_id: number): Promise<UserDTO> {
+    async findByName(fullname: string): Promise<UserDTO> {
         try {
-            const deletedUser = await this.userRepository.delete(user_id);
-            return deletedUser;
+            const user = await this.userRepository.findByName(fullname);
+            return user;
         } catch (error) {
-            throw new Error('Error deleting user');
+            Logger.error(error);
         }
     }
 }

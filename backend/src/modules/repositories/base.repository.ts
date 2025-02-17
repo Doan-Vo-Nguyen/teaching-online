@@ -1,12 +1,13 @@
+import { IBaseRepository } from '../interfaces/base.interface';
 import { AppDataSource } from './../../data-source';
 // src/repositories/BaseRepository.ts
-import { Repository, EntityTarget, UpdateResult, DeepPartial} from 'typeorm';
+import { Repository, EntityTarget} from 'typeorm';
 
-export class BaseRepository<T> {
+export abstract class BaseRepository<T> implements IBaseRepository<T> {
     protected readonly repository: Repository<T>;
 
-    constructor(private readonly entity: EntityTarget<T>) {
-        this.repository = AppDataSource.getRepository(this.entity);
+    constructor(entity: EntityTarget<T>) {
+        this.repository = AppDataSource.getRepository(entity);
     }
 
     async find(options: any): Promise<T[]> {
@@ -28,8 +29,9 @@ export class BaseRepository<T> {
         return this.repository.save(entity);
     }
 
-    async update(criteria: number, partialEntity: DeepPartial<T>): Promise<UpdateResult> {
-        return this.repository.update(criteria, partialEntity as any);
+    async update(id: number, entity: Partial<T>): Promise<T> {
+        await this.repository.update(id, entity as any);
+        return this.findById(id);
     }
 
     async delete(id: number): Promise<T> {

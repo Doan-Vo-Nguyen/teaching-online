@@ -1,9 +1,11 @@
 import {IsString, IsNotEmpty, IsNumber} from 'class-validator'
+import { LectureType } from '../entity/Lectures.entity'
 
 export class LectureDTO {
     lecture_id: number
     class_id: number
     title: string
+    type: LectureType
     content: string
     created_at: Date
     updated_at: Date

@@ -1,6 +1,7 @@
 import { ClassesDTO } from "../DTO/classes.dto";
 import { BaseRepository } from "../repositories/base.repository";
 import { Classes } from "../entity/Classes.entity";
+import { Logger } from "../config/logger";
 
 class ClassesService{
     constructor(private readonly classesRepository: BaseRepository<Classes>) {}
@@ -12,7 +13,7 @@ class ClassesService{
             });
             return listClasses;
         } catch (error) {
-            console.error(error);
+            Logger.error(error);
             throw new Error('Error fetching classes');
         }
     }
@@ -22,7 +23,7 @@ class ClassesService{
             const classes = await this.classesRepository.findById(class_id);
             return classes;
         } catch (error) {
-            console.error(error);
+            Logger.error(error);
             throw new Error('Error fetching class');
         }
     }
@@ -51,7 +52,7 @@ class ClassesService{
             const deletedClasses = await this.classesRepository.delete(class_id);
             return deletedClasses;
         } catch (error) {
-            console.error(error);
+            Logger.error(error);
             throw new Error('Error deleting class');
         }
     }

@@ -1,5 +1,10 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from "typeorm"
 
+export enum LectureType {
+    DOCUMENTS = 'documents',
+    VIDEOS = 'videos',
+}
+
 @Entity({schema: "teaching"})
 export class Lectures {
     @PrimaryGeneratedColumn()
@@ -10,6 +15,12 @@ export class Lectures {
 
     @Column({type: "varchar", length: 100})
     title: string
+
+    @Column({
+        type: 'enum',
+        enum: LectureType,
+    })
+    type: LectureType
 
     @Column({type: "text"})
     content: string
