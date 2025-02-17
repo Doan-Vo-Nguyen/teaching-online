@@ -1,5 +1,5 @@
-import { TOKEN_EXPIRE } from "../constant";
-import { IAuthResultDto } from "../types/IAuthResultDto";
+import { TOKEN_EXPIRE } from "../../constant";
+import { IAuthResultDto } from "../../types/IAuthResultDto";
 
 export const AuthResultDto: IAuthResultDto = {
     accessToken: null,

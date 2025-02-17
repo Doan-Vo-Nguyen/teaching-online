@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import { Response, NextFunction } from 'express';
 import { IRequest } from '../types/IRequest';
-import { AUTHEN_ERROR, INVALID_TOKEN } from '../DTO/BaseErrorDto';
+import { AUTHEN_ERROR, INVALID_TOKEN } from '../DTO/resDto/BaseErrorDto';
 import jwt from 'jsonwebtoken';
 import { Logger } from '../config/logger';
 dotenv.config();

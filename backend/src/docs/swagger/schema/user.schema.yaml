@@ -69,32 +69,32 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        '200':
+        "200":
           description: List of users
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/BaseResponse'
+                  - $ref: "#/components/schemas/BaseResponse"
                   - type: object
                     properties:
                       data:
                         type: array
                         items:
-                          $ref: '#/components/schemas/User'
-        '401':
+                          $ref: "#/components/schemas/User"
+        "401":
           description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '403':
+                $ref: "#/components/schemas/Error"
+        "403":
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-    
+                $ref: "#/components/schemas/Error"
+
     post:
       tags:
         - Users
@@ -127,20 +127,45 @@ paths:
                   type: string
                   example: "abc@gmail.com"
                 phone:
-                  
+
       responses:
-        '200':
+        "200":
           description: User created successfully
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/BaseResponse'
+                  - $ref: "#/components/schemas/BaseResponse"
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/User'
-
+                        $ref: "#/components/schemas/User"
+  /users/search:
+    get:
+      tags:
+        - Users
+      summary: Search users by name
+      parameters:
+        - in: query
+          name: name
+          required: true
+          schema:
+            type: string
+          description: Search query
+      responses:
+        "200":
+          description: User found successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/BaseResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/User"
   /users/{id}:
     get:
       tags:
@@ -154,18 +179,18 @@ paths:
             type: integer
           description: User ID
       responses:
-        '200':
+        "200":
           description: User found
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/BaseResponse'
+                  - $ref: "#/components/schemas/BaseResponse"
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/User'
-    
+                        $ref: "#/components/schemas/User"
+
     patch:
       tags:
         - Users
@@ -193,18 +218,18 @@ paths:
                 phone:
                   type: string
       responses:
-        '200':
+        "200":
           description: User updated successfully
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/BaseResponse'
+                  - $ref: "#/components/schemas/BaseResponse"
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/User'
-    
+                        $ref: "#/components/schemas/User"
+
     delete:
       tags:
         - Users
@@ -217,17 +242,17 @@ paths:
             type: integer
           description: User ID
       responses:
-        '200':
+        "200":
           description: User deleted successfully
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/BaseResponse'
+                  - $ref: "#/components/schemas/BaseResponse"
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/User'
+                        $ref: "#/components/schemas/User"
 
   /users/{id}/roles/{role}:
     patch:
@@ -256,14 +281,14 @@ paths:
                     type: string
                   example: ["admin"]
       responses:
-        '200':
+        "200":
           description: User role updated successfully
           content:
             application/json:
               schema:
                 allOf:
-                  - $ref: '#/components/schemas/BaseResponse'
+                  - $ref: "#/components/schemas/BaseResponse"
                   - type: object
                     properties:
                       data:
-                        $ref: '#/components/schemas/User'
+                        $ref: "#/components/schemas/User"

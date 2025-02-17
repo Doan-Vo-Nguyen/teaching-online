@@ -1,4 +1,4 @@
-import { IBaseResDto } from '../types/IBaseResDto';
+import { IBaseResDto } from '../../types/IBaseResDto';
 
 export const BaseResDto: IBaseResDto = {
    result: null,
