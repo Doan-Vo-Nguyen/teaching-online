@@ -18,8 +18,8 @@ export class Users {
     @Column({type: "varchar", length: 50})
     fullname: string
 
-    @Column({type: "datetime", length: 50})
-    dob: Date
+    @Column({type: "datetime", nullable: true})
+    dob: Date | null
 
     @Column({type: "varchar", length: 10})
     gender: string

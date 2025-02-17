@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "NCC Training NodeJS",
+  "description": "Teaching Online Project",
   "type": "module",
   "main": "index.ts",
   "engines": {
