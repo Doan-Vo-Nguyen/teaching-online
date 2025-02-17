@@ -1,1 +1,0 @@
-{"version":3,"file":"BaseResDto.js","sourceRoot":"","sources":["../../../src/modules/DTO/BaseResDto.ts"],"names":[],"mappings":"AAEA,MAAM,CAAC,MAAM,UAAU,GAAgB;IACpC,MAAM,EAAE,IAAI;IACZ,SAAS,EAAE,IAAI;IACf,OAAO,EAAE,IAAI;IACb,KAAK,EAAE,IAAI;IACX,mBAAmB,EAAE,KAAK;IAC1B,KAAK,EAAE,IAAI;CACb,CAAA"}
