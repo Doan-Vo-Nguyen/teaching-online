@@ -4,4 +4,3 @@ build/
 tmp/
 temp/
 .env
-src/data-source.ts
