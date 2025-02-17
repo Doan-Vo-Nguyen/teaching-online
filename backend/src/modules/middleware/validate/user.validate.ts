@@ -20,6 +20,8 @@ export const validateCreate = (req: Request, res: Response, next: NextFunction) 
         return res.status(400).json({RESPONSE_JSON});
     }
 
+    next();
+    
     function checkFields(fields: string[]) {
         return fields.filter(field => !data[field]);
     }

@@ -1,0 +1,10 @@
+import { IBaseError } from "../types/IBaseError";
+export declare const baseError: (message?: string | null, details?: string | null) => IBaseError;
+export declare const INVALID_TOKEN: IBaseError;
+export declare const INVALID_CREDENTIALS: IBaseError;
+export declare const AUTHEN_ERROR: IBaseError;
+export declare const NOT_FOUND: IBaseError;
+export declare const SERVER_ERROR: IBaseError;
+export declare const BAD_REQUEST: IBaseError;
+export declare const UNAUTHORIZED: IBaseError;
+export declare const FORBIDDEN: IBaseError;
