@@ -4,6 +4,7 @@ import UserService from "../services/users.service";
 import { UserRepository } from "../repositories/users.repository";
 import { NextFunction, Request, Response } from "express";
 import { authentication } from "../middleware/auth.middleware";
+import { validateCreate } from "../middleware/validate/user.validate";
 
 export class UserController extends BaseController {
     private readonly _service: UserService;
@@ -19,7 +20,7 @@ export class UserController extends BaseController {
         this.router.get('/' ,this.getAll);
         this.router.get('/search', this.getByName);
         this.router.get('/:id',this.getById);
-        this.router.post('/', authentication,this.create);
+        this.router.post('/', authentication, validateCreate, this.create);
         this.router.patch('/:id', authentication, this.update);
         this.router.patch('/:id/roles/:role',authentication ,this.updateRole);
         this.router.delete('/:id', authentication ,this.delete);
@@ -40,7 +41,13 @@ export class UserController extends BaseController {
         next: NextFunction,
     ) => {
         const user_id = parseInt(req.params.id, 10);
+        if (!user_id) {
+            return sendResponse(res, false, 400, "User ID is required");
+        }
         const user = await this._service.getById(user_id);
+        if (!user) {
+            return sendResponse(res, false, 404, "User not found");
+        }
         return sendResponse(res, true, 200, "Get user by id successfully", user);
     }
 
@@ -50,7 +57,14 @@ export class UserController extends BaseController {
         next: NextFunction,
     ) => {
         const fullname = req.query.name as string;
+        if (!fullname) {
+            return sendResponse(res, false, 400, "User name is required");
+        }
         const user = await this._service.findByName(fullname);
+
+        if(!user) {
+            return sendResponse(res, false, 404, "User not found");
+        }
         return sendResponse(res, true, 200, "Get user by name successfully", user);
     }
 
