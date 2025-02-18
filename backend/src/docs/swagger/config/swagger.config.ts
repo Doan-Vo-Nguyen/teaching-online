@@ -13,8 +13,11 @@ const options = {
           description: "Production server",
         },
       ],
-    },
-    apis: ["./src/docs/swagger/*/*.yaml"],
-  };
-  
-  export default options;
+  },
+  apis: [
+    "./src/docs/swagger/common.schema.yaml",
+    "./src/docs/swagger/entities/*.yaml"
+  ],
+};
+
+export default options;

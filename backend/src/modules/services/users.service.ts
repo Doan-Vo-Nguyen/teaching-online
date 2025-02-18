@@ -11,7 +11,6 @@ class UserService {
             return await this.userRepository.find(options);
         } catch (error) {
             Logger.error(error);
-            throw new Error('Failed to fetch users');
         }
     }
 
@@ -30,7 +29,6 @@ class UserService {
             return newUser;
         } catch (error) {
             Logger.error(error);
-            throw new Error('Error creating user');
         }
     }
 
@@ -40,7 +38,7 @@ class UserService {
             const updatedUser = await this.userRepository.findById(user_id);
             return updatedUser;
         } catch (error) {
-            throw new Error('Error updating user');
+            Logger.error(error);
         }
     }
 
@@ -49,7 +47,7 @@ class UserService {
             const deletedUser = await this.userRepository.delete(user_id);
             return deletedUser;
         } catch (error) {
-            throw new Error('Error deleting user');
+            Logger.error(error);
         }
     }
 
@@ -58,13 +56,22 @@ class UserService {
             const updatedUser = await this.userRepository.updateRole(user_id, role);
             return updatedUser;
         } catch (error) {
-            throw new Error('Error updating user role');
+            Logger.error(error);
         }
     }
 
     async findByName(fullname: string): Promise<UserDTO> {
         try {
             const user = await this.userRepository.findByName(fullname);
+            return user;
+        } catch (error) {
+            Logger.error(error);
+        }
+    }
+
+    async findByUsernameEmail(username: string, email: string): Promise<UserDTO> {
+        try {
+            const user = await this.userRepository.findByUsernameEmail(username, email);
             return user;
         } catch (error) {
             Logger.error(error);

@@ -4,4 +4,5 @@ import { IBaseRepository } from "./base.interface";
 export interface IUserRepository extends IBaseRepository<Users> {
     updateRole(user_id: number, role: string): Promise<Users>
     findByName(fullname: string): Promise<Users>
+    findByUsernameEmail(username: string, email: string): Promise<Users>
 }

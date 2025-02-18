@@ -1,0 +1,81 @@
+components:
+  schemas:
+    Success:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation successful"
+        data:
+          type: object
+          nullable: true
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: "Invalid field_name format"
+        details:
+          type: string
+          example: "Request is invalid during validation"
+        validationErrors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "field_name"
+              message:
+                type: string
+                example: "Invalid field_name format"
+        stackTrace:
+          type: string
+          nullable: true
+          example: null
+
+    ForbiddenError:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 403
+        message:
+          type: string
+          example: "Forbidden"
+        details:
+          type: string
+          example: "You are forbidden to access this resource"
+
+    UnauthorizedError:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 401
+        message:
+          type: string
+          example: "Unauthorized"
+        details:
+          type: string
+          example: "Authentication error"
+
+    NotFoundError:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 404
+        message:
+          type: string
+          example: "Not Found"
+        details:
+          type: string
+          example: "Resource not found"
