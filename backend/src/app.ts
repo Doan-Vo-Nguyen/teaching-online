@@ -55,7 +55,6 @@ export class Application {
     try {
       
       await AppDataSource.initialize();
-      await AppDataSource2.initialize();
       console.info('Data Source has been initialized!');
       this.app.listen(port, () => {
         Logger.info(`Server ${name} is running at port ${port}`);

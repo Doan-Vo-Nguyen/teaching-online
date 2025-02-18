@@ -44,11 +44,15 @@ export const validate = (requestField) => {
 
 export const validParamId = (req: Request, res: Response, next: NextFunction) => {
     const id = parseInt(req.params.id, 10);
-    if (!id) {
+
+    if (Number.isNaN(id) || id <= 0) {
         return res.status(400).json(INVALID_REQUEST);
     }
+
     next();
-}
+};
+
+
 
 export const validQueryInput = (req: Request, res: Response, next: NextFunction) => {
     const input = req.query.input as string;
