@@ -5,6 +5,8 @@ import { UserRepository } from "../repositories/users.repository";
 import { NextFunction, Request, Response } from "express";
 import { authentication } from "../middleware/auth.middleware";
 import { validateCreate } from "../middleware/validate/user.validate";
+import { validParamId} from "../middleware/validate/field.validate";
+import { FIELD_REQUIRED, INVALID_REQUEST, USER_NOT_EXISTS } from "../DTO/resDto/BaseErrorDto";
 
 export class UserController extends BaseController {
     private readonly _service: UserService;
@@ -19,11 +21,11 @@ export class UserController extends BaseController {
     public initRoutes(): void {
         this.router.get('/' ,this.getAll);
         this.router.get('/search', this.getByName);
-        this.router.get('/:id',this.getById);
+        this.router.get('/:id',validParamId,this.getById);
         this.router.post('/', authentication, validateCreate, this.create);
         this.router.patch('/:id', authentication, this.update);
-        this.router.patch('/:id/roles/:role',authentication ,this.updateRole);
-        this.router.delete('/:id', authentication ,this.delete);
+        this.router.patch('/:id/roles/:role',authentication, this.updateRole);
+        this.router.delete('/:id', authentication, validParamId, this.delete);
     }
 
     private readonly getAll = async (
@@ -41,12 +43,9 @@ export class UserController extends BaseController {
         next: NextFunction,
     ) => {
         const user_id = parseInt(req.params.id, 10);
-        if (!user_id) {
-            return sendResponse(res, false, 400, "User ID is required");
-        }
         const user = await this._service.getById(user_id);
-        if (!user) {
-            return sendResponse(res, false, 404, "User not found");
+        if(!user) {
+            return sendResponse(res, false, 404, "User not found", USER_NOT_EXISTS);
         }
         return sendResponse(res, true, 200, "Get user by id successfully", user);
     }
@@ -58,12 +57,12 @@ export class UserController extends BaseController {
     ) => {
         const fullname = req.query.name as string;
         if (!fullname) {
-            return sendResponse(res, false, 400, "User name is required");
+            return sendResponse(res, false, 400, "User name is required", FIELD_REQUIRED);
         }
         const user = await this._service.findByName(fullname);
 
         if(!user) {
-            return sendResponse(res, false, 404, "User not found");
+            return sendResponse(res, false, 404, "User not found", USER_NOT_EXISTS);
         }
         return sendResponse(res, true, 200, "Get user by name successfully", user);
     }
@@ -107,7 +106,11 @@ export class UserController extends BaseController {
         next: NextFunction,
     ) => {
         const user_id = parseInt(req.params.id, 10);
-        const user = await this._service.delete(user_id);
-        return sendResponse(res, true, 200, "Delete user successfully", user);
+        const data = await this._service.getById(user_id);
+        if(!data) {
+            return sendResponse(res, false, 404, "User not found", USER_NOT_EXISTS);
+        }
+        const result = await this._service.delete(user_id);
+        return sendResponse(res, true, 200, "Delete user successfully", result);
     }
 }
