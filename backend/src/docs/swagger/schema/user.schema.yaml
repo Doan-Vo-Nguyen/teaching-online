@@ -21,7 +21,7 @@ components:
           type: string
           description: The user fullname
         dob:
-          type: Date
+          type: string
           format: date
           description: The user date of birth
         password:
@@ -127,6 +127,8 @@ paths:
                   type: string
                   example: "abc@gmail.com"
                 phone:
+                  type: string
+                  example: "1234567890"
 
       responses:
         "200":
@@ -140,6 +142,18 @@ paths:
                     properties:
                       data:
                         $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /users/search:
     get:
       tags:

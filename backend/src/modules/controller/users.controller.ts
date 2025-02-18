@@ -8,7 +8,6 @@ import { validateCreate } from "../middleware/validate/user.validate";
 import { validParamId} from "../middleware/validate/field.validate";
 import bcrypt from 'bcrypt';
 import { CREATED_USER_FAILED, EMAIL_EXISTS, FIELD_REQUIRED, USER_EXISTS, USER_NOT_EXISTS, USERNAME_EXISTS } from "../DTO/resDto/BaseErrorDto";
-import { send } from "process";
 
 const saltRound = 10;
 export class UserController extends BaseController {
