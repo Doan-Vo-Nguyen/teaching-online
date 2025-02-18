@@ -9,5 +9,7 @@ info:
     email: wwwnguyendoan123@gmail.com
 
 servers:
-  - url: http://localhost:3000
+  - url: http://localhost:10000
     description: Development server
+  - url: https://teaching-online-server.onrender.com/
+    description: Production server

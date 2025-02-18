@@ -41,7 +41,12 @@ export class Application {
     this._app = express();
     this._app.use(express.json()); // Add this to parse JSON payloads
     this._app.use(express.urlencoded({ extended: true })); // Optional for form-encoded payloads
-    this._app.use(cors());
+    this._app.use(cors({
+      origin: ['http://localhost:3000', 'https://teaching-online-server.onrender.com/', 'http://localhost:10000'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      credentials: true
+  }));
     this.initControllers()
     this.initSwagger();
   }
