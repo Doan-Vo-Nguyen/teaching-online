@@ -63,7 +63,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BaseResponse"
+                $ref: "#/components/types_schema/BaseResponse"
   /classes/{id}:
     get:
       tags: 
@@ -81,7 +81,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BaseResponse"
+                $ref: "#/components/types_schema/BaseResponse"
     patch:
       tags:
         - Classes
@@ -105,7 +105,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BaseResponse"
+                $ref: "#/components/types_schema/BaseResponse"
     delete:
       summary: Delete a class
       tags:
@@ -116,7 +116,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/BaseResponse"
+                $ref: "#/components/types_schema/BaseResponse"
     parameters:
         - in: path
           name: id
