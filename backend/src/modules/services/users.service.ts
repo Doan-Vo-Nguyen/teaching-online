@@ -68,6 +68,15 @@ class UserService {
             Logger.error(error);
         }
     }
+
+    async findByUsernameEmail(username: string, email: string): Promise<UserDTO> {
+        try {
+            const user = await this.userRepository.findByUsernameEmail(username, email);
+            return user;
+        } catch (error) {
+            Logger.error(error);
+        }
+    }
 }
 
 export default UserService;

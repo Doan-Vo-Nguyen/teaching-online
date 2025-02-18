@@ -25,5 +25,10 @@ export const SERVER_ERROR = BaseErrorDto("Server error", "An error occurred on t
 export const BAD_REQUEST = BaseErrorDto("Bad request", "Request is invalid");
 export const UNAUTHORIZED = BaseErrorDto("Unauthorized", "You are not authorized to access this resource");
 export const FORBIDDEN = BaseErrorDto("Forbidden", "You are not allowed to access this resource");
-export const USER_NOT_EXISTS = BaseErrorDto("User does not exist");
 export const FIELD_REQUIRED = BaseErrorDto("Field is required", "You must provide a value for this field");
+
+export const USER_NOT_EXISTS = BaseErrorDto("User does not exist");
+export const USER_EXISTS = BaseErrorDto("User have already existed");
+export const USERNAME_EXISTS = BaseErrorDto("Username is already taken");
+export const EMAIL_EXISTS = BaseErrorDto("Email is already existed");
+export const CREATED_USER_FAILED = BaseErrorDto("Create user failed");

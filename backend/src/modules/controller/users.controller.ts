@@ -6,8 +6,11 @@ import { NextFunction, Request, Response } from "express";
 import { authentication } from "../middleware/auth.middleware";
 import { validateCreate } from "../middleware/validate/user.validate";
 import { validParamId} from "../middleware/validate/field.validate";
-import { FIELD_REQUIRED, INVALID_REQUEST, USER_NOT_EXISTS } from "../DTO/resDto/BaseErrorDto";
+import bcrypt from 'bcrypt';
+import { CREATED_USER_FAILED, EMAIL_EXISTS, FIELD_REQUIRED, USER_EXISTS, USER_NOT_EXISTS, USERNAME_EXISTS } from "../DTO/resDto/BaseErrorDto";
+import { send } from "process";
 
+const saltRound = 10;
 export class UserController extends BaseController {
     private readonly _service: UserService;
 
@@ -72,8 +75,26 @@ export class UserController extends BaseController {
         res: Response,
         next: NextFunction,
     ) => {
-        const user = req.body;
-        const newUser = await this._service.create(user);
+        const userInput = req.body;
+        const { username, email } = userInput;
+        const existedUser = await this._service.findByUsernameEmail(username, email);
+        if(existedUser) {
+            if(existedUser.username === username) {
+                return sendResponse(res, false, 400, "Username already exists", USERNAME_EXISTS);
+            }
+            else if(existedUser.email === email) {
+                return sendResponse(res, false, 400, "Email already exists", EMAIL_EXISTS);
+            }
+            return sendResponse(res, false, 500, "User already exists", USER_EXISTS);
+        }
+
+        // hash password
+        const hashedPassword = bcrypt.hashSync(userInput.password, saltRound);
+        userInput.password = hashedPassword;
+        const newUser = await this._service.create(userInput);
+        if(!newUser) {
+            return sendResponse(res, false, 500, "Create user failed", CREATED_USER_FAILED)
+        }
         return sendResponse(res, true, 200, "Create user successfully", newUser);
     }
 
