@@ -3,14 +3,15 @@ import pretty from 'pino-pretty';
 
 const prettyStream = pretty({
   colorize: true,
-  translateTime: 'yyyy-mm-dd HH:MM:ss.l', 
+  translateTime: 'yyyy-mm-dd HH:MM:ss.l',
 });
 
-const logger = pino({
-  level: 'info',
-}, pino.multistream([
-  { stream: prettyStream }
-]));
+const logger = pino(
+  {
+    level: 'info',
+  },
+  pino.multistream([{ stream: prettyStream }])
+);
 
 interface LogError {
   field: string;
@@ -22,10 +23,20 @@ export const Logger = {
     logger.info({ message, timestamp: new Date().toISOString() });
   },
   error: (message: unknown, errors?: LogError[]) => {
+    let errorMessage = '';
+
+    if (message instanceof Error) {
+      errorMessage = message.stack || message.message;
+    } else if (typeof message === 'string') {
+      errorMessage = message;
+    } else {
+      errorMessage = JSON.stringify(message, null, 2); // Handle objects, arrays, etc.
+    }
+
     logger.error({
-      message,
-      errors: errors?.map(err => ({ field: err.field, error: err.error })) || [],
-      timestamp: new Date().toISOString()
+      message: errorMessage,
+      errors: errors?.map((err) => ({ field: err.field, error: err.error })) || [],
+      timestamp: new Date().toISOString(),
     });
-  }
+  },
 };

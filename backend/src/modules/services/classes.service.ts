@@ -43,7 +43,7 @@ class ClassesService{
             const updatedClasses = await this.classesRepository.findById(class_id);
             return updatedClasses;
         } catch (error) {
-            throw new Error('Error updating class');
+            Logger.error(error);
         }
     }
 
