@@ -51,6 +51,80 @@ components:
         updated_at:
           type: string
           format: date-time
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: "Invalid field_name format"
+        details:
+          type: string
+          example: "Request is invalid during validation"
+        validationErrors:
+          type: array
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+                example: "field_name"
+              message:
+                type: string
+                example: "Invalid field_name format"
+        stackTrace:
+          type: string
+          nullable: true
+          example: null
+    ForbiddenError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            code:
+              type: integer
+              example: 403
+            message:
+              type: string
+              example: "Forbidden"
+    UnauthorizedError:
+      allOf:
+        - $ref: '#/components/schemas/Error'
+        - type: object
+          properties:
+            code:
+              type: integer
+              example: 401
+            message:
+              type: string
+              example: "Unauthorized"
+    Response:
+      type: object
+      properties:
+        result:
+          type: object
+          nullable: true
+          example: null
+        targetUrl:
+          type: string
+          nullable: true
+          example: null
+        success:
+          type: boolean
+          default: false
+        error:
+          oneOf:
+            - $ref: '#/components/schemas/ForbiddenError'
+            - $ref: '#/components/schemas/UnauthorizedError'
+            - $ref: '#/components/schemas/Error'
+        unAuthorizedRequest:
+          type: boolean
+          default: false
+        __abp:
+          type: boolean
+          default: true
   securitySchemes:
     bearerAuth:
       type: http
@@ -66,8 +140,6 @@ paths:
       tags:
         - Users
       summary: Returns all users
-      security:
-        - bearerAuth: []
       responses:
         "200":
           description: List of users
@@ -87,13 +159,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/UnauthorizedError"
         "403":
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/ForbiddenError"
 
     post:
       tags:
@@ -147,13 +219,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/UnauthorizedError"
         "403":
           description: Forbidden
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Error"
+                $ref: "#/components/schemas/ForbiddenError"
   /users/search:
     get:
       tags:
@@ -209,6 +281,8 @@ paths:
       tags:
         - Users
       summary: Update user
+      security:
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
@@ -248,6 +322,8 @@ paths:
       tags:
         - Users
       summary: Delete user
+      security:
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
@@ -273,6 +349,8 @@ paths:
       tags:
         - Users
       summary: Update user role
+      security:
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
