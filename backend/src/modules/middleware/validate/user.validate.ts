@@ -68,16 +68,25 @@ export const validatePhoneAndEMail = (req: Request, res: Response, next: NextFun
     const phone = req.body.phone as string;
     const email = req.body.email as string;
 
-    if (!phoneRegex.test(phone) && !emailRegex.test(email)) {
-        return res.status(400).json(WRONG_BOTH_PHONE_EMAIL);
+    // If both phone and email are not provided, skip validation
+    if (!phone && !email) {
+        return next();
     }
-    if(!phoneRegex.test(phone)) {
+
+    // If phone is provided but invalid
+    if (phone && !phoneRegex.test(phone)) {
         return res.status(400).json(WRONG_PHONE_FORMAT);
     }
 
-    if(!emailRegex.test(email)) {
+    // If email is provided but invalid
+    if (email && !emailRegex.test(email)) {
         return res.status(400).json(WRONG_EMAIL_FORMAT);
     }
 
-    next(); 
+    // If both phone and email are provided but both are invalid
+    if (phone && email && !phoneRegex.test(phone) && !emailRegex.test(email)) {
+        return res.status(400).json(WRONG_BOTH_PHONE_EMAIL);
+    }
+
+    next();
 }

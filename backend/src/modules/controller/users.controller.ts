@@ -109,7 +109,7 @@ export class UserController extends BaseController {
     private readonly updateRole = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const user_id = parseInt(req.params.id, 10);
-            const role = req.params.role;
+            const role = req.body.role;
             const updatedUser = await this._service.updateRole(user_id, role);
             return sendResponse(res, true, 200, "Update user role successfully", updatedUser);
         } catch (error) {

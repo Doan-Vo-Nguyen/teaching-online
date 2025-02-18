@@ -18,7 +18,7 @@ export class ClassesController extends BaseController {
         this.router.get('/', this.getAll);
         this.router.get('/:id', this.getById);
         this.router.post('/', this.create);
-        this.router.put('/:id', this.update);
+        this.router.patch('/:id', this.update);
         this.router.delete('/:id', this.delete);
     }
 
