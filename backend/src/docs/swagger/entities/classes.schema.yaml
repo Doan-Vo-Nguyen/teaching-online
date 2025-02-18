@@ -22,7 +22,6 @@ components:
         updated_at:
           type: string
           format: date-time
-
   securitySchemes:
     bearerAuth:
       type: http
@@ -30,7 +29,7 @@ components:
       bearerFormat: JWT
 
 security:
-  - bearerAuth: [process.env.JWT_TOKEN_AUTH]
+  - bearerAuth: []
 
 paths:
   /classes:
@@ -44,9 +43,28 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Classes"
+                $ref: "#/components/schemas/Success"
+              example:
+                success: true
+                message: "Classes retrieved successfully"
+                data: 
+                  - class_name: "Mathematics"
+                    description: "Mathematics class"
+                    teacher_id: 1
+                    "created_at": "2025-02-18T00:00:00.000Z"
+                    "updated_at": "2025-002-18T00:00:00.000Z"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
     post:
       tags:
         - Classes
@@ -58,30 +76,71 @@ paths:
             schema:
               $ref: "#/components/schemas/Classes"
       responses:
-        "201":
+        "200":
           description: Class created
           content:
             application/json:
               schema:
-                $ref: "#/components/types_schema/BaseResponse"
+                $ref: "#/components/schemas/Success"
+              example:
+                success: true
+                message: "Class created successfully"
+                data:
+                  - class_name: "Mathematics"
+                    description: "Mathematics class"
+                    teacher_id: 1
+                    "updated_at": "2025-02-18T00:00:00.000Z"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
   /classes/{id}:
     get:
       tags: 
         - Classes
       summary: Get a class by id
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: The class id
       responses:
         "200":
           description: A class
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Classes"
-        "404":
-          description: Class not found
+                $ref: "#/components/schemas/Success"
+              example:
+                success: true
+                message: "Class retrieved successfully"
+                data:
+                  - class_name: "Mathematics"
+                    description: "Mathematics class"
+                    teacher_id: 1
+                    "updated_at": "2025-002-18T00:00:00.000Z"
+        "401":
+          description: Unauthorized
           content:
             application/json:
               schema:
-                $ref: "#/components/types_schema/BaseResponse"
+                $ref: "#/components/schemas/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
     patch:
       tags:
         - Classes
@@ -97,30 +156,65 @@ paths:
         required: true
         content:
           application/json:
-            schema:
-              $ref: "#/components/schemas/Classes"
+              schema:
+                $ref: "#/components/schemas/Classes"
       responses:
         "200":
           description: Class updated
           content:
             application/json:
               schema:
-                $ref: "#/components/types_schema/BaseResponse"
+                $ref: "#/components/schemas/Success"
+              example:
+                success: true
+                message: "Class retrieved successfully"
+                data:
+                  - class_name: "Mathematics"
+                    description: "Mathematics class"
+                    teacher_id: 1
+                    "updated_at": "2025-002-18T00:00:00.000Z"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
     delete:
       summary: Delete a class
       tags:
         - Classes
-      responses:
-        "200":
-          description: Class deleted
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/types_schema/BaseResponse"
-    parameters:
+      parameters:
         - in: path
           name: id
           required: true
           schema:
             type: integer
           description: The class id
+      responses:
+        "200":
+          description: Class deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                success: true
+                message: "Class deleted successfully"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"

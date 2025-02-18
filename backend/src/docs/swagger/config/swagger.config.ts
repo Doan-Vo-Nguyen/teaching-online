@@ -12,7 +12,10 @@ const options = {
       },
     ],
   },
-  apis: ["./src/docs/swagger/entities/*.yaml"], // Adjust this path to include only entity schemas
+  apis: [
+    "./src/docs/swagger/common.schema.yaml",
+    "./src/docs/swagger/entities/*.yaml"
+  ],
 };
 
 export default options;
