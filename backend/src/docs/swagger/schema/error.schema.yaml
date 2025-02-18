@@ -1,0 +1,25 @@
+# docs/swagger/schemas/error.yaml
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+        code:
+          type: integer
+        message:
+          type: string
+        details:
+          type: string
+        validationErrors:
+          type: array
+          items:
+            type: string
+        stackTrace:
+          type: string
+          nullable: true
+        success:
+          type: boolean
+          default: false
