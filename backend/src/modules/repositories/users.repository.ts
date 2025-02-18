@@ -45,4 +45,21 @@ export class UserRepository extends BaseRepository<Users> {
         }
         return user;
     }
+
+    async findByUsernameEmail(username: string, email: string): Promise<Users> {
+        const user = await this.repository.findOne({
+            where: { username}
+        });
+        if (user) {
+            return user;
+        }
+
+        let userByEmail = await this.repository.findOne({
+            where: { email}
+        });
+        if (userByEmail) {
+            return userByEmail;
+        }
+        return null;
+    }
 }

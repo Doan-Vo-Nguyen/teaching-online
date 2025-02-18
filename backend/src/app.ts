@@ -3,7 +3,7 @@ import express from 'express';
 import {Express} from 'express-serve-static-core';
 import 'dotenv/config'
 import { sendResponse } from './common/interfaces/base-response';
-import { AppDataSource, AppDataSource2 } from './data-source';
+import { AppDataSource} from './data-source';
 import { CommentController } from './modules/controller/comment.controller';
 import { UserController } from './modules/controller/users.controller';
 import { ClassesController } from './modules/controller/classes.controller';
@@ -11,6 +11,7 @@ import { Logger } from './modules/config/logger';
 import swaggerJsDocs from 'swagger-jsdoc';
 import * as swaggerUi from 'swagger-ui-express';
 import options from './docs/swagger/config/swagger.config';
+import cors from 'cors';
 
 export class Application {
   private _app: Express | undefined;
@@ -40,6 +41,7 @@ export class Application {
     this._app = express();
     this._app.use(express.json()); // Add this to parse JSON payloads
     this._app.use(express.urlencoded({ extended: true })); // Optional for form-encoded payloads
+    this._app.use(cors()) // enable CORS
     this.initControllers()
     this.initSwagger();
   }
