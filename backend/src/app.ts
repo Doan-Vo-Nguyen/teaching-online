@@ -25,6 +25,8 @@ export class Application {
 
   public init() {
     this._app = express();
+    this.initMiddleware();
+    this.initControllers();
     this._app.use(express.json()); // Add this to parse JSON payloads
     this._app.use(express.urlencoded({ extended: true })); // Optional for form-encoded payloads
     this._app.use(cors({
@@ -80,7 +82,7 @@ export class Application {
     const name = process.env.APP_SERVER || 'Teaching_Online_Server';
     try {
       await AppDataSource.initialize();
-      console.info('Data Source has been initialized!');
+      Logger.info('Data Source has been initialized!');
       this.app.listen(port, () => {
         Logger.info(`Server ${name} is running at port ${port}`);
       });
