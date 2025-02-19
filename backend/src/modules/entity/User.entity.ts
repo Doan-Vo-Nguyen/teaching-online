@@ -1,4 +1,11 @@
 import { Entity, PrimaryGeneratedColumn, Column,CreateDateColumn } from "typeorm"
+import bcrypt from 'bcrypt'
+import jwt from 'jsonwebtoken'
+import dotenv from 'dotenv'
+
+dotenv.config()
+
+const JWT_KEY = process.env.JWT_KEY
 
 export enum Role {
     ADMIN = 'admin',
@@ -51,4 +58,21 @@ export class Users {
 
     @CreateDateColumn()
     updated_at: Date
+
+    async comparePassHash(plainPass: string): Promise<boolean> {
+        return await bcrypt.compare(plainPass, this.password)
+    }
+
+    async generateAuthToken(): Promise<string> {
+        const token = jwt.sign(
+            {
+                id: this.user_id,
+                username: this.username,
+                fullname: this.fullname,
+                role: this.role
+            },
+            JWT_KEY,
+        )
+        return token;
+    }
 }

@@ -11,6 +11,9 @@ export class Classes {
     @Column({type: "text"})
     description: string
 
+    @Column({type: "char", length: 7})
+    class_code: string
+
     @Column()
     teacher_id: number
 

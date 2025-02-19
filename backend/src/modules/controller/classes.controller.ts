@@ -47,7 +47,8 @@ export class ClassesController extends BaseController {
         next: NextFunction,
     ) => {
         const classes = req.body;
-        const newClasses = await this._service.create(classes);
+        const randomClassCode = Math.random().toString(36).substring(2, 5) + ' ' + Math.random().toString(36).substring(2, 5);
+        const newClasses = await this._service.create({ ...classes, class_code: randomClassCode });
         return sendResponse(res, true, 200, "Create class successfully", newClasses);
     }
 
