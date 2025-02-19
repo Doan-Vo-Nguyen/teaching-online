@@ -1,5 +1,6 @@
 import { Logger } from "../config/logger";
 import { UserDTO } from "../DTO/users.dto";
+import { Users } from "../entity/User.entity";
 import { IUserRepository } from "../interfaces/users.interface";
 import dotenv from 'dotenv';
 dotenv.config();
@@ -23,16 +24,18 @@ class UserService {
         }
     }
 
-    async create(user: UserDTO): Promise<UserDTO> {
+    async create(user: UserDTO): Promise<Users> {
         try {
-            const newUser = await this.userRepository.save(user);
+            const userEntity = new Users();
+            Object.assign(userEntity, user);
+            const newUser = await this.userRepository.save(userEntity);
             return newUser;
         } catch (error) {
             Logger.error(error);
         }
     }
 
-    async update(user_id: number, user: UserDTO): Promise<UserDTO> {
+    async update(user_id: number, user: UserDTO): Promise<Users> {
         try {
             await this.userRepository.update(user_id, user);
             const updatedUser = await this.userRepository.findById(user_id);
@@ -42,7 +45,7 @@ class UserService {
         }
     }
 
-    async delete(user_id: number): Promise<UserDTO> {
+    async delete(user_id: number): Promise<Users> {
         try {
             const deletedUser = await this.userRepository.delete(user_id);
             return deletedUser;
@@ -51,7 +54,7 @@ class UserService {
         }
     }
 
-    async updateRole(user_id: number, role: string): Promise<UserDTO> {
+    async updateRole(user_id: number, role: string): Promise<Users> {
         try {
             const updatedUser = await this.userRepository.updateRole(user_id, role);
             return updatedUser;
@@ -60,7 +63,7 @@ class UserService {
         }
     }
 
-    async findByName(fullname: string): Promise<UserDTO> {
+    async findByName(fullname: string): Promise<Users> {
         try {
             const user = await this.userRepository.findByName(fullname);
             return user;
@@ -69,7 +72,7 @@ class UserService {
         }
     }
 
-    async findByUsernameEmail(username: string, email: string): Promise<UserDTO> {
+    async findByUsernameEmail(username: string, email: string): Promise<Users> {
         try {
             const user = await this.userRepository.findByUsernameEmail(username, email);
             return user;

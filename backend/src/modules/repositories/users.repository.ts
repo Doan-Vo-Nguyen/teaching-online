@@ -8,29 +8,29 @@ export class UserRepository extends BaseRepository<Users> {
         super(Users);
     }
 
-    async find(options: any): Promise<UserDTO[]> {
+    async find(options: any): Promise<Users[]> {
         return this.repository.find(options);
     }
 
-    async findById(user_id: number): Promise<UserDTO> {
+    async findById(user_id: number): Promise<Users> {
         return this.repository.findOneBy({ user_id });
     }
 
-    async save(user: UserDTO): Promise<UserDTO> {
+    async save(user: UserDTO): Promise<Users> {
         return this.repository.save(user);
     }
 
-    async update(user_id: number, user: UserDTO): Promise<UserDTO> {
+    async update(user_id: number, user: UserDTO): Promise<Users> {
         await this.repository.update(user_id, user);
         return this.repository.findOneBy({ user_id });
     }
 
-    async delete(user_id: number): Promise<UserDTO> {
+    async delete(user_id: number): Promise<Users> {
         const user = await this.repository.findOneBy({ user_id });
         return this.repository.remove(user);
     }
 
-    async updateRole(user_id: number, role: Role): Promise<UserDTO> {
+    async updateRole(user_id: number, role: Role): Promise<Users> {
         const user = await this.repository.findOneBy({ user_id });
         user.role = role;
         return this.repository.save(user);
@@ -61,5 +61,22 @@ export class UserRepository extends BaseRepository<Users> {
             return userByEmail;
         }
         return null;
+    }
+
+    async findByEmail(email: string): Promise<Users> {
+        const user = await this.repository.findOne({
+            where: { email }
+        });
+        return user;
+    }
+
+    async comparePassword(email: string, plainPass: string): Promise<boolean> {
+        const user = await this.repository.findOne({ where: { email } });
+        return await user.comparePassHash(plainPass);
+    }
+
+    async generateToken(email: string): Promise<string> {
+        const user = await this.repository.findOne({ where: { email } });
+        return await user.generateAuthToken();
     }
 }

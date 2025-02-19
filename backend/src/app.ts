@@ -7,6 +7,8 @@ import { CommentController } from './modules/controller/comment.controller';
 import { UserController } from './modules/controller/users.controller';
 import { ClassesController } from './modules/controller/classes.controller';
 import { LecturesController } from './modules/controller/lectures.controller';
+import { AuthenController } from './modules/controller/authen.controller';
+import { authentication } from './modules/middleware/auth.middleware';
 import { Logger } from './modules/config/logger';
 import swaggerJsDocs from 'swagger-jsdoc';
 import * as swaggerUi from 'swagger-ui-express';
@@ -56,19 +58,26 @@ export class Application {
   }
 
   private initControllers() {
+    // Public routes
     this._app?.get('/', (req: Request, res: Response) => {
       return sendResponse(res, true, 200, 'Hello World!');
     });
 
-    const controllers = [
+    // Authentication routes (public)
+    const authenController = new AuthenController('/auth');
+    this._app?.use(authenController.path, authenController.router);
+
+    // Protected routes
+    const protectedControllers = [
       new CommentController('/comment'),
       new UserController('/users'),
       new ClassesController('/classes'),
       new LecturesController('/lectures')
     ];
 
-    controllers.forEach(controller => {
-      this._app?.use(controller.path, controller.router);
+    // Apply authentication middleware to all protected routes
+    protectedControllers.forEach(controller => {
+      this._app?.use(controller.path, authentication, controller.router);
     });
   }
 

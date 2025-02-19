@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { INVALID_REQUEST } from "../../DTO/resDto/BaseErrorDto";
 
-export const validate = (requestField) => {
+export const validate = (requestField: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {
         const data = {...req.body};
         const REQUIRE_FIELDS = requestField;
@@ -9,7 +9,7 @@ export const validate = (requestField) => {
         INVALID_ERROR.error.validationErrors = [];
 
         // checking missing fields
-        const invalidField = checkField(REQUIRE_FIELDS);
+        const invalidField = checkField(REQUIRE_FIELDS || []);
 
         if(invalidField) {
             res.status(400).json(INVALID_REQUEST);

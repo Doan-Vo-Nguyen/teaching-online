@@ -42,3 +42,6 @@ export const WRONG_PASSWORD = BaseErrorDto("Wrong password", "Password is incorr
 export const WRONG_PHONE_FORMAT = BaseErrorDto("Wrong phone format", "Phone number is invalid");
 export const WRONG_EMAIL_FORMAT = BaseErrorDto("Wrong email format", "Email is invalid");
 export const WRONG_BOTH_PHONE_EMAIL = BaseErrorDto("Wrong phone and email format", "Phone number and email are invalid");
+
+// Login Errors
+export const LOGIN_FAILED = BaseErrorDto("Login failed", "Email or password is incorrect");
