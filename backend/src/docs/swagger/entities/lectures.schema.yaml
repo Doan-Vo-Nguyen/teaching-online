@@ -30,11 +30,13 @@ security:
   - bearerAuth: []
 
 paths:
-  /lectures:
+  /app/lectures:
     get:
       tags:
         - Lectures
       summary: Get all lectures
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: A list of lectures
@@ -73,6 +75,8 @@ paths:
     post:
       tags:
         - Lectures
+      security:
+        - bearerAuth: []
       summary: Create a new lecture
       requestBody:
         required: true
@@ -108,11 +112,13 @@ paths:
               example:
                 success: false
                 message: Forbidden 
-  /lectures/{id}:
+  /app/lectures/{id}:
     get:
       tags:
         - Lectures
       summary: Get a lecture by ID
+      security:
+        - bearerAuth: []
       parameters:
         - name: id
           in: path
@@ -161,6 +167,8 @@ paths:
     put:
       tags:
         - Lectures
+      security:
+        - bearerAuth: []
       summary: Update a lecture by ID
       parameters:
         - name: id
@@ -214,6 +222,8 @@ paths:
     delete:
       tags:
         - Lectures
+      security:
+        - bearerAuth: []
       summary: Delete a lecture by ID
       parameters:
         - name: id
