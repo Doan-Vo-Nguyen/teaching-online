@@ -14,8 +14,7 @@ class ClassesService {
             const listClasses = await this.classesRepository.find(options);
             return sendResponse(res, true, 200, "Get all classes successfully", listClasses);
         } catch (error) {
-            Logger.error(error);
-            next(error);
+            this.handleError(error, res, next);
         }
     }
 
@@ -28,19 +27,18 @@ class ClassesService {
             }
             return sendResponse(res, true, 200, "Get class by id successfully", classes);
         } catch (error) {
-            Logger.error(error);
-            next(error);
+            this.handleError(error, res, next);
         }
     }
 
     public readonly create = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const classes: ClassesDTO = req.body;
+            classes.class_code = this.generateRandomCode();
             const newClasses = await this.classesRepository.save(classes);
             return sendResponse(res, true, 200, "Create class successfully", newClasses);
         } catch (error) {
-            Logger.error(error);
-            next(error);
+            this.handleError(error, res, next);
         }
     }
 
@@ -52,8 +50,7 @@ class ClassesService {
             const updatedClasses = await this.classesRepository.findById(class_id);
             return sendResponse(res, true, 200, "Update class successfully", updatedClasses);
         } catch (error) {
-            Logger.error(error);
-            next(error);
+            this.handleError(error, res, next);
         }
     }
 
@@ -67,9 +64,23 @@ class ClassesService {
             const result = await this.classesRepository.delete(class_id);
             return sendResponse(res, true, 200, "Delete class successfully", result);
         } catch (error) {
-            Logger.error(error);
-            next(error);
+            this.handleError(error, res, next);
         }
+    }
+
+    private generateRandomCode(): string {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < 6; i++) {
+            if (i === 3) result += ' ';
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
+    private handleError(error: any, res: Response, next: NextFunction) {
+        Logger.error(error);
+        next(error);
     }
 }
 
