@@ -33,7 +33,7 @@ class ClassesService{
             const newClasses = await this.classesRepository.save(classes);
             return newClasses;
         } catch (error) {
-            throw new Error('Error creating class');
+            Logger.error(error);
         }
     }
 
