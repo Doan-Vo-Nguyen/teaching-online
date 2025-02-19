@@ -58,12 +58,15 @@ export class Application {
     const authenController = new AuthenController('/auth');
     this._app?.use(authenController.path, authenController.router);
 
+    // Middleware for authentication
+    this._app?.use('/app', authentication);
+
     // Protected routes
     const protectedControllers = [
-      new CommentController('/comment'),
-      new UserController('/users'),
-      new ClassesController('/classes'),
-      new LecturesController('/lectures')
+      new CommentController('/app/comment'),
+      new UserController('/app/users'),
+      new ClassesController('/app/classes'),
+      new LecturesController('/app/lectures')
     ];
 
     // Apply authentication middleware to all protected routes
