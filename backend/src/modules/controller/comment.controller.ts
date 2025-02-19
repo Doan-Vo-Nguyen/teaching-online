@@ -10,21 +10,11 @@ export class CommentController extends BaseController {
 
     constructor(path: string) {
         super(path);
-        const commentRepository = new CommentRepository();
-        this._service = new CommentService(commentRepository);
+        this._service = new CommentService();
         this.initRoutes();
     }
 
     public initRoutes(): void {
-        this.router.get('/', this.getAll);
-    }
-
-    private readonly getAll = async (
-        req: Request,
-        res: Response,
-        next: NextFunction,
-    ) => {
-        const listComment = await this._service.getAll();
-        return sendResponse(res, true, 200, "Get all comment successfully", listComment);
+        this.router.get('/', this._service.getAll);
     }
 }

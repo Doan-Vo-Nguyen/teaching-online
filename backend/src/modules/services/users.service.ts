@@ -1,83 +1,115 @@
-import { Logger } from "../config/logger";
-import { UserDTO } from "../DTO/users.dto";
-import { Users } from "../entity/User.entity";
+import { Request, Response, NextFunction } from 'express';
 import { IUserRepository } from "../interfaces/users.interface";
 import dotenv from 'dotenv';
+import { sendResponse } from '../../common/interfaces/base-response';
+import bcrypt from 'bcrypt';
+import { CREATED_USER_FAILED, EMAIL_EXISTS, FIELD_REQUIRED, USER_EXISTS, USER_NOT_EXISTS, USERNAME_EXISTS } from '../DTO/resDto/BaseErrorDto';
+import { UserRepository } from '../repositories/users.repository';
 dotenv.config();
+
+const saltRound = 10;
+
 class UserService {
-    constructor(private readonly userRepository: IUserRepository) {}
+    private readonly userRepository: IUserRepository = new UserRepository();
 
-    async getAll(options: Partial<UserDTO> = {}): Promise<UserDTO[]> {
+
+    public readonly getAll = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            return await this.userRepository.find(options);
+            const listUser = await this.userRepository.find({});
+            return sendResponse(res, true, 200, "Get all user successfully", listUser);
         } catch (error) {
-            Logger.error(error);
+            next(error);
         }
     }
 
-    async getById(user_id: number): Promise<UserDTO> {
+    public readonly getById = async (req: Request, res: Response, next: NextFunction) => {
         try {
+            const user_id = parseInt(req.params.id, 10);
             const user = await this.userRepository.findById(user_id);
-            return user;
+            if (!user) {
+                return sendResponse(res, false, 404, "User not found", USER_NOT_EXISTS);
+            }
+            return sendResponse(res, true, 200, "Get user by id successfully", user);
         } catch (error) {
-            Logger.error(error);
+            next(error);
         }
     }
 
-    async create(user: UserDTO): Promise<Users> {
+    public readonly getByName = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const userEntity = new Users();
-            Object.assign(userEntity, user);
-            const newUser = await this.userRepository.save(userEntity);
-            return newUser;
-        } catch (error) {
-            Logger.error(error);
-        }
-    }
-
-    async update(user_id: number, user: UserDTO): Promise<Users> {
-        try {
-            await this.userRepository.update(user_id, user);
-            const updatedUser = await this.userRepository.findById(user_id);
-            return updatedUser;
-        } catch (error) {
-            Logger.error(error);
-        }
-    }
-
-    async delete(user_id: number): Promise<Users> {
-        try {
-            const deletedUser = await this.userRepository.delete(user_id);
-            return deletedUser;
-        } catch (error) {
-            Logger.error(error);
-        }
-    }
-
-    async updateRole(user_id: number, role: string): Promise<Users> {
-        try {
-            const updatedUser = await this.userRepository.updateRole(user_id, role);
-            return updatedUser;
-        } catch (error) {
-            Logger.error(error);
-        }
-    }
-
-    async findByName(fullname: string): Promise<Users> {
-        try {
+            const fullname = req.query.name as string;
+            if (!fullname) {
+                return sendResponse(res, false, 400, "User name is required", FIELD_REQUIRED);
+            }
             const user = await this.userRepository.findByName(fullname);
-            return user;
+            if (!user) {
+                return sendResponse(res, false, 404, "User not found", USER_NOT_EXISTS);
+            }
+            return sendResponse(res, true, 200, "Get user by name successfully", user);
         } catch (error) {
-            Logger.error(error);
+            next(error);
         }
     }
 
-    async findByUsernameEmail(username: string, email: string): Promise<Users> {
+    public readonly create = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const user = await this.userRepository.findByUsernameEmail(username, email);
-            return user;
+            const userInput = req.body;
+            const { username, email } = userInput;
+            const existedUser = await this.userRepository.findByUsernameEmail(username, email);
+            if (existedUser) {
+                if (existedUser.username === username) {
+                    return sendResponse(res, false, 400, "Username already exists", USERNAME_EXISTS);
+                } else if (existedUser.email === email) {
+                    return sendResponse(res, false, 400, "Email already exists", EMAIL_EXISTS);
+                }
+                return sendResponse(res, false, 500, "User already exists", USER_EXISTS);
+            }
+
+            // hash password
+            userInput.password = bcrypt.hashSync(userInput.password, saltRound);
+            const newUser = await this.userRepository.save(userInput);
+            if (!newUser) {
+                return sendResponse(res, false, 500, "Create user failed", CREATED_USER_FAILED);
+            }
+            return sendResponse(res, true, 200, "Create user successfully", newUser);
         } catch (error) {
-            Logger.error(error);
+            next(error);
+        }
+    }
+
+    public readonly update = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const id = parseInt(req.params.id, 10);
+            const user = { ...req.body, updated_at: new Date() };
+            const updatedUser = await this.userRepository.update(id, user);
+            return sendResponse(res, true, 200, "Update user successfully", updatedUser);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    public readonly updateRole = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const user_id = parseInt(req.params.id, 10);
+            const role = req.body.role;
+            const updatedUser = await this.userRepository.updateRole(user_id, role);
+            return sendResponse(res, true, 200, "Update user role successfully", updatedUser);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    public readonly delete = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const user_id = parseInt(req.params.id, 10);
+            const data = await this.userRepository.findById(user_id);
+            if (!data) {
+                return sendResponse(res, false, 404, "User not found", USER_NOT_EXISTS);
+            }
+            const result = await this.userRepository.delete(user_id);
+            return sendResponse(res, true, 200, "Delete user successfully", result);
+        } catch (error) {
+            next(error);
         }
     }
 }
