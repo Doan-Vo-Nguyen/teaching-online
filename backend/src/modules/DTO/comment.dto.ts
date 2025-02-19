@@ -1,7 +1,10 @@
 import {IsString, IsNotEmpty, IsNumber, Min, Max} from 'class-validator'
 import { Type } from '../entity/Comment.mongo'
+import { ObjectId } from 'typeorm'
 
 export class CommentDTO {
+    id: ObjectId
+    comment_id: number
     user_id: number
     target_id: number
     target_type: Type
