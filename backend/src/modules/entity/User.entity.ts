@@ -69,7 +69,9 @@ export class Users {
                 id: this.user_id,
                 username: this.username,
                 fullname: this.fullname,
-                role: this.role
+                role: this.role,
+                email: this.email,
+                profile_picture: this.profile_picture,
             },
             JWT_KEY,
         )
