@@ -4,68 +4,61 @@ import { Logger } from "../config/logger";
 import { sendResponse } from "../../common/interfaces/base-response";
 import { IClassesRepository } from '../interfaces/classes.interface';
 import { ClassesRepository } from '../repositories/classes.repository';
+import { ApiError } from '../types/ApiError';
+import { CREATE_FAILED, FIELD_REQUIRED, NOT_FOUND } from '../DTO/resDto/BaseErrorDto';
 
 class ClassesService {
     private readonly classesRepository: IClassesRepository = new ClassesRepository();
 
-    public readonly getAll = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const options: Partial<ClassesDTO> = req.query;
-            const listClasses = await this.classesRepository.find(options);
-            return sendResponse(res, true, 200, "Get all classes successfully", listClasses);
-        } catch (error) {
-            this.handleError(error, res, next);
-        }
+    public async getAllClasses() {
+        return await this.classesRepository.find({});
     }
 
-    public readonly getById = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const class_id = parseInt(req.params.id, 10);
-            const classes = await this.classesRepository.findById(class_id);
-            if (!classes) {
-                return sendResponse(res, false, 404, "Class not found", null);
-            }
-            return sendResponse(res, true, 200, "Get class by id successfully", classes);
-        } catch (error) {
-            this.handleError(error, res, next);
+    public async getClassById(class_id: number) {
+        if (!class_id) {
+            throw new ApiError(400, FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
         }
+        const classData = await this.classesRepository.findById(class_id);
+        if (!classData) {
+            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+        }
+        return classData;
     }
 
-    public readonly create = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const classes: ClassesDTO = req.body;
-            classes.class_code = this.generateRandomCode();
-            const newClasses = await this.classesRepository.save(classes);
-            return sendResponse(res, true, 200, "Create class successfully", newClasses);
-        } catch (error) {
-            this.handleError(error, res, next);
+    public async createClass(classData: ClassesDTO) {
+        if (!classData) {
+            throw new ApiError(400, FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
         }
+        classData.class_code = this.generateRandomCode();
+        const newClasses = await this.classesRepository.save(classData);
+        if (!newClasses) {
+            throw new ApiError(400, CREATE_FAILED.error.message, CREATE_FAILED.error.details);
+        }
+        return newClasses;
+        
     }
 
-    public readonly update = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const class_id = parseInt(req.params.id, 10);
-            const classes: ClassesDTO = req.body;
-            await this.classesRepository.update(class_id, classes);
-            const updatedClasses = await this.classesRepository.findById(class_id);
-            return sendResponse(res, true, 200, "Update class successfully", updatedClasses);
-        } catch (error) {
-            this.handleError(error, res, next);
+    public async updateClass(id: number, classData: ClassesDTO) {
+        if (!id) {
+            throw new ApiError(400, FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
         }
+        const existedClass = await this.classesRepository.findById(id);
+        if (!existedClass) {
+            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+        }
+        const updatedClass = await this.classesRepository.update(id, classData);
+        return updatedClass;
     }
 
-    public readonly delete = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const class_id = parseInt(req.params.id, 10);
-            const data = await this.classesRepository.findById(class_id);
-            if (!data) {
-                return sendResponse(res, false, 404, "Class not found", null);
-            }
-            const result = await this.classesRepository.delete(class_id);
-            return sendResponse(res, true, 200, "Delete class successfully", result);
-        } catch (error) {
-            this.handleError(error, res, next);
+    public async deleteClass(id: number) {
+        if (!id) {
+            throw new ApiError(400, FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
         }
+        const existedClass = await this.classesRepository.findById(id);
+        if (!existedClass) {
+            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+        }
+        await this.classesRepository.delete(id);
     }
 
     private generateRandomCode(): string {
@@ -77,11 +70,5 @@ class ClassesService {
         }
         return result;
     }
-
-    private handleError(error: any, res: Response, next: NextFunction) {
-        Logger.error(error);
-        next(error);
-    }
 }
-
 export default ClassesService;
