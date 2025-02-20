@@ -1,7 +1,4 @@
-import { Request, Response, NextFunction } from 'express';
 import { ClassesDTO } from "../DTO/classes.dto";
-import { Logger } from "../config/logger";
-import { sendResponse } from "../../common/interfaces/base-response";
 import { IClassesRepository } from '../interfaces/classes.interface';
 import { ClassesRepository } from '../repositories/classes.repository';
 import { ApiError } from '../types/ApiError';
