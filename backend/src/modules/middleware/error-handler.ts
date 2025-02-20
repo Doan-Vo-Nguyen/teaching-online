@@ -4,7 +4,7 @@ import { SERVER_ERROR } from "../DTO/resDto/BaseErrorDto";
 
 const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
     if (err instanceof ApiError) {
-        return res.status(err.statusCode).json(err.toResponse()); // ✅ Now always includes `details`
+        return res.status(err.statusCode).json(err.toResponse());
     }
 
     // Handle unexpected errors

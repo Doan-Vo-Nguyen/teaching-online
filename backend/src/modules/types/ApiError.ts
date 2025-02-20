@@ -14,7 +14,7 @@ export class ApiError extends Error {
             error: {
                 code: this.statusCode,
                 message: this.message,
-                details: this.details, // ✅ Ensure details are included
+                details: this.details,
                 stackTrace: process.env.NODE_ENV === "development" ? this.stack : null,
             },
         };
