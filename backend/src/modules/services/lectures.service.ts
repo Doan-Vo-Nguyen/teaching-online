@@ -1,69 +1,59 @@
-import { Request, Response, NextFunction } from 'express';
 import { LecturesDTO } from '../DTO/lectures.dto';
 import { ILecturesRepository } from '../interfaces/lectures.interface';
-import { sendResponse } from '../../common/interfaces/base-response';
 import { LecturesRepository } from '../repositories/lectures.repository';
+import { ApiError } from '../types/ApiError';
+import { CREATE_FAILED, FIELD_REQUIRED, NOT_FOUND } from '../DTO/resDto/BaseErrorDto';
 
 class LecturesService {
     private readonly lecturesRepository: ILecturesRepository = new LecturesRepository();
 
-    public readonly getAll = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const options: Partial<LecturesDTO> = req.query;
-            const lectures = await this.lecturesRepository.find(options);
-            return sendResponse(res, true, 200, "Get all lectures successfully", lectures);
-        } catch (error) {
-            next(error);
-        }
+    public async getAllLectures() {
+        return await this.lecturesRepository.find({});
     }
 
-    public readonly getById = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const lecture_id = parseInt(req.params.id, 10);
-            const lecture = await this.lecturesRepository.findById(lecture_id);
-            if (!lecture) {
-                return sendResponse(res, false, 404, "Lecture not found", null);
-            }
-            return sendResponse(res, true, 200, "Get lecture by id successfully", lecture);
-        } catch (error) {
-            next(error);
+    public async getLectureById(lecture_id: number) {
+        if (!lecture_id) {
+            throw new ApiError(400, FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
         }
+        const lecture = await this.lecturesRepository.findById(lecture_id);
+        if (!lecture) {
+            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+        }
+        return lecture;
     }
 
-    public readonly create = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const lecture: LecturesDTO = req.body;
-            const newLecture = await this.lecturesRepository.save(lecture);
-            return sendResponse(res, true, 201, "Create lecture successfully", newLecture);
-        } catch (error) {
-            next(error);
+    public async createLecture(lectureData: LecturesDTO) {
+        if (!lectureData) {
+            throw new ApiError(400, FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
         }
+        const newLecture = await this.lecturesRepository.save(lectureData);
+        if (!newLecture) {
+            throw new ApiError(400, CREATE_FAILED.error.message, CREATE_FAILED.error.details);
+        }
+        return newLecture;
     }
 
-    public readonly update = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const lecture_id = parseInt(req.params.id, 10);
-            const lecture: LecturesDTO = req.body;
-            await this.lecturesRepository.update(lecture_id, lecture);
-            const updatedLecture = await this.lecturesRepository.findById(lecture_id);
-            return sendResponse(res, true, 200, "Update lecture successfully", updatedLecture);
-        } catch (error) {
-            next(error);
+    public async updateLecture(id: number, lectureData: LecturesDTO) {
+        if (!id) {
+            throw new ApiError(400, FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
         }
+        const existedLecture = await this.lecturesRepository.findById(id);
+        if (!existedLecture) {
+            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+        }
+        const updatedLecture = await this.lecturesRepository.update(id, lectureData);
+        return updatedLecture;
     }
 
-    public readonly delete = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const lecture_id = parseInt(req.params.id, 10);
-            const lecture = await this.lecturesRepository.findById(lecture_id);
-            if (!lecture) {
-                return sendResponse(res, false, 404, "Lecture not found", null);
-            }
-            await this.lecturesRepository.delete(lecture_id);
-            return sendResponse(res, true, 200, "Delete lecture successfully", lecture);
-        } catch (error) {
-            next(error);
+    public async deleteLecture(id: number) {
+        if (!id) {
+            throw new ApiError(400, FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
         }
+        const existedLecture = await this.lecturesRepository.findById(id);
+        if (!existedLecture) {
+            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+        }
+        await this.lecturesRepository.delete(id);
     }
 }
 

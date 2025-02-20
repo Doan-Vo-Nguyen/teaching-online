@@ -40,9 +40,6 @@ export class UserRepository extends BaseRepository<Users> {
         const user = await this.repository.findOne({
             where: { fullname: Like(`%${fullname}%`) }  // Using Like for partial matches
         });
-        if (!user) {
-            throw new Error(`User with name ${fullname} not found`);
-        }
         return user;
     }
 

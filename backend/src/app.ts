@@ -14,6 +14,7 @@ import swaggerJsDocs from 'swagger-jsdoc';
 import * as swaggerUi from 'swagger-ui-express';
 import options from './docs/swagger/config/swagger.config';
 import cors from 'cors';
+import errorHandler from './modules/middleware/error-handler';
 
 export class Application {
   private _app: Express | undefined;
@@ -78,17 +79,21 @@ export class Application {
       new LecturesController('/app/lectures')
     ];
 
+    
+
     // Apply authentication middleware to all protected routes
     protectedControllers.forEach(controller => {
       this._app?.use(controller.path, authentication, controller.router);
     });
-  }
 
+    this._app?.use(errorHandler);
+  }
+  
   private initSwagger() {
     const specs = swaggerJsDocs(options);
     this.app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
   }
-
+  
   public async start() {
     const port = process.env.PORT || 10000;
     const name = process.env.APP_SERVER || 'Teaching_Online_Server';

@@ -18,9 +18,11 @@ const BaseErrorDto = (message: string | null = null, details: string | null = nu
 // General Errors
 export const baseError = BaseErrorDto;
 export const INVALID_REQUEST = BaseErrorDto("Invalid request", "Request is invalid during validation");
+export const INVALID_VALUE = BaseErrorDto("Invalid value", "Value is invalid or empty");
 export const SERVER_ERROR = BaseErrorDto("Server error", "An error occurred on the server");
 export const BAD_REQUEST = BaseErrorDto("Bad request", "Request is invalid");
 export const NOT_FOUND = BaseErrorDto("Not found", "Resource not found");
+export const CREATE_FAILED = BaseErrorDto("Create failed", "Create resource failed");
 
 // Authentication Errors
 export const INVALID_TOKEN = BaseErrorDto("Invalid token", "Token is invalid");

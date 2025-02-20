@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { INVALID_REQUEST } from "../../DTO/resDto/BaseErrorDto";
+import { FIELD_REQUIRED, INVALID_REQUEST, INVALID_VALUE } from "../../DTO/resDto/BaseErrorDto";
 
 export const validate = (requestField: string[]) => {
     return (req: Request, res: Response, next: NextFunction) => {
@@ -46,7 +46,7 @@ export const validParamId = (req: Request, res: Response, next: NextFunction) =>
     const id = parseInt(req.params.id, 10);
 
     if (Number.isNaN(id) || id <= 0) {
-        return res.status(400).json(INVALID_REQUEST);
+        return res.status(400).json(INVALID_VALUE);
     }
 
     next();

@@ -164,7 +164,7 @@ paths:
               example:
                 success: false
                 message: Lecture not found
-    put:
+    patch:
       tags:
         - Lectures
       security:
