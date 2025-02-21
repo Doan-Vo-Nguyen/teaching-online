@@ -19,7 +19,7 @@ export class Users {
     @PrimaryGeneratedColumn()
     user_id: number
 
-    @Column({type: "varchar", length: 50})
+    @Column({type: "varchar", length: 50, nullable: true})
     username: string
 
     @Column({type: "varchar", length: 50})
@@ -50,7 +50,7 @@ export class Users {
     @Column({type: "varchar", length: 100, nullable: true})
     profile_picture: string
 
-    @Column({type: "varchar", length: 10})
+    @Column({type: "varchar", length: 10, nullable: true})
     phone: string
 
     @CreateDateColumn()
