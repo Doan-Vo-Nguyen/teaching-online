@@ -12,7 +12,6 @@ components:
         data:
           type: object
           nullable: true
-
     Error:
       type: object
       properties:
@@ -40,7 +39,6 @@ components:
           type: string
           nullable: true
           example: null
-
     ForbiddenError:
       type: object
       properties:
@@ -66,7 +64,6 @@ components:
         details:
           type: string
           example: "Authentication error"
-
     NotFoundError:
       type: object
       properties:
@@ -79,3 +76,4 @@ components:
         details:
           type: string
           example: "Resource not found"
+    
