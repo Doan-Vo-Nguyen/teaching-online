@@ -22,7 +22,7 @@ export class Lectures {
     })
     type: LectureType
 
-    @Column({type: "text"})
+    @Column({type: "text", nullable: true})
     content: string
 
     @CreateDateColumn()

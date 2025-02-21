@@ -56,3 +56,30 @@ paths:
           description: Invalid input
         '401':
           description: Unauthorized
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: User registration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: user@example.com
+                password:
+                  type: string
+                  format: password
+                  example: password123
+      responses:
+        '201':
+          description: User registered successfully
+        '400':
+          description: Invalid input
+        '409':
+          description: User already exists

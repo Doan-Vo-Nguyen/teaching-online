@@ -8,7 +8,7 @@ export class Classes {
     @Column({type: "varchar", length: 100})
     class_name: string
 
-    @Column({type: "text"})
+    @Column({type: "text", nullable: true})
     description: string
 
     @Column({type: "char", length: 7})
