@@ -5,6 +5,7 @@ import { authentication } from "../middleware/auth.middleware";
 import { validateCreate, validatePhoneAndEMail } from "../middleware/validate/user.validate";
 import { validParamId } from "../middleware/validate/field.validate";
 import { sendResponse } from '../../common/interfaces/base-response';
+import { Role } from '../entity/User.entity';
 
 export class UserController extends BaseController {
     private readonly userService: UserService;
@@ -76,7 +77,8 @@ export class UserController extends BaseController {
     private readonly updateUserRole = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const userId = parseInt(req.params.id, 10);
-            const updatedUser = await this.userService.updateUserRole(userId, req.body.role);
+            const role = req.params.role as Role;
+            const updatedUser = await this.userService.updateUserRole(userId, role);
             return sendResponse(res, true, 200, "Update user role successfully", updatedUser);
         } catch (error) {
             next(error);
