@@ -80,7 +80,7 @@ paths:
             schema:
               $ref: "#/components/schemas/Classes"
       responses:
-        "200":
+        "201":
           description: Class created
           content:
             application/json:

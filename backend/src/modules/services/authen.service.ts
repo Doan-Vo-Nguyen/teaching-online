@@ -27,13 +27,14 @@ class AuthenService {
 
     public async register(userData: any) {
         const saltRound = 10;
-        const { username, email} = userData;
-        const existedUser = await this.userRepository.findByUsernameEmail(username, email);
+        const {fullname, email} = userData;
+        const existedUser = await this.userRepository.findByEmail(email);
         if(existedUser) {
             throw new ApiError(500, USER_EXISTS.error.message, USER_EXISTS.error.details);
         }
 
         userData.password = bcrypt.hashSync(userData.password, saltRound);
+        userData.fullname = fullname;
         const newUser = await this.userRepository.save(userData);
         if(!newUser) {
             throw new ApiError(400, CREATED_USER_FAILED.error.message, CREATED_USER_FAILED.error.details);

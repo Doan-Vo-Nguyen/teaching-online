@@ -15,7 +15,7 @@ export class AuthenController extends BaseController {
 
     public initRoutes(): void {
         this.router.post('/login', validate(['email', 'password']) ,this.authenticate);
-        this.router.post('/register', validate(['username', 'email', 'password']), this.register);
+        this.router.post('/register', validate(['fullname', 'email', 'password']), this.register);
     }
 
     private readonly authenticate = async (req: Request, res: Response, next: NextFunction) => {

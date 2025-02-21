@@ -11,6 +11,33 @@ components:
           type: string
           format: password
           example: "password123"
+    Error:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Invalid input"
+    UnauthorizedError:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: "Unauthorized"
+    Success:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "User registered successfully"
   securitySchemes:
     bearerAuth:
       type: http
@@ -54,8 +81,22 @@ paths:
                     example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
         '400':
           description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            example:
+              success: false
+              message: "Invalid input"
         '401':
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+            example:
+              success: false
+              message: "Unauthorized"
   /auth/register:
     post:
       tags:
@@ -68,6 +109,9 @@ paths:
             schema:
               type: object
               properties:
+                fullname:
+                  type: string
+                  example: John Doe
                 email:
                   type: string
                   format: email
@@ -79,7 +123,28 @@ paths:
       responses:
         '201':
           description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+            example:
+              success: true
+              message: "User registered successfully"
         '400':
           description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            example:
+              success: false
+              message: "Invalid input"
         '409':
           description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+            example:
+              success: false
+              message: "User already exists"
