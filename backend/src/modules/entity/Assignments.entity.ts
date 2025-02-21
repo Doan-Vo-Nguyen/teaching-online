@@ -11,7 +11,7 @@ export class Assignments {
     @Column({type: "varchar", length: 100})
     title: string
 
-    @Column({type: "text"})
+    @Column({type: "text", nullable: true})
     description: string
 
     @CreateDateColumn()

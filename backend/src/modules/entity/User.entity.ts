@@ -28,7 +28,7 @@ export class Users {
     @Column({type: "datetime", nullable: true})
     dob: Date | null
 
-    @Column({type: "varchar", length: 10})
+    @Column({type: "varchar", length: 10, nullable: true})
     gender: string
 
     @Column()
@@ -41,13 +41,13 @@ export class Users {
     })
     role: Role
 
-    @Column({type: "varchar", length: 50})
+    @Column({type: "varchar", length: 50, nullable: true})
     address: string
 
     @Column({type: "varchar", length: 50})
     email: string
 
-    @Column({type: "varchar", length: 100})
+    @Column({type: "varchar", length: 100, nullable: true})
     profile_picture: string
 
     @Column({type: "varchar", length: 10})
