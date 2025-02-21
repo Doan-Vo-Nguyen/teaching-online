@@ -10,6 +10,7 @@ import {
     CREATED_USER_FAILED,
 } from "../DTO/resDto/BaseErrorDto";
 import { ApiError } from "../types/ApiError";
+import { Role } from "../entity/User.entity";
 
 const saltRound = 10;
 
@@ -76,7 +77,7 @@ class UserService {
         return await this.userRepository.update(id, updatedUser);
     }
 
-    public async updateUserRole(userId: number, role: string) {
+    public async updateUserRole(userId: number, role: Role) {
         if (!userId || !role) {
             throw new ApiError(400, FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
         }
@@ -84,7 +85,8 @@ class UserService {
         if (!user) {
             throw new ApiError(404, USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
         }
-        return await this.userRepository.updateRole(userId, role);
+        const updateRole = { role, updated_at: new Date() };
+        return await this.userRepository.update(userId, updateRole);
     }
 
     public async deleteUser(userId: number) {

@@ -421,20 +421,13 @@ paths:
           schema:
             type: integer
           description: User ID
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - role
-              properties:
-                role:
-                  type: array
-                  items:
-                    type: string
-                  example: ["admin"]
+        - in: path
+          name: role
+          required: true
+          schema:
+            type: string
+          description: User role
+          example: "admin"
       responses:
         "200":
           description: User role updated successfully
