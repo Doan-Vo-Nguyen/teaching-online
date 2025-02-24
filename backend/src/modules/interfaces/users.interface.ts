@@ -8,4 +8,6 @@ export interface IUserRepository extends IBaseRepository<Users> {
     comparePassword(email: string, plainPass: string): Promise<boolean>
     generateToken(email: string): Promise<string>
     findByUsernameEmail(username: string, email: string): Promise<Users>
+    changePassword(id: number, newPassword: string): Promise<Users>
+    forgotPassword(email: string): Promise<Users>
 }

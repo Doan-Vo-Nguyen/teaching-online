@@ -67,6 +67,19 @@ export class UserRepository extends BaseRepository<Users> {
         return user;
     }
 
+    async changePassword(id: number, newPassword: string): Promise<Users> {
+        const user = await this.repository.findOne({ where: { user_id: id } });
+        user.password = newPassword;
+        return this.repository.save(user);
+    }
+
+    async forgotPassword(email: string): Promise<Users> {
+        const user = await this.repository.findOne({ where: { email } });
+        user.password = '123456'; // Reset password to default
+        user.updated_at = new Date();
+        return this.repository.save(user);
+    }
+
     async comparePassword(email: string, plainPass: string): Promise<boolean> {
         const user = await this.repository.findOne({ where: { email } });
         return await user.comparePassHash(plainPass);

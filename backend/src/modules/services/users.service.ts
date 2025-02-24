@@ -8,9 +8,12 @@ import {
     EMAIL_EXISTS,
     USER_EXISTS,
     CREATED_USER_FAILED,
+    WRONG_OLD_PASSWORD,
+    INVALID_RESET_CODE,
 } from "../DTO/resDto/BaseErrorDto";
 import { ApiError } from "../types/ApiError";
 import { Role } from "../entity/User.entity";
+import sendMail from "../utils/mailer";
 
 const saltRound = 10;
 
@@ -18,7 +21,11 @@ class UserService {
     private readonly userRepository: IUserRepository = new UserRepository();
 
     public async getAllUsers() {
-        return await this.userRepository.find({});
+        const users = await this.userRepository.find({});
+        return users.map(user => {
+            const { user_id, username, fullname, gender, dob, address, phone, profile_picture, role} = user;
+            return { user_id, username, fullname, gender, dob, address, phone, profile_picture, role};
+        });
     }
 
     public async getUserById(userId: number) {
@@ -49,7 +56,7 @@ class UserService {
 
         if (existedUser) {
             if (existedUser.username === username) {
-                throw USERNAME_EXISTS;
+                throw new ApiError(400, USERNAME_EXISTS.error.message);
             } else if (existedUser.email === email) {
                 throw new ApiError(400, EMAIL_EXISTS.error.message);
             }
@@ -98,6 +105,21 @@ class UserService {
             throw new ApiError(404, USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
         }
         return await this.userRepository.delete(userId);
+    }
+
+    public async changePassword(id: number, oldPassword: string, newPassword: string) {
+        if (!id || !oldPassword || !newPassword ) {
+            throw new ApiError(400, FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
+        }
+        const user = await this.userRepository.findById(id);
+        if (!user) {
+            throw new ApiError(404, USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
+        }
+        if(!bcrypt.compareSync(oldPassword, user.password)) {
+            throw new ApiError(400, WRONG_OLD_PASSWORD.error.message, WRONG_OLD_PASSWORD.error.details);
+        }
+        const hashedPassword = bcrypt.hashSync(newPassword, saltRound);
+        return await this.userRepository.changePassword(id, hashedPassword);
     }
 }
 
