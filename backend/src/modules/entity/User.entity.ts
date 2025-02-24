@@ -19,7 +19,7 @@ export class Users {
     @PrimaryGeneratedColumn()
     user_id: number
 
-    @Column({type: "varchar", length: 50, nullable: true})
+    @Column({type: "varchar", length: 50, nullable: true, unique: true})
     username: string
 
     @Column({type: "varchar", length: 50})
@@ -44,14 +44,17 @@ export class Users {
     @Column({type: "varchar", length: 50, nullable: true})
     address: string
 
-    @Column({type: "varchar", length: 50})
+    @Column({type: "varchar", length: 50, unique: true})
     email: string
 
     @Column({type: "varchar", length: 100, nullable: true})
     profile_picture: string
 
-    @Column({type: "varchar", length: 10, nullable: true})
+    @Column({type: "varchar", length: 10, nullable: true, unique: true})
     phone: string
+
+    @Column({type: "char", length: 6, nullable: true})
+    code: string
 
     @CreateDateColumn()
     created_at: Date

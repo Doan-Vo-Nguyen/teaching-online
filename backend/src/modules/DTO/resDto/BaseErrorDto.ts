@@ -23,10 +23,12 @@ export const SERVER_ERROR = BaseErrorDto("Server error", "An error occurred on t
 export const BAD_REQUEST = BaseErrorDto("Bad request", "Request is invalid");
 export const NOT_FOUND = BaseErrorDto("Not found", "Resource not found");
 export const CREATE_FAILED = BaseErrorDto("Create failed", "Create resource failed");
+export const TIME_EXPIRED = BaseErrorDto("Time expired", "Resource time is expired");
 
 // Authentication Errors
 export const INVALID_TOKEN = BaseErrorDto("Invalid token", "Token is invalid");
 export const INVALID_CREDENTIALS = BaseErrorDto("Invalid credentials", "Username or password is incorrect");
+export const INVALID_RESET_CODE = BaseErrorDto("Invalid reset code", "Reset code is invalid");
 export const AUTHENTICATION_ERROR = BaseErrorDto("Authentication error", "You are not authorized to access this resource");
 export const UNAUTHORIZED = BaseErrorDto("Unauthorized", "You are not authorized to access this resource");
 export const FORBIDDEN = BaseErrorDto("Forbidden", "You are not allowed to access this resource");
@@ -37,6 +39,7 @@ export const USER_EXISTS = BaseErrorDto("User have already existed");
 export const USERNAME_EXISTS = BaseErrorDto("Username is already taken");
 export const EMAIL_EXISTS = BaseErrorDto("Email is already existed");
 export const CREATED_USER_FAILED = BaseErrorDto("Create user failed");
+export const WRONG_OLD_PASSWORD = BaseErrorDto("Wrong old password", "Old password is incorrect");
 
 // Validation Errors
 export const FIELD_REQUIRED = BaseErrorDto("Field is required", "You must provide a value for this field");

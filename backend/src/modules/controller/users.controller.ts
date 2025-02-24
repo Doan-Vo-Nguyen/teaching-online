@@ -21,8 +21,9 @@ export class UserController extends BaseController {
         this.router.get('/search', this.getUserByName);
         this.router.get('/:id', validParamId, this.getUserById);
         this.router.post('/', authentication, validateCreate, this.createUser);
-        this.router.patch('/:id', authentication, validatePhoneAndEMail, this.updateUser);
-        this.router.patch('/:id/roles/:role', authentication, this.updateUserRole);
+        this.router.put('/:id', authentication, validatePhoneAndEMail, this.updateUser);
+        this.router.put('/:id/password', authentication, this.changePassword);
+        this.router.patch('/:id/roles/', authentication, this.updateUserRole);
         this.router.delete('/:id', authentication, validParamId, this.deleteUser);
     }
 
@@ -77,7 +78,7 @@ export class UserController extends BaseController {
     private readonly updateUserRole = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const userId = parseInt(req.params.id, 10);
-            const role = req.params.role as Role;
+            const role = req.body.role as Role;
             const updatedUser = await this.userService.updateUserRole(userId, role);
             return sendResponse(res, true, 200, "Update user role successfully", updatedUser);
         } catch (error) {
@@ -90,6 +91,18 @@ export class UserController extends BaseController {
             const userId = parseInt(req.params.id, 10);
             const result = await this.userService.deleteUser(userId);
             return sendResponse(res, true, 200, "Delete user successfully", result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private readonly changePassword = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { id } = req.params;
+            const {oldPassword, newPassword } = req.body;
+            const userId = parseInt(id, 10);
+            const result = await this.userService.changePassword(userId, oldPassword, newPassword);
+            return sendResponse(res, true, 200, "Change password successfully", result);
         } catch (error) {
             next(error);
         }
