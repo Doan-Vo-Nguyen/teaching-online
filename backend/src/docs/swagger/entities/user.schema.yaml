@@ -5,6 +5,8 @@ components:
       required:
         - username
         - fullname
+        - gender
+        - dob
         - password
         - email
         - role
@@ -104,7 +106,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
-
     post:
       tags:
         - Users
@@ -295,8 +296,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
-
-    patch:
+    put:
       tags:
         - Users
       summary: Update user
@@ -370,7 +370,6 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
-
     delete:
       tags:
         - Users
@@ -406,8 +405,56 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
-
-  /app/users/{id}/roles/{role}:
+  /app/users/{id}/password/:
+    put:
+      tags:
+        - Users
+      summary: Update user password
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                oldPassword:
+                  type: string
+                  example: "oldpassword123"
+                newPassword:
+                  type: string
+                  example: "newpassword123"
+      responses:
+        "200":
+          description: User password updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                success: true
+                message: "User password updated successfully"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+  /app/users/{id}/roles/:
     patch:
       tags:
         - Users
@@ -421,13 +468,16 @@ paths:
           schema:
             type: integer
           description: User ID
-        - in: path
-          name: role
-          required: true
-          schema:
-            type: string
-          description: User role
-          example: "admin"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                role:
+                  type: string
+                  example: "admin"
       responses:
         "200":
           description: User role updated successfully
