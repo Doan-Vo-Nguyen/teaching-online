@@ -32,12 +32,6 @@ export class Application {
     this.initControllers();
     this._app.use(express.json()); // Add this to parse JSON payloads
     this._app.use(express.urlencoded({ extended: true })); // Optional for form-encoded payloads
-    this._app.use(cors({
-      origin: ['http://localhost:3000', 'https://teaching-online-server.onrender.com/','http://localhost:10000', 'http://localhost:5173'],
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
-      credentials: true
-  }));
     this.initControllers()
     this.initSwagger();
   }
@@ -95,7 +89,7 @@ export class Application {
   }
   
   public async start() {
-    const port = process.env.APP_PORT || 3000;
+    const port = process.env.PORT || 10000;
     const name = process.env.APP_SERVER || 'Teaching_Online_Server';
     try {
       await AppDataSource.initialize();
