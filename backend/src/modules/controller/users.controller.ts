@@ -21,6 +21,7 @@ export class UserController extends BaseController {
         this.router.get('/search', this.getUserByName);
         this.router.get('/:id', validParamId, this.getUserById);
         this.router.post('/', authentication, validateCreate, this.createUser);
+        this.router.post('/:id/join/:class_join_code', authentication, this.joinClass);
         this.router.put('/:id', authentication, validatePhoneAndEMail, this.updateUser);
         this.router.put('/:id/password', authentication, this.changePassword);
         this.router.patch('/:id/roles/', authentication, this.updateUserRole);
@@ -59,7 +60,7 @@ export class UserController extends BaseController {
     private readonly createUser = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const newUser = await this.userService.createUser(req.body);
-            return sendResponse(res, true, 200, "Create user successfully", newUser);
+            return sendResponse(res, true, 201, "Create user successfully", newUser);
         } catch (error) {
             next(error);
         }
@@ -90,7 +91,7 @@ export class UserController extends BaseController {
         try {
             const userId = parseInt(req.params.id, 10);
             const result = await this.userService.deleteUser(userId);
-            return sendResponse(res, true, 200, "Delete user successfully", result);
+            return sendResponse(res, true, 204, "Delete user successfully", result);
         } catch (error) {
             next(error);
         }
@@ -103,6 +104,17 @@ export class UserController extends BaseController {
             const userId = parseInt(id, 10);
             const result = await this.userService.changePassword(userId, oldPassword, newPassword);
             return sendResponse(res, true, 200, "Change password successfully", result);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private readonly joinClass = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { id, class_join_code } = req.params;
+            const userId = parseInt(id, 10);
+            const result = await this.userService.joinClass(userId, class_join_code);
+            return sendResponse(res, true, 200, "Join class successfully", result);
         } catch (error) {
             next(error);
         }
