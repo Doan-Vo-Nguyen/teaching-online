@@ -2,8 +2,10 @@ import { Role, Users } from "../entity/User.entity";
 import { UserDTO } from '../DTO/users.dto';
 import { BaseRepository } from './base.repository';
 import { Like } from "typeorm";
+import { StudentClassesRepository } from "./student-classes.repository";
 
 export class UserRepository extends BaseRepository<Users> {
+    private readonly studentClassesRepository: StudentClassesRepository = new StudentClassesRepository();
     constructor() {
         super(Users);
     }
@@ -78,6 +80,12 @@ export class UserRepository extends BaseRepository<Users> {
         user.password = '123456'; // Reset password to default
         user.updated_at = new Date();
         return this.repository.save(user);
+    }
+
+    // Join class by class_join_code (the user with user_id types the code, it will compare with the class_code in classes table, then will join the student_classes table with student_id and class_id)
+    async joinClass(user_id: number, class_id: number): Promise<Users> {
+        await this.studentClassesRepository.enrollClass(user_id, class_id);
+        return this.repository.findOneBy({ user_id });
     }
 
     async comparePassword(email: string, plainPass: string): Promise<boolean> {
