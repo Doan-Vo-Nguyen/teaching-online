@@ -69,4 +69,14 @@ export class ClassesController extends BaseController {
             next(error);
         }
     }
+
+    private readonly findByClassCode = async (req: Request, res: Response, next: NextFunction) => { 
+        try {
+            const classCode = req.params.class_code;
+            const classes = await this.classesService.findByClassCode(classCode);
+            return sendResponse(res, true, 200, "Get class by class code successfully", classes);
+        } catch (error) {
+            next(error);
+        }
+    }
 }

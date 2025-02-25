@@ -1,3 +1,4 @@
+import { UserRepository } from './../repositories/users.repository';
 import { ClassesDTO } from "../DTO/classes.dto";
 import { IClassesRepository } from '../interfaces/classes.interface';
 import { ClassesRepository } from '../repositories/classes.repository';
@@ -6,9 +7,18 @@ import { CREATE_FAILED, FIELD_REQUIRED, NOT_FOUND } from '../DTO/resDto/BaseErro
 
 class ClassesService {
     private readonly classesRepository: IClassesRepository = new ClassesRepository();
+    private readonly userRepository: UserRepository = new UserRepository();
 
     public async getAllClasses() {
-        return await this.classesRepository.find({});
+        const classes = await this.classesRepository.find({});
+        const classesWithTeachers = await Promise.all(classes.map(async (classItem) => {
+            const teacher = await this.userRepository.findById(classItem.teacher_id);
+            return {
+                ...classItem,
+                teacher: teacher ? teacher.fullname : null
+            };
+        }));
+        return classesWithTeachers;
     }
 
     public async getClassById(class_id: number) {
@@ -56,6 +66,14 @@ class ClassesService {
             throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
         }
         await this.classesRepository.delete(id);
+    }
+
+    public async findByClassCode(class_code: string) {
+        if (!class_code) {
+            throw new ApiError(400, FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
+        }
+        const classes = await this.classesRepository.findByClassCode(class_code);
+        return classes;
     }
 
     private generateRandomCode(): string {

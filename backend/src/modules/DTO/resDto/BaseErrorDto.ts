@@ -40,6 +40,13 @@ export const USERNAME_EXISTS = BaseErrorDto("Username is already taken");
 export const EMAIL_EXISTS = BaseErrorDto("Email is already existed");
 export const CREATED_USER_FAILED = BaseErrorDto("Create user failed");
 export const WRONG_OLD_PASSWORD = BaseErrorDto("Wrong old password", "Old password is incorrect");
+export const NOT_STUDENT = BaseErrorDto("Not a student", "You are not a student");
+export const NOT_TEACHER = BaseErrorDto("Not a teacher", "You are not a teacher");
+
+// Class Errors
+export const CLASS_NOT_EXISTS = BaseErrorDto("Class does not exist");
+export const CLASS_NOT_FOUND = BaseErrorDto("Class not found", "Class not found");
+export const ALREADY_ENROLL = BaseErrorDto("Already enroll", "You have already enroll this class");
 
 // Validation Errors
 export const FIELD_REQUIRED = BaseErrorDto("Field is required", "You must provide a value for this field");

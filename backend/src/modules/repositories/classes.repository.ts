@@ -28,4 +28,9 @@ export class ClassesRepository extends BaseRepository<Classes> {
         return this.repository.remove(classes);
     }
 
+    async findByClassCode(class_code: string): Promise<Classes> {
+        const classes = await this.repository.findOneBy({ class_code });
+        return classes;
+    }
+
 }

@@ -9,22 +9,25 @@ import {
     USER_EXISTS,
     CREATED_USER_FAILED,
     WRONG_OLD_PASSWORD,
-    INVALID_RESET_CODE,
+    NOT_STUDENT,
+    CLASS_NOT_FOUND,
+    ALREADY_ENROLL,
 } from "../DTO/resDto/BaseErrorDto";
 import { ApiError } from "../types/ApiError";
 import { Role } from "../entity/User.entity";
-import sendMail from "../utils/mailer";
-
+import { ClassesRepository } from "../repositories/classes.repository";
+import { StudentClassesRepository } from "../repositories/student-classes.repository";
 const saltRound = 10;
-
 class UserService {
     private readonly userRepository: IUserRepository = new UserRepository();
+    private readonly classesRepository: ClassesRepository = new ClassesRepository();
+    private readonly studentClassesRepository: StudentClassesRepository = new StudentClassesRepository();
 
     public async getAllUsers() {
         const users = await this.userRepository.find({});
         return users.map(user => {
-            const { user_id, username, fullname, gender, dob, address, phone, profile_picture, role} = user;
-            return { user_id, username, fullname, gender, dob, address, phone, profile_picture, role};
+            const { user_id, username, fullname, gender, dob, email, address, phone, profile_picture, role} = user;
+            return { user_id, username, fullname, gender, dob, email, address, phone, profile_picture, role};
         });
     }
 
@@ -56,11 +59,11 @@ class UserService {
 
         if (existedUser) {
             if (existedUser.username === username) {
-                throw new ApiError(400, USERNAME_EXISTS.error.message);
+                throw new ApiError(409, USERNAME_EXISTS.error.message);
             } else if (existedUser.email === email) {
-                throw new ApiError(400, EMAIL_EXISTS.error.message);
+                throw new ApiError(409, EMAIL_EXISTS.error.message);
             }
-            throw new ApiError(400, USER_EXISTS.error.message);
+            throw new ApiError(409, USER_EXISTS.error.message);
         }
 
         userData.password = bcrypt.hashSync(userData.password, saltRound);
@@ -80,6 +83,7 @@ class UserService {
         if (!user) {
             throw new ApiError(404, USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
         }
+        userData.password = bcrypt.hashSync(userData.password, saltRound);
         const updatedUser = { ...userData, updated_at: new Date() };
         return await this.userRepository.update(id, updatedUser);
     }
@@ -105,6 +109,49 @@ class UserService {
             throw new ApiError(404, USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
         }
         return await this.userRepository.delete(userId);
+    }
+
+    public async joinClass(userId: number, classJoinCode: string) {
+        this.validateJoinClassInputs(userId, classJoinCode);
+
+        const user = await this.userRepository.findById(userId);
+        this.validateUserForClassJoin(user);
+
+        const classData = await this.classesRepository.findByClassCode(classJoinCode);
+        this.validateClassData(classData);
+
+        const classId = classData.class_id;
+        await this.checkExistingEnrollment(userId, classId);
+
+        return await this.userRepository.joinClass(userId, classId);
+    }
+
+    private validateJoinClassInputs(userId: number, classJoinCode: string) {
+        if (!userId || !classJoinCode) {
+            throw new ApiError(400, FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
+        }
+    }
+
+    private validateUserForClassJoin(user: any) {
+        if (!user) {
+            throw new ApiError(404, USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
+        }
+        if (user.role !== Role.STUDENT) {
+            throw new ApiError(400, NOT_STUDENT.error.message, NOT_STUDENT.error.details);
+        }
+    }
+
+    private validateClassData(classData: any) {
+        if (!classData) {
+            throw new ApiError(404, CLASS_NOT_FOUND.error.message, CLASS_NOT_FOUND.error.details);
+        }
+    }
+
+    private async checkExistingEnrollment(userId: number, classId: number) {
+        const existingEnrollment = await this.studentClassesRepository.findByUserIdAndClassId(userId, classId);
+        if (existingEnrollment) {
+            throw new ApiError(400, ALREADY_ENROLL.error.message, ALREADY_ENROLL.error.details);
+        }
     }
 
     public async changePassword(id: number, oldPassword: string, newPassword: string) {
