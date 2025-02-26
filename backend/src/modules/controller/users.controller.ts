@@ -3,7 +3,6 @@ import BaseController from "../abstracts/base-controller";
 import UserService from "../services/users.service";
 import {
   authentication,
-  authorAdmin,
   authorTeacher,
 } from "../middleware/auth.middleware";
 import {
