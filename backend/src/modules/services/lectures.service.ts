@@ -13,7 +13,11 @@ class LecturesService {
     new LecturesRepository();
 
   public async getAllLectures() {
-    return await this.lecturesRepository.find({});
+    const lectures = await this.lecturesRepository.find({});
+    if (lectures.length === 0) {
+      throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+    }
+    return lectures;
   }
 
   public async getLectureById(lecture_id: number) {
