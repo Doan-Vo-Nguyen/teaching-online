@@ -39,7 +39,31 @@ export class Application {
   private initMiddleware() {
     this._app?.use(express.json());
     this._app?.use(express.urlencoded({ extended: true }));
-    this._app?.use(cors());
+    this._app?.use(
+      cors({
+        origin: [
+          "http://localhost:3000",
+          "https://teaching-online-server.onrender.com/",
+          "http://localhost:10000",
+          "http://localhost:5173",
+          "https://edu-space-dkn7.vercel.app/",
+        ],
+        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization"],
+        credentials: true,
+      })
+    );
+    this.app?.use(helmet());
+    this.app?.use(
+      helmet.contentSecurityPolicy({
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:"],
+        },
+      })
+    );
   }
 
   private initControllers() {
@@ -77,7 +101,7 @@ export class Application {
   }
 
   public async start() {
-    const port = process.env.PORT || 10000;
+    const port = process.env.APP_PORT || 3000;
     const name = process.env.APP_SERVER || "Teaching_Online_Server";
     try {
       await AppDataSource.initialize();
