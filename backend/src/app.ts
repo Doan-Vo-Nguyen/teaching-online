@@ -39,30 +39,7 @@ export class Application {
   private initMiddleware() {
     this._app?.use(express.json());
     this._app?.use(express.urlencoded({ extended: true }));
-    this._app?.use((req, res, next) => {
-      const allowedOrigins = [
-        "http://localhost:3000",
-        "https://teaching-online-server.onrender.com",
-        "http://localhost:10000",
-        "http://localhost:5173",
-        "https://edu-space-dkn7.vercel.app",
-        "https://ghienphim.fun/",
-      ];
-      const origin = req.headers.origin;
-    
-      if (allowedOrigins.includes(origin)) {
-        res.setHeader("Access-Control-Allow-Origin", origin);
-        res.setHeader("Access-Control-Allow-Credentials", "true");
-        res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
-        res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-      }
-    
-      if (req.method === "OPTIONS") {
-        return res.status(200).end();
-      }
-    
-      next();
-    });
+    this._app?.use(cors());
     this.app?.use(helmet());
     this.app?.use(
       helmet.contentSecurityPolicy({
