@@ -110,7 +110,7 @@ export class Application {
   }
 
   public async start() {
-    const port = process.env.APP_PORT || 3000;
+    const port = process.env.PORT || 10000;
     const name = process.env.APP_SERVER || "Teaching_Online_Server";
     try {
       await AppDataSource.initialize();
