@@ -296,7 +296,7 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
-    put:
+    patch:
       tags:
         - Users
       summary: Update user
