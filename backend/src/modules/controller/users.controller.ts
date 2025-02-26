@@ -91,7 +91,7 @@ export class UserController extends BaseController {
         try {
             const userId = parseInt(req.params.id, 10);
             const result = await this.userService.deleteUser(userId);
-            return sendResponse(res, true, 204, "Delete user successfully", result);
+            return sendResponse(res, true, 200, "Delete user successfully", result);
         } catch (error) {
             next(error);
         }
