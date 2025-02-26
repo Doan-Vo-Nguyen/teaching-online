@@ -22,7 +22,7 @@ export class UserController extends BaseController {
         this.router.get('/:id', validParamId, this.getUserById);
         this.router.post('/', authentication, validateCreate, this.createUser);
         this.router.post('/:id/join/:class_join_code', authentication, this.joinClass);
-        this.router.put('/:id', authentication, validatePhoneAndEMail, this.updateUser);
+        this.router.patch('/:id', authentication, validatePhoneAndEMail, this.updateUser);
         this.router.put('/:id/password', authentication, this.changePassword);
         this.router.patch('/:id/roles/', authentication, this.updateUserRole);
         this.router.delete('/:id', authentication, validParamId, this.deleteUser);

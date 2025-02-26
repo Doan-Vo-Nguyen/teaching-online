@@ -83,10 +83,17 @@ class UserService {
         if (!user) {
             throw new ApiError(404, USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
         }
-        userData.password = bcrypt.hashSync(userData.password, saltRound);
+        // Only hash the password if it's provided
+        if (userData.password) {
+            userData.password = bcrypt.hashSync(userData.password, saltRound);
+        } else {
+            delete userData.password;
+        }
+    
         const updatedUser = { ...userData, updated_at: new Date() };
         return await this.userRepository.update(id, updatedUser);
     }
+    
 
     public async updateUserRole(userId: number, role: Role) {
         if (!userId || !role) {
