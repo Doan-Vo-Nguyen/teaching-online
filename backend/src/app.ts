@@ -58,9 +58,18 @@ export class Application {
       helmet.contentSecurityPolicy({
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'"],
           imgSrc: ["'self'", "data:"],
+          connectSrc: [
+            "'self'",
+            "https://teaching-online-server.onrender.com/",
+            "https://edu-space-dkn7.vercel.app/",
+            "http://localhost:5173",
+            "http://localhost:10000",
+            "http://localhost:3000",
+          ],
+          fontSrc: ["'self'"],
         },
       })
     );
@@ -101,7 +110,7 @@ export class Application {
   }
 
   public async start() {
-    const port = process.env.PORT || 10000;
+    const port = process.env.APP_PORT || 3000;
     const name = process.env.APP_SERVER || "Teaching_Online_Server";
     try {
       await AppDataSource.initialize();
