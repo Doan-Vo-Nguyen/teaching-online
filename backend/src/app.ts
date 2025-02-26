@@ -41,6 +41,14 @@ export class Application {
     this._app?.use(express.urlencoded({ extended: true }));
     this._app?.use(
       cors({
+        origin: [
+          "http://localhost:3000",
+          "https://teaching-online-server.onrender.com/",
+          "http://localhost:10000",
+          "http://localhost:5173",
+          "https://edu-space-dkn7.vercel.app",
+          "https://https://ghienphim.fun/",
+        ],
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization"],
         credentials: true,
@@ -50,8 +58,8 @@ export class Application {
     this.app?.use(
       helmet.contentSecurityPolicy({
         directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: ["'self'"],
+          defaultSrc: ["'self'", "https://teaching-online-server.onrender.com/"],
+          scriptSrc: ["'self'", "'unsafe-inline'"],
           styleSrc: ["'self'"],
           imgSrc: ["'self'", "data:"],
           connectSrc: [
