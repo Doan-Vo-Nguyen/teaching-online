@@ -565,3 +565,62 @@ paths:
                 properties:
                   error:
                     $ref: "#/components/schemas/NotFoundError"
+  /app/users/{id}/class:
+    post:
+      tags:
+        - Users
+      summary: Create a class by teacher
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: User ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - description
+              properties:
+                class_name:
+                  type: string
+                  example: "Basic Programming Class"
+                description:
+                  type: string
+                  example: "This is a basic programming class"
+      responses:
+        "200":
+          description: Class created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                success: true
+                message: "Class created successfully"
+                data:
+                  id: 1
+                  name: "Basic Programming Class"
+                  description: "This is a basic programming class"
+                  teacher_id: 1
+                  created_at: "2021-01-01T00:00:00Z"
+                  updated_at: "2021-01-01T00:00:00Z"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"

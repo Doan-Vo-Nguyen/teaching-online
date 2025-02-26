@@ -3,9 +3,12 @@ import { UserDTO } from '../DTO/users.dto';
 import { BaseRepository } from './base.repository';
 import { Like } from "typeorm";
 import { StudentClassesRepository } from "./student-classes.repository";
+import { ClassesRepository } from "./classes.repository";
+import { Classes } from "../entity/Classes.entity";
 
 export class UserRepository extends BaseRepository<Users> {
     private readonly studentClassesRepository: StudentClassesRepository = new StudentClassesRepository();
+    private readonly classRepository: ClassesRepository = new ClassesRepository();
     constructor() {
         super(Users);
     }
@@ -86,6 +89,12 @@ export class UserRepository extends BaseRepository<Users> {
     async joinClass(user_id: number, class_id: number): Promise<Users> {
         await this.studentClassesRepository.enrollClass(user_id, class_id);
         return this.repository.findOneBy({ user_id });
+    }
+
+    async addClass(teacher_id: number, classes: Classes): Promise<Users> {
+        classes.teacher_id = teacher_id;
+        await this.classRepository.addClass(teacher_id, classes);
+        return this.repository.findOneBy({ user_id: teacher_id });
     }
 
     async comparePassword(email: string, plainPass: string): Promise<boolean> {
