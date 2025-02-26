@@ -11,8 +11,9 @@ import {
   INVALID_RESET_CODE,
   TIME_EXPIRED,
 } from "../DTO/resDto/BaseErrorDto";
-import sendMail from "../utils/mailer";
+import sendMail, { sendMailResetPassword } from "../utils/mailer";
 import { RESET_CODE_EXPIRE } from "../constant";
+import { generateResetToken } from "../utils/GenerateCode";
 
 class AuthenService {
   private readonly userRepository: IUserRepository = new UserRepository();
@@ -76,6 +77,22 @@ class AuthenService {
   }
 
   public async forgotPassword(email: string) {
+    this.validateEmail(email);
+
+    const user = await this.userRepository.findByEmail(email);
+    this.validateUserExists(user);
+
+    const token = generateResetToken();
+    user.code = token;
+
+    await this.sendResetPasswordEmail(email, token);
+    user.updated_at = new Date();
+    await this.userRepository.update(user.user_id, user);
+
+    return { message: "Reset link sent to email" };
+  }
+
+  private validateEmail(email: string) {
     if (!email) {
       throw new ApiError(
         400,
@@ -83,7 +100,9 @@ class AuthenService {
         FIELD_REQUIRED.error.details
       );
     }
-    const user = await this.userRepository.findByEmail(email);
+  }
+
+  private validateUserExists(user: any) {
     if (!user) {
       throw new ApiError(
         404,
@@ -91,22 +110,15 @@ class AuthenService {
         USER_NOT_EXISTS.error.details
       );
     }
+  }
 
-    const generatedCode = Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit code
-    const subject = "Teaching Online System - Reset Password";
-    const body = `Hi, your reset code is ${generatedCode}. Please use this code to reset your password.`;
+  private async sendResetPasswordEmail(email: string, token: string) {
     try {
-      await sendMail(email, subject, body);
-      console.log(`Mail sent to ${email} with code ${generatedCode}`);
+      await sendMailResetPassword(email, token);
+      console.log(`Mail sent to ${email} with reset link`);
     } catch (error) {
       console.error(`Failed to send mail to ${email}:`, error);
     }
-
-    user.code = generatedCode.toString();
-    user.updated_at = new Date();
-    await this.userRepository.update(user.user_id, user);
-
-    return { message: "Code sent to email" };
   }
 
   public async resetPassword(email: string, code: string, newPassword: string) {
