@@ -1,10 +1,9 @@
+import { authorTeacher } from './../middleware/auth.middleware';
 import { Request, Response, NextFunction } from 'express';
 import BaseController from "../abstracts/base-controller";
 import LecturesService from "../services/lectures.service";
-import { authorAdmin } from "../middleware/auth.middleware";
 import { validParamId } from "../middleware/validate/field.validate";
 import { sendResponse } from '../../common/interfaces/base-response';
-
 export class LecturesController extends BaseController {
     private readonly lecturesService: LecturesService;
 
@@ -17,7 +16,7 @@ export class LecturesController extends BaseController {
     public initRoutes(): void {
         this.router.get('/', this.getAllLectures);
         this.router.get('/:id', validParamId, this.getLectureById);
-        this.router.post('/', authorAdmin, this.createLecture);
+        this.router.post('/', authorTeacher, this.createLecture);
         this.router.patch('/:id', validParamId, this.updateLecture);
         this.router.delete('/:id', validParamId, this.deleteLecture);
     }
