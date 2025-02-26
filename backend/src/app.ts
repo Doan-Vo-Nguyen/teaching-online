@@ -41,13 +41,6 @@ export class Application {
     this._app?.use(express.urlencoded({ extended: true }));
     this._app?.use(
       cors({
-        origin: [
-          "http://localhost:3000",
-          "https://teaching-online-server.onrender.com/",
-          "http://localhost:10000",
-          "http://localhost:5173",
-          "https://edu-space-dkn7.vercel.app/",
-        ],
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization"],
         credentials: true,
