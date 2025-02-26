@@ -1,3 +1,4 @@
+import { Classes } from "../entity/Classes.entity";
 import { Users } from "../entity/User.entity";
 import { IBaseRepository } from "./base.interface";
 
@@ -11,4 +12,5 @@ export interface IUserRepository extends IBaseRepository<Users> {
     changePassword(id: number, newPassword: string): Promise<Users>
     forgotPassword(email: string): Promise<Users>
     joinClass(user_id: number, class_join_code: number): Promise<Users>
+    addClass(teacher_id: number, classes: Classes): Promise<Users>
 }

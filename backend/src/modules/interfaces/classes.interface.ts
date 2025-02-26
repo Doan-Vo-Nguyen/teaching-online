@@ -3,4 +3,5 @@ import { IBaseRepository } from "./base.interface";
 
 export interface IClassesRepository extends IBaseRepository<Classes> {
     findByClassCode(class_code: string): Promise<Classes>
+    addClass(teacher_id: number, classes: Classes): Promise<Classes>
 }

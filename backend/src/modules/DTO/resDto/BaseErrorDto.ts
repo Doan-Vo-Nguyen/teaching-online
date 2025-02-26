@@ -47,6 +47,7 @@ export const NOT_TEACHER = BaseErrorDto("Not a teacher", "You are not a teacher"
 export const CLASS_NOT_EXISTS = BaseErrorDto("Class does not exist");
 export const CLASS_NOT_FOUND = BaseErrorDto("Class not found", "Class not found");
 export const ALREADY_ENROLL = BaseErrorDto("Already enroll", "You have already enroll this class");
+export const CLASS_ALREADY_EXISTS = BaseErrorDto("Class already exists", "Class is already existed");
 
 // Validation Errors
 export const FIELD_REQUIRED = BaseErrorDto("Field is required", "You must provide a value for this field");
