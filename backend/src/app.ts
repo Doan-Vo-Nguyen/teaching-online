@@ -45,6 +45,7 @@ export class Application {
           "http://localhost:10000",
           "http://localhost:5173",
           "https://edu-space-dkn7.vercel.app",
+          "https://ghienphim.fun",
         ],
         
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
