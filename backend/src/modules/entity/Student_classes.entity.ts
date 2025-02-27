@@ -17,11 +17,11 @@ export class StudentClasses {
     @CreateDateColumn()
     enrollDate: Date
 
-    @ManyToOne(() => Users, user => user.studentClasses) // Relation with Users n-1
+    @ManyToOne(() => Users, user => user.studentClasses, { onDelete: 'NO ACTION' }) // Relation with Users n-1
     @JoinColumn({name: "student_id"}) // Column name in the database
     student: Relation<Users>
 
-    @ManyToOne(() => Classes, cls => cls.studentClasses) // Relation with Classes n-1
+    @ManyToOne(() => Classes, cls => cls.studentClasses, { onDelete: 'NO ACTION' }) // Relation with Classes n-1
     @JoinColumn({name: "class_id"}) // Column name in the database
     class: Relation<Classes>
 

@@ -25,7 +25,7 @@ export class Assignments {
     @CreateDateColumn()
     updated_at: Date
 
-    @ManyToOne(() => Classes, classes => classes.assignments) // Relation with Classes n-1
+    @ManyToOne(() => Classes, classes => classes.assignments, { onDelete: 'NO ACTION' }) // Relation with Classes n-1
     @JoinColumn({name: "class_id"}) // Column name in the database
     class: Relation<Classes>
 

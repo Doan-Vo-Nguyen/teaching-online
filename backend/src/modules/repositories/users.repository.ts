@@ -97,6 +97,10 @@ export class UserRepository extends BaseRepository<Users> {
         return this.repository.findOneBy({ user_id: teacher_id });
     }
 
+    async getUserByRole(role: Role): Promise<Users[]> {
+        return this.repository.find({ where: { role } });
+    }
+
     async comparePassword(email: string, plainPass: string): Promise<boolean> {
         const user = await this.repository.findOne({ where: { email } });
         return await user.comparePassHash(plainPass);
