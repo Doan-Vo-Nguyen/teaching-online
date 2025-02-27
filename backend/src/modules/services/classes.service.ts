@@ -127,5 +127,10 @@ class ClassesService {
     const classes = await this.classesRepository.getClassByTeacherId(teacher_id);
     return classes;
   }
+
+  public async getAllClassesWithTeacher() {
+    const classes = await this.classesRepository.getAllClassesWithTeacher();
+    return classes;
+  }
 }
 export default ClassesService;

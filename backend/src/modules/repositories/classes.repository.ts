@@ -51,4 +51,8 @@ export class ClassesRepository extends BaseRepository<Classes> {
   async getClassByTeacherId(teacher_id: number): Promise<Classes[]> {
     return this.repository.find({ where: { teacher_id } });
   }
+
+  async getAllClassesWithTeacher(): Promise<Classes[]> {
+    return this.repository.find({ relations: ["teacher"] });
+  }
 }
