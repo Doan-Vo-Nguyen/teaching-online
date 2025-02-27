@@ -9,7 +9,6 @@ import {
   NOT_FOUND,
 } from "../DTO/resDto/BaseErrorDto";
 import { generateRandomCode } from "../utils/GenerateCode";
-
 class ClassesService {
   private readonly classesRepository: IClassesRepository =
     new ClassesRepository();
@@ -125,12 +124,16 @@ class ClassesService {
       );
     }
     const classes = await this.classesRepository.getClassByTeacherId(teacher_id);
-    return classes;
-  }
-
-  public async getAllClassesWithTeacher() {
-    const classes = await this.classesRepository.getAllClassesWithTeacher();
-    return classes;
+    const classesWithTeacher = await Promise.all(
+      classes.map(async (classItem) => {
+        const teacher = await this.userRepository.findById(teacher_id);
+        return {
+          ...classItem,
+          teacher: teacher ? teacher.fullname : null,
+        };
+      })
+    );
+    return classesWithTeacher;
   }
 }
 export default ClassesService;
