@@ -26,11 +26,11 @@ export class ExamSubmission {
     @Column({type: "text"})
     feed_back: string
 
-    @ManyToOne(() => Exam, exam => exam.examSubmissions) // Relation with Users n-1
+    @ManyToOne(() => Exam, exam => exam.examSubmissions, { onDelete: 'NO ACTION' }) // Relation with Users n-1
     @JoinColumn({name: "exam_id"}) // Column name in the database
     exam: Relation<Exam>
 
-    @ManyToOne(() => StudentClasses, studentClasses => studentClasses.examSubmissions) // Relation with Users n-1
+    @ManyToOne(() => StudentClasses, studentClasses => studentClasses.examSubmissions, { onDelete: 'NO ACTION' }) // Relation with Users n-1
     @JoinColumn({name: "student_class_id"}) // Column name in the database
     studentClass: Relation<StudentClasses>
 

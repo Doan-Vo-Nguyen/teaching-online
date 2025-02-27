@@ -26,6 +26,7 @@ export class UserController extends BaseController {
     this.router.get("/", this.getAllUsers);
     this.router.get("/search", this.getUserByName);
     this.router.get("/:id", validParamId, this.getUserById);
+    this.router.get("/role/:role", authentication, this.getUserByRole);
     this.router.post("/", authentication, validateCreate, this.createUser);
     this.router.post(
       "/:id/class",
@@ -220,4 +221,18 @@ export class UserController extends BaseController {
       next(error);
     }
   };
+
+  private readonly getUserByRole = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const role = req.body.role as Role;
+      const users = await this.userService.getUserByRole(role);
+      return sendResponse(res, true, 200, "Get user by role successfully", users);
+    } catch (error) {
+      next(error);
+    }
+    }
 }
