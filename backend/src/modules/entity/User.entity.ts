@@ -1,7 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column,CreateDateColumn } from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Column,CreateDateColumn, OneToMany } from "typeorm"
 import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
 import dotenv from 'dotenv'
+import { Classes } from "./Classes.entity"
+import { StudentClasses } from "./Student_classes.entity"
+import { Submissions } from "./Submission.entity"
 
 dotenv.config()
 
@@ -65,6 +68,15 @@ export class Users {
     async comparePassHash(plainPass: string): Promise<boolean> {
         return await bcrypt.compare(plainPass, this.password)
     }
+
+    @OneToMany(() => Classes, classes => classes.teacher) // Relation with Classes 1-n
+    teachingClasses: Classes[]
+
+    @OneToMany(() => StudentClasses, studentClasses => studentClasses.student) // Relation with StudentClasses 1-n
+    studentClasses: StudentClasses[]
+
+    @OneToMany(() => Submissions, submissions => submissions.studentSubmission) // Relation with Submissions 1-n
+    submissions: Submissions[]
 
     async generateAuthToken(): Promise<string> {
         const token = jwt.sign(

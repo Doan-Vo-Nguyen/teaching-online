@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Relation, JoinColumn } from "typeorm"
+import { Users } from "./User.entity";
+import { Assignments } from "./Assignments.entity";
 
 @Entity({schema: "teaching"})
 export class Submissions {
@@ -22,4 +24,15 @@ export class Submissions {
 
     @Column({type: "text"})
     feedback: string
+
+    @ManyToOne(() => Users, user => user.submissions)
+    student: Relation<Users>
+
+    @ManyToOne(() => Assignments, assignments => assignments.submissions)
+    @JoinColumn({name: "assignment_id"}) // Column name in the database
+    assignment: Relation<Assignments>
+
+    @ManyToOne(() => Users, user => user.submissions)
+    @JoinColumn({name: "student_id"}) // Column name in the database
+    studentSubmission: Relation<Users>
 }

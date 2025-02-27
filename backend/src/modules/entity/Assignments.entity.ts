@@ -1,4 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Relation, JoinColumn, OneToMany } from "typeorm"
+import { Classes } from "./Classes.entity"
+import { Submissions } from "./Submission.entity"
 
 @Entity({schema: "teaching"})
 export class Assignments {
@@ -22,4 +24,11 @@ export class Assignments {
 
     @CreateDateColumn()
     updated_at: Date
+
+    @ManyToOne(() => Classes, classes => classes.assignments) // Relation with Classes n-1
+    @JoinColumn({name: "class_id"}) // Column name in the database
+    class: Relation<Classes>
+
+    @OneToMany(() => Submissions, submission => submission.assignment) // Relation with Submissions 1-n
+    submissions: Submissions[]
 }

@@ -55,7 +55,14 @@ class ClassesService {
       );
     }
     classData.class_code = generateRandomCode();
-    const newClasses = await this.classesRepository.save(classData);
+    const classEntity = {
+      ...classData,
+      studentClasses: [], // or provide the appropriate value
+      lectures: [], // or provide the appropriate value
+      assignments: [], // or provide the appropriate value
+      exams: [], // or provide the appropriate value
+    };
+    const newClasses = await this.classesRepository.save(classEntity);
     if (!newClasses) {
       throw new ApiError(
         400,
