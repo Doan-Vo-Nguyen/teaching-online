@@ -1,4 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Relation } from "typeorm"
+import { Users } from "./User.entity"
+import { Exam } from "./Exam.entity"
+import { StudentClasses } from "./Student_classes.entity"
 
 @Entity({schema: "teaching"})
 export class ExamSubmission {
@@ -22,4 +25,13 @@ export class ExamSubmission {
 
     @Column({type: "text"})
     feed_back: string
+
+    @ManyToOne(() => Exam, exam => exam.examSubmissions) // Relation with Users n-1
+    @JoinColumn({name: "exam_id"}) // Column name in the database
+    exam: Relation<Exam>
+
+    @ManyToOne(() => StudentClasses, studentClasses => studentClasses.examSubmissions) // Relation with Users n-1
+    @JoinColumn({name: "student_class_id"}) // Column name in the database
+    studentClass: Relation<StudentClasses>
+
 }

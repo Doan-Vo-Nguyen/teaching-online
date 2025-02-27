@@ -5,6 +5,7 @@ export class ClassesDTO {
     class_name: string
     description: string
     class_code: string
+    teacher: any
     teacher_id: number
     created_at: Date
     updated_at: Date

@@ -31,8 +31,6 @@ export class Application {
     this._app = express();
     this.initMiddleware();
     this.initControllers();
-    this._app.use(express.json()); // Add this to parse JSON payloads
-    this._app.use(express.urlencoded({ extended: true })); // Optional for form-encoded payloads
     this.initSwagger();
   }
 
@@ -43,11 +41,13 @@ export class Application {
       cors({
         origin: [
           "http://localhost:3000",
-          "https://teaching-online-server.onrender.com/",
+          "https://teaching-online-server.onrender.com",
           "http://localhost:10000",
           "http://localhost:5173",
-          "https://edu-space-dkn7.vercel.app/",
+          "https://edu-space-dkn7.vercel.app",
+          "https://ghienphim.fun",
         ],
+        
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization"],
         credentials: true,
