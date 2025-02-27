@@ -148,3 +148,110 @@ paths:
             example:
               success: false
               message: "User already exists"
+  /auth/forgot-password:
+    post:
+      tags:
+        - Auth
+      summary: Forgot password
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema:
+            type: string
+            format: email
+            example: user@example.com
+      responses:
+        '200':
+          description: Password reset email sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: "Password reset email sent"
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: "Invalid input"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: "User not found"
+
+  /auth/reset-password:
+    patch:
+      tags:
+        - Auth
+      summary: Reset password
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema:
+            type: string
+            format: email
+            example: user@example.com
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code:
+                  type: string
+                  example: "123456"
+                password:
+                  type: string
+                  format: password
+                  example: newpassword123
+      responses:
+        '200':
+          description: Password reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: "Password reset successfully"
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: "Invalid input"
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                success: false
+                message: "User not found"
+        '401':
+          description: Invalid or expired code
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+              example:
+                success: false
+                message: "Invalid or expired code"
+      

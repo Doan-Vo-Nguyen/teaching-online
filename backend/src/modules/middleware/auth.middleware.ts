@@ -72,5 +72,5 @@ const authorize = (allowedRoles: string[]) => (req: IRequest, res: Response, nex
 };
 
 export const authorAdmin = authorize(['admin']);
-export const authorAd = authorize(['admin']);
 export const authorTeacher = authorize(['teacher']);
+export const authorAdOrTeacher = authorAdmin || authorTeacher;

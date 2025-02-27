@@ -98,7 +98,7 @@ class UserService {
     this.validateField(teacherId, FIELD_REQUIRED);
     this.validateField(classData, FIELD_REQUIRED);
     const teacher = await this.userRepository.findById(teacherId);
-    this.validateTeacherForClassAdd(teacher);
+    this.validateCreatorForClassAdd(teacher);
     await this.validateClassExists(classData);
     classData.class_code = generateRandomCode();
     const newClass = await this.classesRepository.addClass(teacherId, classData);
@@ -146,8 +146,8 @@ class UserService {
     if (existingClass) throw new ApiError(409, CLASS_ALREADY_EXISTS.error.message, CLASS_ALREADY_EXISTS.error.details);
   }
 
-  private validateTeacherForClassAdd(teacher: any) {
-    if (!teacher || teacher.role !== Role.TEACHER) throw new ApiError(400, NOT_TEACHER.error.message, NOT_TEACHER.error.details);
+  private validateCreatorForClassAdd(user: any) {
+    if (!user || (user.role !== Role.TEACHER && user.role !== Role.ADMIN)) throw new ApiError(400, NOT_TEACHER.error.message, NOT_TEACHER.error.details);
   }
 }
 

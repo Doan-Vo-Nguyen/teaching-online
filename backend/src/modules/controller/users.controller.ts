@@ -3,7 +3,7 @@ import BaseController from "../abstracts/base-controller";
 import UserService from "../services/users.service";
 import {
   authentication,
-  authorTeacher,
+  authorAdOrTeacher,
 } from "../middleware/auth.middleware";
 import {
   validateCreate,
@@ -30,7 +30,7 @@ export class UserController extends BaseController {
     this.router.post(
       "/:id/class",
       authentication,
-      authorTeacher,
+      authorAdOrTeacher,
       this.addClass
     );
     this.router.post(
