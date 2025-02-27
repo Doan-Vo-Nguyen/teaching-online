@@ -17,6 +17,7 @@ export class ClassesController extends BaseController {
     public initRoutes(): void {
         this.router.get('/', this.getAllClasses);
         this.router.get('/:id', validParamId, this.getClassById);
+        this.router.get('/teacher/:teacher_id', validParamId, this.getClassByTeacherId);
         this.router.post('/', authorAdmin, this.createClass);
         this.router.patch('/:id', validParamId, this.updateClass);
         this.router.delete('/:id', validParamId, this.deleteClass);
@@ -75,6 +76,16 @@ export class ClassesController extends BaseController {
             const classCode = req.params.class_code;
             const classes = await this.classesService.findByClassCode(classCode);
             return sendResponse(res, true, 200, "Get class by class code successfully", classes);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private readonly getClassByTeacherId = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const teacherId = parseInt(req.params.teacher_id, 10);
+            const classes = await this.classesService.getClassByTeacherId(teacherId);
+            return sendResponse(res, true, 200, "Get class by teacher id successfully", classes);
         } catch (error) {
             next(error);
         }

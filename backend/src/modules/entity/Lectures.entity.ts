@@ -32,7 +32,7 @@ export class Lectures {
     @CreateDateColumn()
     updated_at: Date
 
-    @ManyToOne(() => Classes, classes => classes.lectures) // Relation with Classes n-1
+    @ManyToOne(() => Classes, classes => classes.lectures, { onDelete: 'NO ACTION' }) // Relation with Classes n-1
     @JoinColumn({name: "class_id"}) // Column name in the database
     class: Relation<Classes>
 }

@@ -28,11 +28,11 @@ export class Submissions {
     @ManyToOne(() => Users, user => user.submissions)
     student: Relation<Users>
 
-    @ManyToOne(() => Assignments, assignments => assignments.submissions)
+    @ManyToOne(() => Assignments, assignments => assignments.submissions, { onDelete: 'NO ACTION' })
     @JoinColumn({name: "assignment_id"}) // Column name in the database
     assignment: Relation<Assignments>
 
-    @ManyToOne(() => Users, user => user.submissions)
+    @ManyToOne(() => Users, user => user.submissions, { onDelete: 'NO ACTION' })
     @JoinColumn({name: "student_id"}) // Column name in the database
     studentSubmission: Relation<Users>
 }

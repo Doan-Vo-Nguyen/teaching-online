@@ -115,5 +115,17 @@ class ClassesService {
     const classes = await this.classesRepository.findByClassCode(class_code);
     return classes;
   }
+
+  public async getClassByTeacherId(teacher_id: number) {
+    if (!teacher_id) {
+      throw new ApiError(
+        400,
+        FIELD_REQUIRED.error.message,
+        FIELD_REQUIRED.error.details
+      );
+    }
+    const classes = await this.classesRepository.getClassByTeacherId(teacher_id);
+    return classes;
+  }
 }
 export default ClassesService;

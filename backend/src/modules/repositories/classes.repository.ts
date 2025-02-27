@@ -44,8 +44,11 @@ export class ClassesRepository extends BaseRepository<Classes> {
       teacher_id: teacher_id,
     });
 
-    // Save the new class to the database
     await this.repository.save(newClass);
     return newClass;
+  }
+
+  async getClassByTeacherId(teacher_id: number): Promise<Classes[]> {
+    return this.repository.find({ where: { teacher_id } });
   }
 }

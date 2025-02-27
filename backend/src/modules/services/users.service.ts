@@ -149,6 +149,11 @@ class UserService {
   private validateCreatorForClassAdd(user: any) {
     if (!user || (user.role !== Role.TEACHER && user.role !== Role.ADMIN)) throw new ApiError(400, NOT_TEACHER.error.message, NOT_TEACHER.error.details);
   }
+
+  public getUserByRole(role: Role) {
+    return this.userRepository.getUserByRole(role);
+  
+  }
 }
 
 export default UserService;
