@@ -57,7 +57,6 @@ export class StudentClassesController extends BaseController {
       );
     } catch (error) {
       next(error);
-      console.error(error);
     }
   };
 
