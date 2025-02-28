@@ -5,11 +5,11 @@ import 'dotenv/config';
 // MySQL DataSource
 export const AppDataSource = new DataSource({
     type: "mysql",
-    host: process.env.MYSQL_HOST,
-    port: parseInt(process.env.MYSQL_PORT, 10),
-    username: process.env.MYSQL_USERNAME,
-    password: process.env.MYSQL_PASSWORD,
-    database: process.env.MYSQL_DB_NAME,
+    host: process.env.MYSQL_PRODUCTION_HOST,
+    port: parseInt(process.env.MYSQL_PRODUCTION_PORT, 10),
+    username: process.env.MYSQL_PRODUCTION_USERNAME,
+    password: process.env.MYSQL_PRODUCTION_PASSWORD,
+    database: process.env.MYSQL_PRODUCTION_DB_NAME,
     synchronize: true,
     logging: false,
     entities: ['src/**/entity/*.entity.{ts,js}'],
