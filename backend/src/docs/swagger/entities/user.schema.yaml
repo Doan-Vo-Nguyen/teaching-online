@@ -624,3 +624,48 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
+    /app/users/role/{role}:
+      get:
+        tags:
+          - Users
+        summary: Get users by role
+        security:
+          - bearerAuth: []
+        parameters:
+          - in: path
+            name: role
+            required: true
+            schema:
+              type: string
+            description: User role
+        responses:
+          "200":
+            description: Users found
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/Success"
+                example:
+                  success: true
+                  message: "Users found successfully"
+                  data:
+                    - id: 1
+                      username: "User A"
+                      fullname: "New User"
+                      password: "XXXXXXXXXXX"
+                      email: "XXXXXXXXXXXXX"
+                      role: ["admin"]
+                      profile_picture: "https://example.com/profile.jpg"
+                      phone: "1234567890"
+          "401":
+            description: Unauthorized
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/UnauthorizedError"
+          "403":
+            description: Forbidden
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/sschemas/ForbiddenError"

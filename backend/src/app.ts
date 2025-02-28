@@ -16,6 +16,7 @@ import options from "./docs/swagger/config/swagger.config";
 import cors from "cors";
 import errorHandler from "./modules/middleware/error-handler";
 import helmet from "helmet";
+import { StudentClassesController } from "./modules/controller/student-classes.controller";
 
 export class Application {
   private _app: Express | undefined;
@@ -85,6 +86,7 @@ export class Application {
       new UserController("/app/users"),
       new ClassesController("/app/classes"),
       new LecturesController("/app/lectures"),
+      new StudentClassesController("/app/student-classes"),
     ];
 
     // Apply authentication middleware to all protected routes

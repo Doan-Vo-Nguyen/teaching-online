@@ -230,9 +230,15 @@ export class UserController extends BaseController {
     try {
       const role = req.body.role as Role;
       const users = await this.userService.getUserByRole(role);
-      return sendResponse(res, true, 200, "Get user by role successfully", users);
+      return sendResponse(
+        res,
+        true,
+        200,
+        "Get user by role successfully",
+        users
+      );
     } catch (error) {
       next(error);
     }
-    }
+  };
 }

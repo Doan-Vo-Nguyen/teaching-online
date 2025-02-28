@@ -1,0 +1,142 @@
+components:
+  schemas:
+    StudentClasses:
+      type: object
+      properties:
+        id:
+          type: integer
+        student_id:
+          type: integer
+        class_id:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - student_id
+        - class_id
+        - created_at
+        - updated_at
+    UnauthorizedError:
+      type: object
+      properties:
+        message:
+          type: string
+    ForbiddenError:
+      type: object
+      properties:
+        message:
+          type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
+
+paths:
+  /student-classes:
+    get:
+      tags:
+        - Student Classes
+      summary: Get all student classes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Get all student classes successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StudentClasses'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+  /student-classes/{id}:
+    get:
+      tags:
+        - Student Classes
+      summary: Get student class by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Get student class by id successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudentClasses'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+  /student-classes/joined-class:
+    get:
+      tags:
+        - Student Classes
+      summary: Get student joined classes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: class_id
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Get student joined classes successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StudentClasses'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
