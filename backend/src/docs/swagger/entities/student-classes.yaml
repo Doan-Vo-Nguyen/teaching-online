@@ -41,7 +41,7 @@ security:
   - bearerAuth: []
 
 paths:
-  /student-classes:
+  /app/student-classes/:
     get:
       tags:
         - Student Classes
@@ -69,7 +69,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
-  /student-classes/{id}:
+  /app/student-classes/{id}:
     get:
       tags:
         - Student Classes
@@ -101,7 +101,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
-  /student-classes/joined-class:
+  /app/student-classes/joined-class:
     get:
       tags:
         - Student Classes
