@@ -3,7 +3,7 @@ import BaseController from "../abstracts/base-controller";
 import UserService from "../services/users.service";
 import {
   authentication,
-  authorTeacher,
+  authorAdOrTeacher,
 } from "../middleware/auth.middleware";
 import {
   validateCreate,
@@ -31,7 +31,7 @@ export class UserController extends BaseController {
     this.router.post(
       "/:id/class",
       authentication,
-      authorTeacher,
+      authorAdOrTeacher,
       this.addClass
     );
     this.router.post(
@@ -230,9 +230,15 @@ export class UserController extends BaseController {
     try {
       const role = req.body.role as Role;
       const users = await this.userService.getUserByRole(role);
-      return sendResponse(res, true, 200, "Get user by role successfully", users);
+      return sendResponse(
+        res,
+        true,
+        200,
+        "Get user by role successfully",
+        users
+      );
     } catch (error) {
       next(error);
     }
-    }
+  };
 }
