@@ -17,6 +17,8 @@ export class StudentClassesController extends BaseController {
     this.router.get("/:id", this.getStudentClassById);
     // Put general routes last
     this.router.get("/", this.getAllStudentClasses);
+    this.router.get("/student/:id", this.getAllClassesByStudentJoined);
+    this.router.get("/class/:id", this.getAllStudentByClass);
   }
 
   private readonly getAllStudentClasses = async (
@@ -90,7 +92,48 @@ export class StudentClassesController extends BaseController {
         studentClasses
       );
     } catch (error) {
-      console.error("getStudentJoinedClasses error:", error);
+      next(error);
+    }
+  };
+  
+  private readonly getAllStudentByClass = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const classId = parseInt(req.params.id, 10);
+      const studentClasses =
+        await this.studentClassService.getAllStudentByClass(classId);
+      return sendResponse(
+        res,
+        true,
+        200,
+        "Get all students by class id successfully",
+        studentClasses
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  private readonly getAllClassesByStudentJoined = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const studentId = parseInt(req.params.id, 10);
+      const studentClasses =
+        await this.studentClassService.getAllClassesByStudentJoined(studentId);
+      return sendResponse(
+        res,
+        true,
+        200,
+        "Get all classes by student joined successfully",
+        studentClasses
+      );
+    } catch (error) {
       next(error);
     }
   };
