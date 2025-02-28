@@ -272,3 +272,72 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
+  /app/classes/teacher/{teacher_id}/{class_id}:
+    get:
+      tags:
+        - Classes
+      summary: Get details of a class by teacher id and class id
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: teacher_id
+          required: true
+          schema:
+            type: integer
+          description: The teacher id
+        - in: path
+          name: class_id
+          required: true
+          schema:
+            type: integer
+          description: The class id
+      responses:
+        "200":
+          description: A class
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                success: true
+                message: "Get class details by teacher successfully"
+                data:
+                  - class_id: "1"
+                    class_name: "Math 101"
+                    description: "Mathematics class"
+                    class_code: "apw q2t"
+                    teacher_id: 1
+                    created_at: "2025-02-18T00:00:00.000Z"
+                    updated_at: "2025-002-18T00:00:00.000Z"
+                    teacher: "John Doe"
+                    students: [
+                      {
+                        user_id: 1,
+                        username: "janedoe",
+                        fullname: "Jane Doe",
+                        dob: "1990-02-18T00:00:00.000Z",
+                        gender: "Male",
+                        password: "XXXXXXXXXXX",
+                        role: "student",
+                        email: "jane.doe@example.com",
+                        profile_picture: "http://example.com/janed",
+                        phone: "0234567890",
+                        address: "123 Main St",
+                        code: "apw q2t",
+                        created_at: "2025-02-18T00:00:00.000Z",
+                        updated_at: "2025-002-18T00:00:00.000Z"
+                      }
+                    ]
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
