@@ -37,4 +37,14 @@ export class StudentClassesRepository extends BaseRepository<StudentClasses> {
   ): Promise<StudentClasses[]> {
     return this.repository.find({ where: { student_id, class_id } });
   }
+
+  async getAllStudentByClass(class_id: number): Promise<StudentClasses[]> {
+    return this.repository.find({ where: { class_id } });
+  }
+
+  async getAllClassesByStudentJoined(
+    student_id: number
+  ): Promise<StudentClasses[]> {
+    return this.repository.find({ where: { student_id } });
+  }
 }

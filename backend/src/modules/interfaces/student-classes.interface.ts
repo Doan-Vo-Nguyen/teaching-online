@@ -6,10 +6,12 @@ export interface IStudentClassesRepository
   getStudentJoinedClasses(
     student_id: number,
     class_id: number
-  ): Promise<StudentClasses[]>;
+  ): Promise<StudentClasses[]>; // Get student joined classes
   findByUserIdAndClassId(
     student_id: number,
     class_id: number
-  ): Promise<StudentClasses>;
-  enrollClass(student_id: number, class_id: number): Promise<StudentClasses>;
+  ): Promise<StudentClasses>; // Find by user id and class id
+  getAllStudentByClass(class_id: number): Promise<StudentClasses[]>; // Get all students by class id
+  getAllClassesByStudentJoined(student_id: number): Promise<StudentClasses[]>; // Get all classes by student joined
+  enrollClass(student_id: number, class_id: number): Promise<StudentClasses>; // Enroll a class
 }
