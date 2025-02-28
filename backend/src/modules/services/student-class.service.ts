@@ -49,6 +49,23 @@ class StudentClassesService {
       class_id
     );
   }
+
+  public async getAllStudentByClass(class_id: number) {
+    const classes = await this.classesRepository.findById(class_id);
+    if (!classes) {
+      throw new ApiError(
+        404,
+        STUDENT_NOT_FOUND.error.message,
+        STUDENT_NOT_FOUND.error.details
+      );
+    }
+    const studentClasses = await this.studentClassesRepository.getAllStudentByClass(class_id);
+    return studentClasses;
+  }
+
+  public async getAllClassesByStudentJoined(student_id: number) {
+    return await this.studentClassesRepository.getAllClassesByStudentJoined(student_id);
+  }
 }
 
 export default StudentClassesService;
