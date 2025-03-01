@@ -47,4 +47,12 @@ export class StudentClassesRepository extends BaseRepository<StudentClasses> {
   ): Promise<StudentClasses[]> {
     return this.repository.find({ where: { student_id } });
   }
+
+  async leaveClass(
+    student_id: number,
+    class_id: number
+  ): Promise<StudentClasses> {
+    const studentClass = await this.repository.findOneBy({ student_id, class_id });
+    return this.repository.remove(studentClass);
+  }
 }

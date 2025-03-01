@@ -154,6 +154,16 @@ class UserService {
     return await this.userRepository.joinClass(userId, classData.class_id);
   }
 
+  public async leaveClass(userId: number, classId: number) {
+    this.validateField(userId, FIELD_REQUIRED);
+    this.validateField(classId, FIELD_REQUIRED);
+    const user = await this.userRepository.findById(userId);
+    this.validateUserForClassJoin(user);
+    const classData = await this.classesRepository.findById(classId);
+    this.validateClassData(classData);
+    return await this.userRepository.leaveClass(userId, classId);
+  }
+
   public async addClass(teacherId: number, classData: any) {
     this.validateField(teacherId, FIELD_REQUIRED);
     this.validateField(classData, FIELD_REQUIRED);

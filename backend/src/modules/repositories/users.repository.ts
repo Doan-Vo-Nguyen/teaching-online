@@ -91,6 +91,12 @@ export class UserRepository extends BaseRepository<Users> {
         return this.repository.findOneBy({ user_id });
     }
 
+    // Leave class by class_id (the user with user_id will leave the class with class_id)
+    async leaveClass(user_id: number, class_id: number): Promise<Users> {
+        await this.studentClassesRepository.leaveClass(user_id, class_id);
+        return this.repository.findOneBy({ user_id });
+    }
+
     async addClass(teacher_id: number, classes: Classes): Promise<Users> {
         classes.teacher_id = teacher_id;
         await this.classRepository.addClass(teacher_id, classes);

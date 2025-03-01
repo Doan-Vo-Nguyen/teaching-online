@@ -612,3 +612,54 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
+  /app/users/{id}/leave/{class_id}:
+    post:
+      tags:
+        - Users
+      summary: Leave a class
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: User ID
+        - in: path
+          name: class_id
+          required: true
+          schema:
+            type: integer
+          description: Class ID
+      responses:
+        "200":
+          description: User left class successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Success"
+              example:
+                success: true
+                message: "User left class successfully"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UnauthorizedError"
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ForbiddenError"
+        "404":
+          description: Class not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    $ref: "#/components/schemas/NotFoundError"
