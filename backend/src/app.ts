@@ -17,6 +17,8 @@ import cors from "cors";
 import errorHandler from "./modules/middleware/error-handler";
 import helmet from "helmet";
 import { StudentClassesController } from "./modules/controller/student-classes.controller";
+import { Exam } from "./modules/entity/Exam.entity";
+import { ExamController } from "./modules/controller/exam.controller";
 
 export class Application {
   private _app: Express | undefined;
@@ -87,6 +89,7 @@ export class Application {
       new ClassesController("/app/classes"),
       new LecturesController("/app/lectures"),
       new StudentClassesController("/app/student-classes"),
+      new ExamController("/app/exams"),
     ];
 
     // Apply authentication middleware to all protected routes

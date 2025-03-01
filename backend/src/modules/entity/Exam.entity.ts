@@ -2,6 +2,13 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Re
 import { Classes } from "./Classes.entity"
 import { ExamSubmission } from "./Exam_submission.entity"
 
+enum ExamType {
+    QUIZ = "quiz",
+    TEST = "test",
+    MIDTERM = "midterm",
+    FINAL = "final"
+}
+
 @Entity({schema: "teaching"})
 export class Exam {
     @PrimaryGeneratedColumn()
@@ -16,7 +23,10 @@ export class Exam {
     @Column({type: "text"})
     description: string
 
-    @CreateDateColumn()
+    @Column({type: "enum", enum: ExamType})
+    type: ExamType
+
+    @Column()
     due_date: Date
 
     @CreateDateColumn()
