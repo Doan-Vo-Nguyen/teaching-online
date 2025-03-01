@@ -9,7 +9,7 @@ const options = {
     },
     servers: [
       {
-        url: process.env.SWAGGER_URL || "https://localhost:3000",
+        url: process.env.SWAGGER_PRODUCTION_URL || "https://teaching-online-server.onrender.com/",
         description: "Development server",
       },
     ],
