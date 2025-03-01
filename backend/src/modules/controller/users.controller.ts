@@ -39,6 +39,7 @@ export class UserController extends BaseController {
       authentication,
       this.joinClass
     );
+    this.router.post("/:id/leave/:class_id", authentication, this.leaveClass);
     this.router.patch(
       "/:id",
       authentication,
@@ -217,6 +218,22 @@ export class UserController extends BaseController {
       const classData = req.body;
       await this.userService.addClass(teacherId, classData);
       return sendResponse(res, true, 200, "Add class successfully");
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  private readonly leaveClass = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const { id, class_id } = req.params;
+      const userId = parseInt(id, 10);
+      const classId = parseInt(class_id, 10);
+      await this.userService.leaveClass(userId, classId);
+      return sendResponse(res, true, 200, "Leave class successfully");
     } catch (error) {
       next(error);
     }
