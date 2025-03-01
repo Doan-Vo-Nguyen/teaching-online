@@ -1,5 +1,4 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Relation } from "typeorm"
-import { Users } from "./User.entity"
 import { Exam } from "./Exam.entity"
 import { StudentClasses } from "./Student_classes.entity"
 

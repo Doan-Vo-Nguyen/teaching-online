@@ -50,6 +50,12 @@ export const ALREADY_ENROLL = BaseErrorDto("Already enroll", "You have already e
 export const CLASS_ALREADY_EXISTS = BaseErrorDto("Class already exists", "Class is already existed");
 export const STUDENT_NOT_FOUND = BaseErrorDto("Student not found", "Student not found in this class");
 
+// Exam Errors
+export const EXAM_NOT_FOUND = BaseErrorDto("Exam not found", "No exam was found");
+export const EXAM_ALREADY_EXISTS = BaseErrorDto("Exam already exists", "Exam is already existed");
+export const EXAM_FIELD_REQUIRED = BaseErrorDto("Exam field is required", "You must provide a value for this field");
+export const EXAM_NOT_FOUND_IN_CLASS = BaseErrorDto("Exam not found in class", "Exam not found in this class");
+
 // Validation Errors
 export const FIELD_REQUIRED = BaseErrorDto("Field is required", "You must provide a value for this field");
 export const WRONG_PASSWORD = BaseErrorDto("Wrong password", "Password is incorrect");
