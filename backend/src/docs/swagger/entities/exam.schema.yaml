@@ -1,0 +1,148 @@
+components:
+  schemas:
+    Exam:
+      type: object
+      required:
+        - class_id
+        - title
+        - description
+        - type
+        - due_date
+      properties:
+        class_id:
+          type: string
+          description: The ID of the class the exam belongs to
+        title:
+          type: string
+          description: The name of the exam
+        description:
+          type: string
+          description: The description of the exam
+        type:
+          type: string
+          description: The type of the exam
+        due_date:
+          type: string
+          description: The due date of the exam
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
+paths:
+  /app/exams:
+    get:
+      tags:
+        - Exams
+      summary: Get all exams
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: A list of exams
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Exam'
+    post:
+      tags:
+        - Exams
+      security:
+        - bearerAuth: []
+      summary: Create a new exam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - class_id
+                - title
+                - description
+                - type
+                - due_date
+              properties:
+                class_id:
+                  type: string
+                  description: The ID of the class the exam belongs to
+                  example: 1234
+                title:
+                  type: string
+                  description: The name of the exam
+                  example: Exam 1
+                description:
+                  type: string
+                  description: The description of the exam
+                  example: This is the first exam
+                type:
+                  type: string
+                  description: The type of the exam
+                  example: test
+                due_date:
+                  type: string
+                  description: The due date of the exam
+                  example: 2021-12-31:23:59:59
+      responses:
+        "201":
+          description: Exam created successfully
+  /app/exams/{id}:
+    get:
+      tags:
+        - Exams
+      summary: Get an exam by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Exam details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Exam'
+    patch:
+      tags:
+        - Exams
+      security:
+        - bearerAuth: []
+      summary: Update an exam by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Exam'
+      responses:
+        "200":
+          description: Exam updated successfully
+    delete:
+      tags:
+        - Exams
+      security:
+        - bearerAuth: []
+      summary: Delete an exam by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Exam deleted successfully
