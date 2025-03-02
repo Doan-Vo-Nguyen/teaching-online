@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import BaseController from "../abstracts/base-controller";
 import ClassesService from "../services/classes.service";
 import { authorAdmin } from "../middleware/auth.middleware";
-import { validParamId } from "../middleware/validate/field.validate";
+import { validParam } from "../middleware/validate/field.validate";
 import { sendResponse } from "../../common/interfaces/base-response";
 
 export class ClassesController extends BaseController {
@@ -16,15 +16,15 @@ export class ClassesController extends BaseController {
 
   public initRoutes(): void {
     this.router.get("/", this.getAllClasses);
-    this.router.get("/:id", validParamId, this.getClassById);
-    this.router.get("/teacher/:id", validParamId, this.getClassByTeacherId);
+    this.router.get("/:id", validParam("id"), this.getClassById);
+    this.router.get("/teacher/:id", validParam("id"), this.getClassByTeacherId);
     this.router.get(
       "/teacher/:teacher_id/:class_id",
       this.getClassDetailsByTeacher
     );
     this.router.post("/", authorAdmin, this.createClass);
-    this.router.patch("/:id", validParamId, this.updateClass);
-    this.router.delete("/:id", validParamId, this.deleteClass);
+    this.router.patch("/:id", validParam("id"), this.updateClass);
+    this.router.delete("/:id", validParam("id"), this.deleteClass);
   }
 
   private readonly getAllClasses = async (

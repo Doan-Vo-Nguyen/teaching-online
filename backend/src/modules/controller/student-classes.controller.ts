@@ -1,5 +1,6 @@
 import { sendResponse } from "../../common/interfaces/base-response";
 import BaseController from "../abstracts/base-controller";
+import { validParam } from "../middleware/validate/field.validate";
 import StudentClassesService from "../services/student-class.service";
 import { Request, Response, NextFunction } from "express";
 export class StudentClassesController extends BaseController {
@@ -14,11 +15,11 @@ export class StudentClassesController extends BaseController {
     // Put more specific routes first
     this.router.get("/joined-class", this.getStudentJoinedClasses);
     // Then put parameter routes after
-    this.router.get("/:id", this.getStudentClassById);
+    this.router.get("/:id", validParam("id"), this.getStudentClassById);
     // Put general routes last
     this.router.get("/", this.getAllStudentClasses);
-    this.router.get("/student/:id", this.getAllClassesByStudentJoined);
-    this.router.get("/class/:id", this.getAllStudentByClass);
+    this.router.get("/student/:id", validParam("id"), this.getAllClassesByStudentJoined);
+    this.router.get("/class/:id", validParam("id"), this.getAllStudentByClass);
   }
 
   private readonly getAllStudentClasses = async (

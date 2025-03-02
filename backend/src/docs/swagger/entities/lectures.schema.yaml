@@ -268,3 +268,296 @@ paths:
               example:
                 success: false
                 message: Lecture not found
+  /app/lectures/class/{classId}:
+    get:
+      tags:
+        - Lectures
+      summary: Get all lectures by class ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A list of lectures
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: Lectures retrieved successfully
+                data:
+                  - class_id: 1
+                    title: Lecture 1
+                    content: Content of lecture 1
+                    type: documents
+                    created_at: '2025-02-01T00:00:00.000Z'
+                    updated_at: '2025-02-01T00:00:00.000Z'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+              example:
+                success: false
+                message: Unauthorized
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+              example:
+                success: false
+                message: Forbidden
+    post:
+      tags:
+        - Lectures
+      security:
+        - bearerAuth: []
+      summary: Create a new lecture by class ID
+      parameters:
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+                - type
+              properties:
+                title:
+                  type: string
+                  description: The lecture title
+                content:
+                  type: string
+                  description: The lecture content
+                type:
+                  type: string
+                  description: The lecture type
+      responses:
+        '201':
+          description: Lecture created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: Lecture created successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+              example:
+                success: false
+                message: Unauthorized
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+              example:
+                success: false
+                message: Forbidden 
+  /app/lectures/{id}/class/{classId}:
+    get:
+      tags:
+        - Lectures
+      summary: Get a lecture by ID and class ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: A lecture object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lectures'
+              example:
+                class_id: 1
+                title: Lecture 1
+                content: Content of lecture 1
+                type: documents
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+              example:
+                success: false
+                message: Unauthorized
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+              example:
+                success: false
+                message: Forbidden
+        '404':
+          description: Lecture not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              example:
+                success: false
+                message: Lecture not found
+    patch:
+      tags:
+        - Lectures
+      security:
+        - bearerAuth: []
+      summary: Update a lecture by ID and class ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - content
+                - type
+              properties:
+                title:
+                  type: string
+                  description: The lecture title
+                content:
+                  type: string
+                  description: The lecture content
+                type:
+                  type: string
+                  description: The lecture type
+      responses:
+        '200':
+          description: Lecture updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: Lecture updated successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+              example:
+                success: false
+                message: Unauthorized
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+              example:
+                success: false
+                message: Forbidden
+        '404':
+          description: Lecture not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              example:
+                success: false
+                message: Lecture not found
+    delete:
+      tags:
+        - Lectures
+      security:
+        - bearerAuth: []
+      summary: Delete a lecture by ID and class ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lecture deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: Lecture deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+              example:
+                success: false
+                message: Unauthorized
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+              example:
+                success: false
+                message: Forbidden
+        '404':
+          description: Lecture not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              example:
+                success: false
+                message: Lecture not found
