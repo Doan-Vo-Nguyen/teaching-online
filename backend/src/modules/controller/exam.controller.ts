@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import BaseController from "../abstracts/base-controller";
 import ExamService from "../services/exam.service";
 import { sendResponse } from "../../common/interfaces/base-response";
-import { validParamId } from "../middleware/validate/field.validate";
+import { validParam } from "../middleware/validate/field.validate";
 import { authentication } from "../middleware/auth.middleware";
 
 export class ExamController extends BaseController {
@@ -16,10 +16,10 @@ export class ExamController extends BaseController {
 
     public initRoutes(): void {
         this.router.get("/", this.getAllExams);
-        this.router.get("/:id", validParamId, this.getExamById);
+        this.router.get("/:id", validParam("id"), this.getExamById);
         this.router.post("/", authentication, this.createExam);
-        this.router.patch("/:id", authentication, this.updateExam);
-        this.router.delete("/:id", authentication, validParamId, this.deleteExam);
+        this.router.patch("/:id", authentication, validParam("id"), this.updateExam);
+        this.router.delete("/:id", authentication, validParam("id"), this.deleteExam);
     }
 
     private readonly getAllExams = async (

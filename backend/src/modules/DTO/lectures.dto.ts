@@ -10,6 +10,7 @@ export class LecturesDTO {
     created_at: Date
     updated_at: Date
     class: any
+    lectureType: any
 }
 
 export class LectureDTOPost {
