@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import BaseController from "../abstracts/base-controller";
 import CommentService from "../services/comment.service";
 import { sendResponse } from '../../common/interfaces/base-response';
-import { validParamId } from "../middleware/validate/field.validate";
+import { validParam } from "../middleware/validate/field.validate";
 import { authorAdmin } from "../middleware/auth.middleware";
 
 export class CommentController extends BaseController {
@@ -16,10 +16,10 @@ export class CommentController extends BaseController {
 
     public initRoutes(): void {
         this.router.get('/', this.getAllComments);
-        this.router.get('/:id', validParamId, this.getCommentById);
+        this.router.get('/:id', validParam("id"), this.getCommentById);
         this.router.post('/', authorAdmin, this.createComment);
-        this.router.patch('/:id', validParamId, this.updateComment);
-        this.router.delete('/:id', validParamId, this.deleteComment);
+        this.router.patch('/:id', validParam("id"), this.updateComment);
+        this.router.delete('/:id', validParam("id"), this.deleteComment);
     }
 
     private readonly getAllComments = async (req: Request, res: Response, next: NextFunction) => {

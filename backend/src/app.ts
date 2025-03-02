@@ -90,6 +90,7 @@ export class Application {
       new LecturesController("/app/lectures"),
       new StudentClassesController("/app/student-classes"),
       new ExamController("/app/exams"),
+      new LecturesController("/app/lectures"),
     ];
 
     // Apply authentication middleware to all protected routes

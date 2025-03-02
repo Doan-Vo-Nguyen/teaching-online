@@ -9,7 +9,7 @@ import {
   validateCreate,
   validatePhoneAndEMail,
 } from "../middleware/validate/user.validate";
-import { validParamId } from "../middleware/validate/field.validate";
+import { validParam } from "../middleware/validate/field.validate";
 import { sendResponse } from "../../common/interfaces/base-response";
 import { Role } from "../entity/User.entity";
 
@@ -25,7 +25,7 @@ export class UserController extends BaseController {
   public initRoutes(): void {
     this.router.get("/", this.getAllUsers);
     this.router.get("/search", this.getUserByName);
-    this.router.get("/:id", validParamId, this.getUserById);
+    this.router.get("/:id", validParam("id"), this.getUserById);
     this.router.get("/role/:role", authentication, this.getUserByRole);
     this.router.post("/", authentication, validateCreate, this.createUser);
     this.router.post(
@@ -48,7 +48,7 @@ export class UserController extends BaseController {
     );
     this.router.put("/:id/password", authentication, this.changePassword);
     this.router.patch("/:id/roles/", authentication, this.updateUserRole);
-    this.router.delete("/:id", authentication, validParamId, this.deleteUser);
+    this.router.delete("/:id", authentication, validParam, this.deleteUser);
   }
 
   private readonly getAllUsers = async (
