@@ -146,3 +146,120 @@ paths:
       responses:
         "204":
           description: Exam deleted successfully
+  /app/exams/{id}/content:
+    get:
+      tags:
+        - Exams
+      summary: Get exam content by exam ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Exam content retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: object
+                    description: The content of the exam
+    post:
+      tags:
+        - Exams
+      summary: Create exam content by exam ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                content:
+                  type: object
+                  description: The content to add to the exam
+      responses:
+        "201":
+          description: Exam content created successfully
+    delete:
+      tags:
+        - Exams
+      summary: Delete exam content by exam ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Exam content deleted successfully
+  /app/exams/{classId}/{teacherId}:
+    post:
+      tags:
+        - Exams
+      summary: Create exam by class ID and teacher ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: classId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the class
+        - name: teacherId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the teacher
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+                - type
+                - due_date
+              properties:
+                title:
+                  type: string
+                  description: The name of the exam
+                  example: Exam 1
+                description:
+                  type: string
+                  description: The description of the exam
+                  example: This is the first exam
+                type:
+                  type: string
+                  description: The type of the exam
+                  example: test
+                due_date:
+                  type: string
+                  description: The due date of the exam
+                  example: 2021-12-31:23:59:59
+      responses:
+        "201":
+          description: Exam created successfully
+    
+        

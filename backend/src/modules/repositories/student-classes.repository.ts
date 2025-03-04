@@ -14,6 +14,10 @@ export class StudentClassesRepository extends BaseRepository<StudentClasses> {
     return this.repository.findOneBy({ student_class_id });
   }
 
+  async findByClassId(class_id: number): Promise<StudentClasses[]> {
+    return this.repository.find({ where: { class_id } });
+  }
+
   async findByUserIdAndClassId(
     student_id: number,
     class_id: number

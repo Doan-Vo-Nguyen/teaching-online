@@ -1,3 +1,7 @@
+import { StudentClassesRepository } from './../repositories/student-classes.repository';
+import { StudentClasses } from './../entity/Student_classes.entity';
+import { UserRepository } from './../repositories/users.repository';
+import { sendExamMailToClass } from './../utils/mailer';
 import { EXAM_FIELD_REQUIRED, EXAM_NOT_FOUND } from "../DTO/resDto/BaseErrorDto";
 import { Exam } from "../entity/Exam.entity";
 import { ExamContent } from "../entity/ExamContent.entity";
@@ -6,10 +10,14 @@ import { IExamRepository } from "../interfaces/exam.interface";
 import { ExamContentRepository } from "../repositories/exam-content.repository";
 import { ExamRepository } from "../repositories/exam.repository";
 import { ApiError } from "../types/ApiError";
+import { NotificationRepository } from '../repositories/notification.repository';
 
 class ExamService {
     private readonly examRepository: IExamRepository = new ExamRepository();
     private readonly examContentRepository: IExamContentRepository = new ExamContentRepository();
+    private readonly UserRepository: UserRepository = new UserRepository();
+    private readonly StudentClassesRepository: StudentClassesRepository = new StudentClassesRepository();
+    private readonly notificationRepository: NotificationRepository = new NotificationRepository();
 
     constructor() {
         this.examRepository = new ExamRepository();
@@ -28,10 +36,58 @@ class ExamService {
     }
 
     public async createExam(exam: Exam): Promise<Exam> {
-        if(!exam) {
+        if (!exam) {
             throw new ApiError(400, EXAM_FIELD_REQUIRED.error.message, EXAM_FIELD_REQUIRED.error.details);
         }
         return await this.examRepository.save(exam);
+    }
+
+    // * integrated the send mail to all students in the class(with the email in the users) when exam is created
+    public async createExamByClassAndTeacher(class_id: number, teacher_id: number, exam: Exam): Promise<Exam> {
+        if (!exam) {
+            throw new ApiError(400, EXAM_FIELD_REQUIRED.error.message, EXAM_FIELD_REQUIRED.error.details);
+        }
+        
+        // Save the new exam
+        exam.class_id = class_id;
+        const newExam = await this.examRepository.save(exam);
+        
+        try {
+            // Get student emails from the class
+            const emails = await this.getStudentEmailsByClassId(exam.class_id);
+            
+            // Send notification to students
+            if (emails.length > 0) {
+                await this.sendExamMailNotification(emails, exam.title, exam.description);
+            }
+            await this.notificationRepository.save({
+                title: exam.title,
+                content: exam.description,
+                class_id: class_id,
+                teacher_id: teacher_id,
+                notification_id: undefined
+            });
+        } catch (error) {
+            // Log error but don't fail the exam creation
+            console.error('Failed to send exam notifications:', error);
+        }
+        
+        return newExam;
+    }
+
+    private async getStudentEmailsByClassId(classId: number): Promise<string[]> {
+        // Get all students in the class
+        const studentClasses = await this.StudentClassesRepository.findByClassId(classId);
+        if (!studentClasses.length) return [];
+        
+        // Extract student IDs
+        const studentIds = studentClasses.map((studentClass: StudentClasses) => studentClass.student_id);
+        
+        // Get student details
+        const students = await this.UserRepository.findByIds(studentIds);
+        
+        // Extract and return email addresses
+        return students.map((student: any) => student.email);
     }
 
     public async updateExam(exam_id: number, exam: Exam): Promise<Exam> {
@@ -69,6 +125,17 @@ class ExamService {
         }
 
         return await this.examContentRepository.delete(examContentId);
+    }
+
+    private async sendExamMailNotification(to: string[], title: string, content: string) {
+        // * send mail to all students in the class
+        try {
+            await sendExamMailToClass(to, title, content);
+            console.log(`Mail sent to ${to} with exam notification`);
+        }
+        catch (error) {
+            console.error(`Failed to send mail to ${to}:`, error);
+        }
     }
 }
 

@@ -32,4 +32,10 @@ export class ExamRepository extends BaseRepository<Exam> {
         await this.repository.delete(exam_id);
         return exam;
     }
+
+    async createExamByClassAndTeacher(class_id: number, teacher_id: number, exam: Exam): Promise<Exam> {
+        exam.class_id = class_id;
+        exam.teacher_id = teacher_id;
+        return this.repository.save(exam);
+    }
 }

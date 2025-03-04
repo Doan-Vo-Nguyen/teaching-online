@@ -39,4 +39,5 @@ export class Exam {
 
     @OneToMany(() => ExamContent , examContent => examContent.exam) // Relation with ExamContent 1-n
     examContents: ExamContent[]
+    teacher_id: number
 }
