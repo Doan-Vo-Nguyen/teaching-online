@@ -1,8 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToMany, ManyToOne, JoinColumn, Relation, OneToMany } from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Relation, OneToMany } from "typeorm"
 import { Users } from "./User.entity"
 import { StudentClasses } from "./Student_classes.entity"
 import { Lectures } from "./Lectures.entity"
-import { Assignments } from "./Assignments.entity"
 import { Exam } from "./Exam.entity"
 @Entity({schema: "teaching"})
 export class Classes {
@@ -36,9 +35,6 @@ export class Classes {
 
     @OneToMany(() => Lectures, lecture => lecture.class) // Relation with Lectures 1-n
     lectures: Lectures[]
-
-    @OneToMany(() => Assignments, assignment => assignment.class) // Relation with Assignments 1-n
-    assignments: Assignments[]
 
     @OneToMany(() => Exam, exam => exam.class) // Relation with Exam 1-n
     exams: Exam[]

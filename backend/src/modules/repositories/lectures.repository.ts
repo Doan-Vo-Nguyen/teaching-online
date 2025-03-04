@@ -16,6 +16,10 @@ export class LecturesRepository extends BaseRepository<Lectures> {
         return this.repository.findOneBy({ lecture_id });
     }
 
+    async findByClassId(class_id: number): Promise<Lectures[]> {
+        return this.repository.find({ where: { class_id } });
+    }
+
     async save(lecture: Lectures): Promise<Lectures> {
         return this.repository.save(lecture);
     }
@@ -28,6 +32,10 @@ export class LecturesRepository extends BaseRepository<Lectures> {
     async delete(lecture_id: number): Promise<Lectures> {
         const lecture = await this.repository.findOneBy({ lecture_id });
         return this.repository.remove(lecture);
+    }
+
+    async findLectureByClassIdAndLectureId(lecture_id: number, class_id: number): Promise<Lectures> {
+        return this.repository.findOneBy({ lecture_id, class_id });
     }
 
     async getAllLecturesByClassId(class_id: number): Promise<Lectures[]> {
@@ -57,5 +65,17 @@ export class LecturesRepository extends BaseRepository<Lectures> {
         const classes = await this.classRepository.findById(class_id);
         const lectures = await this.repository.find({ where: { lecture_id, class_id: classes.class_id } });
         return await this.repository.remove(lectures);
+    }
+
+    async addFileToLectureByClassId(class_id: number, title: string, content: string): Promise<Lectures> {
+        const classes = await this.classRepository.findById(class_id);
+        const lecture = await this.repository.save({ class_id: classes.class_id, title, content });
+        return lecture;
+    }
+
+    async deleteFileFromLecture(lecture_id: number, class_id: number): Promise<Lectures> {
+        const classes = await this.classRepository.findById(class_id);
+        const lecture = await this.repository.findOneBy({ lecture_id, class_id: classes.class_id });
+        return this.repository.remove(lecture);
     }
 }

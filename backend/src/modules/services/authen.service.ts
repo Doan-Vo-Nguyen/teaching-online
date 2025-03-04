@@ -11,9 +11,9 @@ import {
   INVALID_RESET_CODE,
   TIME_EXPIRED,
 } from "../DTO/resDto/BaseErrorDto";
-import sendMail, { sendMailResetPassword } from "../utils/mailer";
 import { RESET_CODE_EXPIRE } from "../constant";
 import { generateResetToken } from "../utils/GenerateCode";
+import { sendMailResetPassword } from "../utils/mailer";
 
 class AuthenService {
   private readonly userRepository: IUserRepository = new UserRepository();

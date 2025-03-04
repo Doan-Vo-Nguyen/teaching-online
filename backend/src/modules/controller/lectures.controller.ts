@@ -26,6 +26,8 @@ export class LecturesController extends BaseController {
     this.router.post("/class/:classId",  validParam("classId"), this.createLectureByClassId);
     this.router.patch("/:id/class/:classId",  validParam("classId"), this.updateLectureByClassId);
     this.router.delete("/:id/class/:classId",  validParam("classId"), this.deleteLectureByClassId);
+    this.router.post("/:id/class/:classId/content", validParam("id"), validParam("classId"), this.addFileToLectureByClassId);
+    this.router.delete("/:id/content/:lectureContentId", validParam("id"), this.deleteLecturesContent);
   }
 
   private readonly getAllLectures = async (
@@ -239,6 +241,58 @@ export class LecturesController extends BaseController {
         true,
         200,
         "Delete lecture by class id successfully",
+        result
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  private readonly addFileToLectureByClassId = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const lectureId = parseInt(req.params.id, 10);
+      const classId = parseInt(req.params.classId, 10);
+      const file = req.body.content;
+      const type = req.body.type;
+      const newLecture = await this.lecturesService.addContentToLecture(
+        lectureId,
+        classId,
+        file,
+        type
+      );
+      return sendResponse(
+        res,
+        true,
+        200,
+        "Add file to lecture by class id successfully",
+        newLecture
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  private readonly deleteLecturesContent = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const lectureId = parseInt(req.params.id, 10);
+      const lectureContentId = parseInt(req.params.lectureContentId, 10);
+      const result = await this.lecturesService.deleteContentFromLecture(
+        lectureId,
+        lectureContentId,
+      );
+      return sendResponse(
+        res,
+        true,
+        200,
+        "Delete file from lecture by class id successfully",
         result
       );
     } catch (error) {

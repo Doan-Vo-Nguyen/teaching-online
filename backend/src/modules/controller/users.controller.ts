@@ -11,7 +11,7 @@ import {
 } from "../middleware/validate/user.validate";
 import { validParam } from "../middleware/validate/field.validate";
 import { sendResponse } from "../../common/interfaces/base-response";
-import { Role } from "../entity/User.entity";
+import { Role } from "../constant/index";
 
 export class UserController extends BaseController {
   private readonly userService: UserService;

@@ -5,7 +5,7 @@ import { ClassesRepository } from "../repositories/classes.repository";
 import { StudentClassesRepository } from "../repositories/student-classes.repository";
 import { generateRandomCode } from "../utils/GenerateCode";
 import { ApiError } from "../types/ApiError";
-import { Role } from "../entity/User.entity";
+import { Role } from "../constant/index";
 import {
   USER_NOT_EXISTS,
   FIELD_REQUIRED,

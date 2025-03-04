@@ -1,13 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Relation, OneToMany, JoinColumn } from "typeorm"
 import { Classes } from "./Classes.entity"
 import { ExamSubmission } from "./Exam_submission.entity"
-
-enum ExamType {
-    QUIZ = "quiz",
-    TEST = "test",
-    MIDTERM = "midterm",
-    FINAL = "final"
-}
+import { ExamContent } from "./ExamContent.entity"
+import { ExamType } from "../constant/index"
 
 @Entity({schema: "teaching"})
 export class Exam {
@@ -41,4 +36,7 @@ export class Exam {
 
     @OneToMany(() => ExamSubmission, examSubmission => examSubmission.exam) // Relation with ExamSubmission 1-n
     examSubmissions: ExamSubmission[]
+
+    @OneToMany(() => ExamContent , examContent => examContent.exam) // Relation with ExamContent 1-n
+    examContents: ExamContent[]
 }
