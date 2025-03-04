@@ -20,6 +20,9 @@ export class ExamController extends BaseController {
         this.router.post("/", authentication, this.createExam);
         this.router.patch("/:id", authentication, validParam("id"), this.updateExam);
         this.router.delete("/:id", authentication, validParam("id"), this.deleteExam);
+        this.router.get("/:id/content", validParam("id"), this.getExamContentById);
+        this.router.post("/:id/content", authentication, validParam("id"), this.createExamContentByExamId);
+        this.router.delete("/:id/content", authentication, validParam("id"), this.deleteExamContentByExamId);
     }
 
     private readonly getAllExams = async (
@@ -87,6 +90,49 @@ export class ExamController extends BaseController {
             const examId = parseInt(req.params.id, 10);
             await this.examService.deleteExam(examId);
             return sendResponse(res, true, 200, "Delete exam successfully");
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private readonly getExamContentById = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const examId = parseInt(req.params.id, 10);
+            const examContent = await this.examService.getExamContentById(examId);
+            return sendResponse(res, true, 200, "Get exam content by id successfully", examContent);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private readonly createExamContentByExamId = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const examId = parseInt(req.params.id, 10);
+            const examContent = req.body;
+            const newExamContent = await this.examService.createExamContentByExamId(examId, examContent);
+            return sendResponse(res, true, 200, "Create exam content successfully", newExamContent);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private readonly deleteExamContentByExamId = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const examContentId = parseInt(req.params.id, 10);
+            await this.examService.deleteExamContent(examContentId);
+            return sendResponse(res, true, 200, "Delete exam content successfully");
         } catch (error) {
             next(error);
         }

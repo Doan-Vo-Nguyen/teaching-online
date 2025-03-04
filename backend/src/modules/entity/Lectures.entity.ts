@@ -1,10 +1,6 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Relation, JoinColumn } from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Relation, JoinColumn, OneToMany } from "typeorm"
 import { Classes } from "./Classes.entity"
-
-export enum LectureType {
-    DOCUMENTS = 'documents',
-    VIDEOS = 'videos',
-}
+import { LecturesContent } from "./LecturesContent.entity"
 
 @Entity({schema: "teaching"})
 export class Lectures {
@@ -17,15 +13,6 @@ export class Lectures {
     @Column({type: "varchar", length: 100})
     title: string
 
-    @Column({
-        type: 'enum',
-        enum: LectureType,
-    })
-    type: LectureType
-
-    @Column({type: "text", nullable: true})
-    content: string
-
     @CreateDateColumn()
     created_at: Date
 
@@ -34,5 +21,8 @@ export class Lectures {
 
     @ManyToOne(() => Classes, classes => classes.lectures, { onDelete: 'NO ACTION' }) // Relation with Classes n-1
     @JoinColumn({name: "class_id"}) // Column name in the database
-    class: Relation<Classes>
+    class?: Relation<Classes>
+
+    @OneToMany(() => LecturesContent, lecturesFile => lecturesFile.lecture) // Relation with LecturesFile 1-n
+    lecturesFiles?: LecturesContent[]
 }

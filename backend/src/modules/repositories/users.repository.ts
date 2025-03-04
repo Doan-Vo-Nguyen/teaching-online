@@ -1,4 +1,5 @@
-import { Role, Users } from "../entity/User.entity";
+import { Users } from "../entity/User.entity";
+import { Role } from "../constant/index";
 import { UserDTO } from '../DTO/users.dto';
 import { BaseRepository } from './base.repository';
 import { Like } from "typeorm";

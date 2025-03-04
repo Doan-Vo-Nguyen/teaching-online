@@ -1,5 +1,6 @@
 import { Classes } from "../entity/Classes.entity";
-import { Role, Users } from "../entity/User.entity";
+import { Users } from "../entity/User.entity";
+import { Role } from "../constant/index";
 import { IBaseRepository } from "./base.interface";
 
 export interface IUserRepository extends IBaseRepository<Users> {
