@@ -17,7 +17,6 @@ import cors from "cors";
 import errorHandler from "./modules/middleware/error-handler";
 import helmet from "helmet";
 import { StudentClassesController } from "./modules/controller/student-classes.controller";
-import { Exam } from "./modules/entity/Exam.entity";
 import { ExamController } from "./modules/controller/exam.controller";
 
 export class Application {

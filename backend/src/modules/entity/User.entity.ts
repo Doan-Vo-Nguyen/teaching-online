@@ -4,17 +4,11 @@ import jwt from 'jsonwebtoken'
 import dotenv from 'dotenv'
 import { Classes } from "./Classes.entity"
 import { StudentClasses } from "./Student_classes.entity"
-import { Submissions } from "./Submission.entity"
+import { Role } from "../constant/index"
 
 dotenv.config()
 
 const JWT_KEY = process.env.JWT_KEY
-
-export enum Role {
-    ADMIN = 'admin',
-    TEACHER = 'teacher',
-    STUDENT = 'student',
-}
 
 @Entity({schema: "teaching"})
 export class Users {
@@ -74,9 +68,6 @@ export class Users {
 
     @OneToMany(() => StudentClasses, studentClasses => studentClasses.student) // Relation with StudentClasses 1-n
     studentClasses: StudentClasses[]
-
-    @OneToMany(() => Submissions, submissions => submissions.studentSubmission) // Relation with Submissions 1-n
-    submissions: Submissions[]
 
     async generateAuthToken(): Promise<string> {
         const token = jwt.sign(
