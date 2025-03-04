@@ -1,4 +1,4 @@
-import { Role } from './../entity/User.entity';
+import { Role } from '../constant/index'
 import {IsString, IsNotEmpty} from 'class-validator'
 
 

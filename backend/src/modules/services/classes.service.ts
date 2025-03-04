@@ -67,6 +67,7 @@ class ClassesService {
       lectures: [], // or provide the appropriate value
       assignments: [], // or provide the appropriate value
       exams: [], // or provide the appropriate value
+      notifications: [], // or provide the appropriate value
     };
     const newClasses = await this.classesRepository.save(classEntity);
     if (!newClasses) {

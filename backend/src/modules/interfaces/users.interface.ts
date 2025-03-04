@@ -6,6 +6,7 @@ import { IBaseRepository } from "./base.interface";
 export interface IUserRepository extends IBaseRepository<Users> {
     getUserByRole(role: Role): Promise<Users[]>
     updateRole(user_id: number, role: string): Promise<Users>
+    findByIds(ids: number[]): Promise<Users[]>
     findByName(fullname: string): Promise<Users>
     findByEmail(email: string): Promise<Users>
     comparePassword(email: string, plainPass: string): Promise<boolean>
