@@ -7,6 +7,7 @@ export interface IStudentClassesRepository
     student_id: number,
     class_id: number
   ): Promise<StudentClasses[]>; // Get student joined classes
+  findByClassId(class_id: number): Promise<StudentClasses[]>; // Find by class id
   findByUserIdAndClassId(
     student_id: number,
     class_id: number

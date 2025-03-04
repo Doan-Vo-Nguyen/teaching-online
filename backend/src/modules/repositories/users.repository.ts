@@ -2,7 +2,7 @@ import { Users } from "../entity/User.entity";
 import { Role } from "../constant/index";
 import { UserDTO } from '../DTO/users.dto';
 import { BaseRepository } from './base.repository';
-import { Like } from "typeorm";
+import { Like, In } from "typeorm";
 import { StudentClassesRepository } from "./student-classes.repository";
 import { ClassesRepository } from "./classes.repository";
 import { Classes } from "../entity/Classes.entity";
@@ -20,6 +20,10 @@ export class UserRepository extends BaseRepository<Users> {
 
     async findById(user_id: number): Promise<Users> {
         return this.repository.findOneBy({ user_id });
+    }
+
+    async findByIds(ids: number[]): Promise<Users[]> {
+        return this.repository.findBy({ user_id: In(ids) });
     }
 
     async save(user: UserDTO): Promise<Users> {

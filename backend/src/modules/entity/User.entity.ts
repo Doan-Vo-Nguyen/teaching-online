@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import { Classes } from "./Classes.entity"
 import { StudentClasses } from "./Student_classes.entity"
 import { Role } from "../constant/index"
+import { Notification } from "./Notification.entity"
 
 dotenv.config()
 
@@ -68,6 +69,9 @@ export class Users {
 
     @OneToMany(() => StudentClasses, studentClasses => studentClasses.student) // Relation with StudentClasses 1-n
     studentClasses: StudentClasses[]
+
+    @OneToMany(() => Notification, notification => notification.teacher)
+    notifications: Notification[]
 
     async generateAuthToken(): Promise<string> {
         const token = jwt.sign(

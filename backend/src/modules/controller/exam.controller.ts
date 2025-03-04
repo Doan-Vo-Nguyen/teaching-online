@@ -23,6 +23,7 @@ export class ExamController extends BaseController {
         this.router.get("/:id/content", validParam("id"), this.getExamContentById);
         this.router.post("/:id/content", authentication, validParam("id"), this.createExamContentByExamId);
         this.router.delete("/:id/content", authentication, validParam("id"), this.deleteExamContentByExamId);
+        this.router.post("/:classId/:teacherId", authentication, validParam("classId"), validParam("teacherId"), this.createExamByClassAndTeacher);
     }
 
     private readonly getAllExams = async (
@@ -104,6 +105,21 @@ export class ExamController extends BaseController {
             const examId = parseInt(req.params.id, 10);
             const examContent = await this.examService.getExamContentById(examId);
             return sendResponse(res, true, 200, "Get exam content by id successfully", examContent);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private readonly createExamByClassAndTeacher = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const { classId, teacherId } = req.params;
+            const exam = req.body;
+            const newExam = await this.examService.createExamByClassAndTeacher(parseInt(classId, 10), parseInt(teacherId, 10), exam);
+            return sendResponse(res, true, 200, "Create exam successfully", newExam);
         } catch (error) {
             next(error);
         }
