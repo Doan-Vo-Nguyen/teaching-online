@@ -116,6 +116,19 @@ class LecturesService {
     };
   }
 
+  public async getAllLecturesContentByLectureId(lecture_id: number) {
+    if (!lecture_id) {
+      throw new ApiError(400, FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
+    }
+
+    const lectureContent = await this.lecturesContentRepository.getAllLecturesContentByLectureId(lecture_id);
+    if (lectureContent.length === 0) {
+      throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+    }
+
+    return lectureContent;
+  }
+
   // TODO: Implement the following methods after fixing the fetch id from the request
   // public async getDetailsLecturesContentById(lecture_id: number, class_id: number) {
   //   if (!lecture_id || !class_id) {
@@ -192,10 +205,11 @@ class LecturesService {
       throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
     }
 
-    await this.lecturesContentRepository.delete(lecture_id);
+    const lectureContent = await this.lecturesContentRepository.findById(lecture_id);
+    if (lectureContent) {
+      await this.lecturesContentRepository.delete(lecture_id);
+    }
     await this.lecturesRepository.deleteLectureByClassId(lecture_id, class_id);
-
-    return { success: true, message: "Lecture deleted successfully" };
   }
 
   public async addContentToLecture(lecture_id: number, classId: number, content: string, type: LectureType) {

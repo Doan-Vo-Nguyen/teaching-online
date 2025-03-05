@@ -31,7 +31,7 @@ export class LecturesContent {
   updated_at: Date;
 
   @ManyToOne(() => Lectures, (lectures) => lectures.lecturesFiles, {
-    onDelete: "NO ACTION",
+    onDelete: "CASCADE",
   }) // Relation with Lectures n-1
   @JoinColumn({ name: "lecture_id" }) // Column name in the database
   lecture?: Relation<Lectures>;
