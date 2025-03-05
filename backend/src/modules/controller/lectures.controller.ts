@@ -22,10 +22,11 @@ export class LecturesController extends BaseController {
     this.router.patch("/:id", validParam("id"), this.updateLecture);
     this.router.delete("/:id", validParam("id"), this.deleteLecture);
     this.router.get("/class/:classId", validParam("classId"), this.getAllLecturesByClassId);
+    this.router.get("/content/:lectureId", validParam("lectureId"), this.getAllLectureContentByLectureId);
     this.router.get("/:id/class/:classId",  validParam("classId"), this.getLecturesDetailsByClassId);
     this.router.post("/class/:classId",  validParam("classId"), this.createLectureByClassId);
     this.router.patch("/:id/class/:classId",  validParam("classId"), this.updateLectureByClassId);
-    this.router.delete("/:id/class/:classId",  validParam("classId"), this.deleteLectureByClassId);
+    this.router.delete("/:id/class/:classId",  validParam("id"), validParam("classId"), this.deleteLectureByClassId);
     this.router.post("/:id/class/:classId/content", validParam("id"), validParam("classId"), this.addFileToLectureByClassId);
     this.router.delete("/:id/content/:lectureContentId", validParam("id"), this.deleteLecturesContent);
   }
@@ -247,6 +248,28 @@ export class LecturesController extends BaseController {
       next(error);
     }
   };
+
+  private readonly getAllLectureContentByLectureId = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const lectureId = parseInt(req.params.lectureId, 10);
+      const lectureContent = await this.lecturesService.getAllLecturesContentByLectureId(
+        lectureId
+      );
+      return sendResponse(
+        res,
+        true,
+        200,
+        "Get all lecture content by lecture id successfully",
+        lectureContent
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
 
   private readonly addFileToLectureByClassId = async (
     req: Request,

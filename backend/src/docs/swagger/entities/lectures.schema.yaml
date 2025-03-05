@@ -684,3 +684,62 @@ paths:
               example:
                 success: false
                 message: Lecture content not found
+  /app/lectures/content/{lectureId}:
+    get:
+      tags:
+        - Lectures
+      summary: Get all lecture content by lecture ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: lectureId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: Lecture ID
+      responses:
+        '200':
+          description: List of lecture content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: Lecture content retrieved successfully
+                data:
+                  - id: 1
+                    lecture_id: 1
+                    file_path: "/uploads/lectures/file1.pdf"
+                    file_name: "file1.pdf"
+                    file_type: "application/pdf"
+                    created_at: '2025-02-01T00:00:00.000Z'
+                    updated_at: '2025-02-01T00:00:00.000Z'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+              example:
+                success: false
+                message: Unauthorized
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+              example:
+                success: false
+                message: Forbidden
+        '404':
+          description: Lecture not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+              example:
+                success: false
+                message: Lecture not found
