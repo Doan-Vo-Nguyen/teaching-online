@@ -582,14 +582,13 @@ paths:
       requestBody:
         required: true
         content:
-          multipart/form-data:
+          application/json:
             schema:
               type: object
               properties:
-                file:
+                content:
                   type: string
-                  format: binary
-                  description: The file to upload
+                  description: The file content as string
       responses:
         '200':
           description: File added successfully
@@ -711,9 +710,8 @@ paths:
                 data:
                   - id: 1
                     lecture_id: 1
-                    file_path: "/uploads/lectures/file1.pdf"
-                    file_name: "file1.pdf"
-                    file_type: "application/pdf"
+                    content: Content of lecture 1
+                    type: documents
                     created_at: '2025-02-01T00:00:00.000Z'
                     updated_at: '2025-02-01T00:00:00.000Z'
         '401':
