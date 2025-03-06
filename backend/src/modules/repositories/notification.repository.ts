@@ -29,11 +29,11 @@ export class NotificationRepository extends BaseRepository<Notification> {
     }
 
 
-    async createNotification(teacherId: number, classId: number, notificationData: Notification): Promise<Notification> {
+    async createNotification(teacher_id: number, class_id: number, notificationData: Notification): Promise<Notification> {
         const noti = this.repository.save({
-            ...notificationData,
-            teacher_id: teacherId,
-            class_id: classId,
+            teacher_id: teacher_id,
+            class_id: class_id,
+            ...notificationData
         });
         return noti;
     }
