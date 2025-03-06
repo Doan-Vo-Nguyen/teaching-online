@@ -16,7 +16,7 @@ export class Notification {
     @Column({type: "varchar", length: 500})
     title: string
 
-    @Column({type: "text"})
+    @Column({type: "text", nullable: true})
     content: string
 
     @ManyToOne(() => Users, users => users.notifications, {onDelete: 'NO ACTION'})

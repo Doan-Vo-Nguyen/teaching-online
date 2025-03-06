@@ -18,6 +18,7 @@ import errorHandler from "./modules/middleware/error-handler";
 import helmet from "helmet";
 import { StudentClassesController } from "./modules/controller/student-classes.controller";
 import { ExamController } from "./modules/controller/exam.controller";
+import { NotificationController } from "./modules/controller/notification.controller";
 
 export class Application {
   private _app: Express | undefined;
@@ -90,6 +91,7 @@ export class Application {
       new StudentClassesController("/app/student-classes"),
       new ExamController("/app/exams"),
       new LecturesController("/app/lectures"),
+      new NotificationController("/app/notifications"),
     ];
 
     // Apply authentication middleware to all protected routes

@@ -15,8 +15,8 @@ import { NotificationRepository } from '../repositories/notification.repository'
 class ExamService {
     private readonly examRepository: IExamRepository = new ExamRepository();
     private readonly examContentRepository: IExamContentRepository = new ExamContentRepository();
-    private readonly UserRepository: UserRepository = new UserRepository();
-    private readonly StudentClassesRepository: StudentClassesRepository = new StudentClassesRepository();
+    private readonly userRepository: UserRepository = new UserRepository();
+    private readonly studentClassesRepository: StudentClassesRepository = new StudentClassesRepository();
     private readonly notificationRepository: NotificationRepository = new NotificationRepository();
 
     constructor() {
@@ -77,14 +77,14 @@ class ExamService {
 
     private async getStudentEmailsByClassId(classId: number): Promise<string[]> {
         // Get all students in the class
-        const studentClasses = await this.StudentClassesRepository.findByClassId(classId);
+        const studentClasses = await this.studentClassesRepository.findByClassId(classId);
         if (!studentClasses.length) return [];
         
         // Extract student IDs
         const studentIds = studentClasses.map((studentClass: StudentClasses) => studentClass.student_id);
         
         // Get student details
-        const students = await this.UserRepository.findByIds(studentIds);
+        const students = await this.userRepository.findByIds(studentIds);
         
         // Extract and return email addresses
         return students.map((student: any) => student.email);
