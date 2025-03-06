@@ -9,7 +9,7 @@ export class ExamContent {
     @Column()
     exam_id: number
 
-    @Column({type: "varchar", length: 100})
+    @Column({type: "varchar", length: 500})
     content: string
 
     @CreateDateColumn()

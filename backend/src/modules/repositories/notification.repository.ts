@@ -37,5 +37,4 @@ export class NotificationRepository extends BaseRepository<Notification> {
         });
         return noti;
     }
-
 }

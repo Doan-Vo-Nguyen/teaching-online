@@ -13,7 +13,7 @@ export class Notification {
     @Column()
     teacher_id: number
 
-    @Column({type: "varchar", length: 200})
+    @Column({type: "varchar", length: 500})
     title: string
 
     @Column({type: "text"})
