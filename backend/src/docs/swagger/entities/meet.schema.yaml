@@ -1,0 +1,121 @@
+components:
+  schemas:
+    Meet:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: The unique identifier for the meeting
+        classId:
+          type: integer
+          format: int64
+          description: The class ID this meeting belongs to
+        room_name:
+          type: string
+          description: Room name of the meeting
+        room_url:
+          type: string
+          description: URL of the meeting
+      required:
+        - classId
+        - room_name
+        - room_url
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
+paths:
+  /app/meetings/{class_id}:
+    get:
+      tags:
+        - Meetings
+      summary: Get all meetings for a class
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: class_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID of the class to fetch meetings for
+      responses:
+        "200":
+          description: Successfully retrieved meetings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Meet'
+        "400":
+          description: Bad request
+        "500":
+          description: Internal server error
+    post:
+      tags:
+        - Meetings
+      summary: Create a new meeting for a class
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: class_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID of the class to create meeting for
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - room_name
+                - room_url
+              properties:
+                room_name:
+                  type: string
+                  description: Room name of the meeting
+                room_url:
+                  type: string
+                  description: URL of the meeting
+      responses:
+        "200":
+          description: Meeting created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meet'
+        "400":
+          description: Bad request
+        "500":
+          description: Internal server error
+    delete:
+      tags:
+        - Meetings
+      summary: Delete a meeting
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: class_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID of the class to delete meeting for
+      responses:
+        "200":
+          description: Meeting deleted successfully
+        "400":
+          description: Bad request
+        "500":
+          description: Internal server error
