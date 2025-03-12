@@ -56,6 +56,10 @@ export const EXAM_ALREADY_EXISTS = BaseErrorDto("Exam already exists", "Exam is 
 export const EXAM_FIELD_REQUIRED = BaseErrorDto("Exam field is required", "You must provide a value for this field");
 export const EXAM_NOT_FOUND_IN_CLASS = BaseErrorDto("Exam not found in class", "Exam not found in this class");
 
+// Meeting Errors
+export const MEET_NOT_FOUND = BaseErrorDto("Meeting not found", "No meeting was found");
+export const MEET_ALREADY_EXISTS = BaseErrorDto("Meeting already exists", "Meeting is already existed");
+
 // Validation Errors
 export const FIELD_REQUIRED = BaseErrorDto("Field is required", "You must provide a value for this field");
 export const WRONG_PASSWORD = BaseErrorDto("Wrong password", "Password is incorrect");

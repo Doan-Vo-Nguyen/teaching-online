@@ -4,6 +4,7 @@ import { StudentClasses } from "./Student_classes.entity"
 import { Lectures } from "./Lectures.entity"
 import { Exam } from "./Exam.entity"
 import { Notification } from "./Notification.entity"
+import { Meet } from "./Meet.entity"
 @Entity({schema: "teaching"})
 export class Classes {
     @PrimaryGeneratedColumn()
@@ -42,4 +43,7 @@ export class Classes {
 
     @OneToMany(() => Notification, notification => notification.class) // Relation with Notification 1-n
     notifications: Notification[]
+
+    @OneToMany(() => Meet, meet => meet.class) // Relation with Exam 1-n
+    meets: Meet[]
 }
