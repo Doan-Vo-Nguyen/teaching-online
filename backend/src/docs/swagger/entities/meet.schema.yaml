@@ -81,10 +81,10 @@ paths:
                 - room_name
                 - room_url
               properties:
-                room_name:
+                roomName:
                   type: string
                   description: Room name of the meeting
-                room_url:
+                link:
                   type: string
                   description: URL of the meeting
       responses:
