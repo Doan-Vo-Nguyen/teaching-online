@@ -19,6 +19,7 @@ import helmet from "helmet";
 import { StudentClassesController } from "./modules/controller/student-classes.controller";
 import { ExamController } from "./modules/controller/exam.controller";
 import { NotificationController } from "./modules/controller/notification.controller";
+import { MeetController } from "./modules/controller/meet.controller";
 
 export class Application {
   private _app: Express | undefined;
@@ -92,6 +93,7 @@ export class Application {
       new ExamController("/app/exams"),
       new LecturesController("/app/lectures"),
       new NotificationController("/app/notifications"),
+      new MeetController("/app/meetings"),
     ];
 
     // Apply authentication middleware to all protected routes
@@ -108,7 +110,7 @@ export class Application {
   }
 
   public async start() {
-    const port = process.env.APP_PORT || 3000;
+    const port = process.env.APP_PORT || 3001;
     const name = process.env.APP_SERVER || "Teaching_Online_Server";
     try {
       await AppDataSource.initialize();
