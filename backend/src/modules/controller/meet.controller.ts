@@ -32,9 +32,12 @@ export class MeetController extends BaseController {
     private readonly createMeeting = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const classId = parseInt(req.params.class_id, 10);
-            const meeting = req.body;
-            console.log("classId", classId);
-            console.log("meeting", meeting);
+            const { roomName, link } = req.body;
+            const meeting = {
+                room_name: roomName,
+                room_url: link,
+                class_id: classId
+            } as any; // Using as any for now, ideally replace with proper Meet type
             const newMeeting = await this.meetService.createMeeting(classId, meeting);
             return sendResponse(res, true, 200, "Create meeting successfully", newMeeting);
         } catch (error) {
