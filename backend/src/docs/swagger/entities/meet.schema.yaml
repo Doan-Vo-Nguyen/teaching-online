@@ -119,3 +119,25 @@ paths:
           description: Bad request
         "500":
           description: Internal server error
+  /app/meetings/{meeting_id}:
+    delete:
+      tags:
+        - Meetings
+      summary: Delete a meeting by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: meeting_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: ID of the meeting to delete
+      responses:
+        "200":
+          description: Meeting deleted successfully
+        "400":
+          description: Bad request
+        "500":
+          description: Internal server error
