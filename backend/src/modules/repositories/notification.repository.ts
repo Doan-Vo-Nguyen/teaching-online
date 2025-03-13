@@ -2,6 +2,7 @@ import { Notification } from "../entity/Notification.entity";
 import { BaseRepository } from "./base.repository";
 
 export class NotificationRepository extends BaseRepository<Notification> {
+    private readonly 
     constructor() {
         super(Notification);
     }
@@ -28,6 +29,9 @@ export class NotificationRepository extends BaseRepository<Notification> {
         return this.repository.remove(notification);
     }
 
+    async getAllNotificationByTeacher(teacher_id: number): Promise<Notification[]> {
+        return this.repository.find({ where: { teacher_id } });
+    }
 
     async createNotification(teacher_id: number, class_id: number, notificationData: Notification): Promise<Notification> {
         const noti = this.repository.save({
@@ -36,5 +40,15 @@ export class NotificationRepository extends BaseRepository<Notification> {
             ...notificationData
         });
         return noti;
+    }
+
+    async updateNotification(id: number, notificationData: Notification): Promise<Notification> {
+        await this.repository.update(id, notificationData);
+        return this.repository.findOneBy({ notification_id: id });
+    }
+
+    async deleteNotification(id: number): Promise<Notification> {
+        const notification = await this.repository.findOneBy({ notification_id: id });
+        return this.repository.remove(notification);
     }
 }
