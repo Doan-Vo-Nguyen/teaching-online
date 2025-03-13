@@ -15,6 +15,8 @@ export class NotificationController extends BaseController {
     this.router.get("/", this.getAllNotifications);
     this.router.get("/:notification_id", this.getNotificationById);
     this.router.post("/:teacherId/:classId", this.createNotification);
+    this.router.put("/:notification_id", this.updateNotification);
+    this.router.delete("/:notification_id", this.deleteNotification);
   }
 
   private readonly getAllNotifications = async (
@@ -58,6 +60,35 @@ export class NotificationController extends BaseController {
             console.log("notificationData", notificationData);
             await this.notificationService.createNotification(teacherId, classId, notificationData);
             return sendResponse(res, true, 200, "Create notification successfully", {});
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private  readonly updateNotification = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const notification_id = parseInt(req.params.notification_id, 10);
+            const notificationData = req.body;
+            const notification = await this.notificationService.updateNotification(notification_id, notificationData);
+            return sendResponse(res, true, 200, "Update notification successfully", notification);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private readonly deleteNotification = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const notification_id = parseInt(req.params.notification_id, 10);
+            await this.notificationService.deleteNotification(notification_id);
+            return sendResponse(res, true, 200, "Delete notification successfully", {});
         } catch (error) {
             next(error);
         }

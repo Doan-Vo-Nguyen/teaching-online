@@ -1,5 +1,5 @@
 import { MeetDTO } from "../DTO/meet.dto";
-import { BAD_REQUEST, MEET_NOT_FOUND } from "../DTO/resDto/BaseErrorDto";
+import { BAD_REQUEST, MEET_ERROR, MEET_NOT_FOUND } from "../DTO/resDto/BaseErrorDto";
 import { Meet } from "../entity/Meet.entity";
 import { IClassesRepository } from "../interfaces/classes.interface";
 import { IMeetRepository } from "../interfaces/meet.interface";
@@ -10,6 +10,18 @@ import { ApiError } from "../types/ApiError";
 class MeetService {
     private readonly meetRepository: IMeetRepository = new MeetRepository();
     private readonly classRepository: IClassesRepository = new ClassesRepository();
+
+    public async deleteMeetingById(id: number) {
+        const existedMeet = await this.meetRepository.findById(id);
+        if (!existedMeet) {
+            throw new ApiError(400, MEET_NOT_FOUND.error.message, MEET_NOT_FOUND.error.details);
+        }
+        const meet = await this.meetRepository.delete(id);
+        if (!meet) {
+            throw new ApiError(400, MEET_ERROR.error.message, MEET_ERROR.error.details);
+        }
+        return meet;
+    }
     
     public async createMeeting(classId: number, meeting: Meet): Promise<Meet> {
         try {

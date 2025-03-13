@@ -79,6 +79,46 @@ class NotificationService {
         }
     }
 
+    public async updateNotification(id: number, notificationData: any) {
+        if (!id || !notificationData) {
+            throw new ApiError(
+                400,
+                FIELD_REQUIRED.error.message,
+                FIELD_REQUIRED.error.details
+            );
+        }
+        const notification = await this.notificationRepository.findById(id);
+        if (!notification) {
+            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+        }
+        const updatedNotification = await this.notificationRepository.update(id, notificationData);
+
+        // Send mail to students when notification is updated
+        const emails = await this.getStudentEmailsByClassId(notification.class_id);
+        if (emails.length === 0) {
+            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+        }
+        await this.sendMailToStudents(emails, updatedNotification.title, updatedNotification.content);
+
+        return updatedNotification;
+    }
+
+    public async deleteNotification(id: number) {
+        if (!id) {
+            throw new ApiError(
+                400,
+                FIELD_REQUIRED.error.message,
+                FIELD_REQUIRED.error.details
+            );
+        }
+        const notification = await this.notificationRepository.findById(id);
+        if (!notification) {
+            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+        }
+        const deletedNotification = await this.notificationRepository.delete(id);
+        return deletedNotification;
+    }
+
     private async getStudentEmailsByClassId(classId: number): Promise<string[]> {
         // Get all students in the class
         const studentClasses = await this.studentClassesRepository.findByClassId(classId);

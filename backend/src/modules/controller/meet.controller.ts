@@ -14,10 +14,22 @@ export class MeetController extends BaseController {
     }
 
     public initRoutes(): void {
+        this.router.delete("/:meeting_id", authentication, this.deleteMeetingById);
         this.router.get("/:class_id", authentication, this.getAllMeetingByClass);
         this.router.post("/:class_id", authentication, this.createMeeting);
         this.router.delete("/:class_id",authentication, this.deleteMeeting);
     }
+
+    private readonly deleteMeetingById = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const meetingId = parseInt(req.params.meeting_id, 10);
+            const meeting = await this.meetService.deleteMeetingById(meetingId);
+            return sendResponse(res, true, 200, "Delete meeting successfully", meeting);
+        }
+        catch (error) {
+            next(error);
+        }
+    };
 
     private readonly getAllMeetingByClass = async (req: Request, res: Response, next: NextFunction) => {
         try {

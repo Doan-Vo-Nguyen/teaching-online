@@ -59,6 +59,7 @@ export const EXAM_NOT_FOUND_IN_CLASS = BaseErrorDto("Exam not found in class", "
 // Meeting Errors
 export const MEET_NOT_FOUND = BaseErrorDto("Meeting not found", "No meeting was found");
 export const MEET_ALREADY_EXISTS = BaseErrorDto("Meeting already exists", "Meeting is already existed");
+export const MEET_ERROR = BaseErrorDto("Something went wrong", "An error occurred while processing this action with meeting");
 
 // Validation Errors
 export const FIELD_REQUIRED = BaseErrorDto("Field is required", "You must provide a value for this field");
