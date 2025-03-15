@@ -20,6 +20,7 @@ import { StudentClassesController } from "./modules/controller/student-classes.c
 import { ExamController } from "./modules/controller/exam.controller";
 import { NotificationController } from "./modules/controller/notification.controller";
 import { MeetController } from "./modules/controller/meet.controller";
+import { ExamSubmissionController } from "./modules/controller/exam-submission.controller";
 
 export class Application {
   private _app: Express | undefined;
@@ -94,6 +95,7 @@ export class Application {
       new LecturesController("/app/lectures"),
       new NotificationController("/app/notifications"),
       new MeetController("/app/meetings"),
+      new ExamSubmissionController("/app/exam-submissions"),
     ];
 
     // Apply authentication middleware to all protected routes

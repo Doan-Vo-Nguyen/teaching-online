@@ -13,16 +13,19 @@ export class ExamSubmission {
     @Column({type: "int"})
     student_class_id: number
 
-    @Column({type: "text"})
+    @Column({type: "text", nullable: true})
     file_content: string
 
     @CreateDateColumn()
     submitted_at: Date
 
-    @Column({type: "decimal", precision: 5, scale: 2})
+    @CreateDateColumn()
+    updated_at: Date
+
+    @Column({type: "decimal", precision: 5, scale: 2, nullable: true})
     grade: number
 
-    @Column({type: "text"})
+    @Column({type: "text", nullable: true})
     feed_back: string
 
     @ManyToOne(() => Exam, exam => exam.examSubmissions, { onDelete: 'NO ACTION' }) // Relation with Users n-1
@@ -32,5 +35,7 @@ export class ExamSubmission {
     @ManyToOne(() => StudentClasses, studentClasses => studentClasses.examSubmissions, { onDelete: 'NO ACTION' }) // Relation with Users n-1
     @JoinColumn({name: "student_class_id"}) // Column name in the database
     studentClass: Relation<StudentClasses>
+    student_id?: number
+    class_id?: number
 
 }

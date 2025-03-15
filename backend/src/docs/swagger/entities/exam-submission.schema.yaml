@@ -1,0 +1,234 @@
+components:
+  schemas:
+    ExamSubmission:
+      type: object
+      required:
+        - exam_submission_id
+        - exam_id
+        - student_class_id
+        - file_content
+      properties:
+        exam_submission_id:
+          type: integer
+        exam_id:
+          type: integer
+        student_class_id:
+          type: integer
+        file_content:
+          type: string
+        submitted_at:
+          type: string
+          format: date-time
+        grade:
+          type: integer
+        feed_back:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+paths:
+  /{examId}:
+    get:
+      tags:
+        - ExamSubmission
+      summary: Get exam submission by exam ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: examId
+          in: path
+          required: true
+          description: ID of the exam
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Get exam submission by exam ID successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExamSubmission'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+  /{examId}/{studentClassId}:
+    post:
+      tags:
+        - ExamSubmission
+      summary: Create exam submission
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: examId
+          in: path
+          required: true
+          description: ID of the exam
+          schema:
+            type: integer
+        - name: studentClassId
+          in: path
+          required: true
+          description: ID of the student class
+          schema:
+            type: integer
+      requestBody:
+        description: Exam submission data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExamSubmission'
+      responses:
+        '200':
+          description: Create exam submission successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamSubmission'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+  /{examId}/{studentId}/{classId}:
+    post:
+      tags:
+        - ExamSubmission
+      summary: Create exam submission by student and class
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: examId
+          in: path
+          required: true
+          description: ID of the exam
+          schema:
+            type: integer
+        - name: studentId
+          in: path
+          required: true
+          description: ID of the student
+          schema:
+            type: integer
+        - name: classId
+          in: path
+          required: true
+          description: ID of the class
+          schema:
+            type: integer
+      requestBody:
+        description: Exam submission data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExamSubmission'
+      responses:
+        '200':
+          description: Create exam submission by student and class successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamSubmission'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+  /{examSubmissionId}:
+    put:
+      tags:
+        - ExamSubmission
+      summary: Update exam submission
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: examSubmissionId
+          in: path
+          required: true
+          description: ID of the exam submission
+          schema:
+            type: integer
+      requestBody:
+        description: Updated exam submission data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExamSubmission'
+      responses:
+        '200':
+          description: Update exam submission successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamSubmission'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+    delete:
+      tags:
+        - ExamSubmission
+      summary: Delete exam submission
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: examSubmissionId
+          in: path
+          required: true
+          description: ID of the exam submission
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Delete exam submission successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamSubmission'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'

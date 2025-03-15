@@ -61,6 +61,10 @@ export const MEET_NOT_FOUND = BaseErrorDto("Meeting not found", "No meeting was 
 export const MEET_ALREADY_EXISTS = BaseErrorDto("Meeting already exists", "Meeting is already existed");
 export const MEET_ERROR = BaseErrorDto("Something went wrong", "An error occurred while processing this action with meeting");
 
+// Exam Submission Errors
+export const EXAM_SUBMISSION_NOT_FOUND = BaseErrorDto("Exam submission not found", "No exam submission was found");
+export const EXAM_SUBMISSION_FIELD_REQUIRED = BaseErrorDto("Exam submission field is required", "You must provide a value for this field");
+
 // Validation Errors
 export const FIELD_REQUIRED = BaseErrorDto("Field is required", "You must provide a value for this field");
 export const WRONG_PASSWORD = BaseErrorDto("Wrong password", "Password is incorrect");
