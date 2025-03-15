@@ -27,7 +27,7 @@ components:
           type: string
           format: date-time
 paths:
-  /{examId}:
+  /app/exam-submissions/{examId}:
     get:
       tags:
         - ExamSubmission
@@ -62,7 +62,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
-  /{examId}/{studentClassId}:
+  /app/exam-submissions/{examId}/{studentClassId}:
     post:
       tags:
         - ExamSubmission
@@ -108,7 +108,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
-  /{examId}/{studentId}/{classId}:
+  /app/exam-submissions/{examId}/{studentId}/{classId}:
     post:
       tags:
         - ExamSubmission
@@ -160,7 +160,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
-  /{examSubmissionId}:
+  /app/exam-submissions/{examSubmissionId}:
     put:
       tags:
         - ExamSubmission

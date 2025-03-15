@@ -258,6 +258,8 @@ class LecturesService {
         class_id: class_id,
         teacher_id: existedClass.teacher_id,
         notification_id: 0,
+        created_at: new Date(),
+        updated_at: new Date(),
       });
     } catch (error) {
       console.error("Failed to send lecture notifications:", error);

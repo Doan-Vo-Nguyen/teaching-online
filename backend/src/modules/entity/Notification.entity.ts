@@ -1,4 +1,4 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Relation } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Relation } from "typeorm";
 import { Users } from "./User.entity";
 import { Classes } from "./Classes.entity";
 
@@ -18,6 +18,12 @@ export class Notification {
 
     @Column({type: "text", nullable: true})
     content: string
+
+    @CreateDateColumn()
+    created_at: Date
+
+    @CreateDateColumn()
+    updated_at: Date
 
     @ManyToOne(() => Users, users => users.notifications, {onDelete: 'NO ACTION'})
     @JoinColumn({name: "teacher_id"})

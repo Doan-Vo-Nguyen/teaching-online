@@ -65,7 +65,9 @@ class ExamService {
                 content: exam.description,
                 class_id: class_id,
                 teacher_id: teacher_id,
-                notification_id: undefined
+                notification_id: undefined,
+                created_at: new Date(),
+                updated_at: new Date
             });
         } catch (error) {
             // Log error but don't fail the exam creation

@@ -1,3 +1,40 @@
+components:
+  schemas:
+    Notification:
+      type: object
+      required:
+        - title
+        - content
+        - teacherId
+        - classId
+      properties:
+        notification_id:
+          type: string
+          description: The auto-generated id of the notification
+        teacherId:
+          type: string
+          description: The ID of the teacher who created the notification
+        classId:
+          type: string
+          description: The ID of the class for which the notification is created
+        content:
+          type: string
+          description: The content of the notification
+          example: "Class will be postponed to next week"
+        title:
+          type: string
+          description: The title of the notification
+          example: "Important Announcement"
+        created_at:
+          type: string
+          format: date-time
+          description: The date and time the notification was created
+          example: "2021-08-01T12:00:00.000Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: The date and time the notification was last updated
+          example: "2021-08-01T12:00:00.000Z"
 paths:
   /app/notifications:
     get:

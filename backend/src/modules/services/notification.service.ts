@@ -64,7 +64,9 @@ class NotificationService {
                     content: notificationData.content,
                     notification_id: 0,
                     class_id: classId,
-                    teacher_id: teacherId
+                    teacher_id: teacherId,
+                    created_at: new Date(),
+                    updated_at: new Date()
                 }
             );
             
