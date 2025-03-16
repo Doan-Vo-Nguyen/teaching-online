@@ -18,7 +18,7 @@ class ExamSubmissionService {
         if (!exam_id) {
             throw new ApiError(400, EXAM_SUBMISSION_FIELD_REQUIRED.error.message, EXAM_SUBMISSION_FIELD_REQUIRED.error.details);
         }
-        const exam = await this.examSubmissionRepository.findById(exam_id);
+        const exam = await this.examSubmissionRepository.findByExamId(exam_id);
         if (!exam) {
             throw new ApiError(404, "Exam not found", "Exam not found");
         }

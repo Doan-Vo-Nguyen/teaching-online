@@ -29,6 +29,10 @@ export class ExamSubmissionRepository extends BaseRepository<ExamSubmission> {
         return examSubmission;
     }
 
+    async findByExamId(exam_id: number): Promise<ExamSubmission[]> {
+        return this.repository.find({ where: { exam_id } });
+    }
+
     async getExamSubmissionByExamId(exam_id: number): Promise<ExamSubmission[]> {
         return this.repository.find({ where: { exam_id } });
     }
