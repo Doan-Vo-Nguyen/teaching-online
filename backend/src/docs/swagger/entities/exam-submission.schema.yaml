@@ -232,7 +232,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
-  /app/exam-submissions/{examId}/students/{studentId}/classes/{classId}/submissions:
+  /app/exam-submissions/exams/{examId}/students/{studentId}/classes/{classId}/submissions:
     get:
       tags:
         - ExamSubmission
@@ -279,7 +279,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
-  /app/exam-submissions/{examId}/classes/{classId}/status:
+  /app/exam-submissions/exams/{examId}/classes/{classId}/status:
     get:
       tags:
         - ExamSubmission
