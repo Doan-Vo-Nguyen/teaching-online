@@ -14,14 +14,62 @@ export class ExamSubmissionController extends BaseController {
     }
 
     public initRoutes(): void {
-        this.router.get("/:examId", authentication, this.getExamSubmissionByExamId);
-        this.router.post("/:examId/:studentClassId", authentication, this.createExamSubmission);
-        this.router.post("/:examId/:studentId/:classId", authentication, this.createExamSubmissionByStudentAndClass);
-        this.router.put("/:examSubmissionId", authentication, this.updateExamSubmission);
-        this.router.delete("/:examSubmissionId",authentication, this.deleteExamSubmission);
+        // Resource: exam submissions collection
+        this.router.get("/", authentication, this.getAllExamSubmissions);
+        this.router.post("/", authentication, this.createExamSubmission);
+        
+        // Resource: single exam submission
+        this.router.get("/:id", authentication, this.getExamSubmissionById);
+        this.router.put("/:id", authentication, this.updateExamSubmission);
+        this.router.delete("/:id", authentication, this.deleteExamSubmission);
+        
+        // Resource: exam submissions for a specific exam
+        this.router.get("/exams/:examId/submissions", authentication, this.getExamSubmissionsByExamId);
+        
+        // Resource: exam submissions for a specific student
+        this.router.get("/exams/:examId/students/:studentId/classes/:classId/submissions", authentication, this.getExamSubmissionsByOneStudent);
+        
+        // Resource: exam submission status for a student in a class
+        this.router.get("/exams/:examId/classes/:classId/status", authentication, this.getExamSubmissionStatus);
+        
+        // Resource: create submission for a student in a class
+        this.router.post("/exams/:examId/students/:studentId/classes/:classId/submissions", authentication, this.createExamSubmissionByStudentAndClass);
     }
 
-    private readonly getExamSubmissionByExamId = async (
+    private readonly getAllExamSubmissions = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            // Implement pagination, filtering, etc.
+            const examSubmissions = await this.examSubmissionService.get(req.query);
+            return sendResponse(res, true, 200, "Fetched all exam submissions successfully", examSubmissions);
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    private readonly getExamSubmissionById = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const id = parseInt(req.params.id, 10);
+            const examSubmission = await this.examSubmissionService.getExamSubmissionByExamId(id);
+            
+            if (!examSubmission) {
+                return sendResponse(res, false, 404, "Exam submission not found", null);
+            }
+            
+            return sendResponse(res, true, 200, "Fetched exam submission successfully", examSubmission);
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    private readonly getExamSubmissionsByExamId = async (
         req: Request,
         res: Response,
         next: NextFunction
@@ -29,7 +77,38 @@ export class ExamSubmissionController extends BaseController {
         try {
             const examId = parseInt(req.params.examId, 10);
             const examSubmissions = await this.examSubmissionService.getExamSubmissionByExamId(examId);
-            return sendResponse(res, true, 200, "Get exam submission by exam id successfully", examSubmissions);
+            return sendResponse(res, true, 200, "Fetched exam submissions by exam successfully", examSubmissions);
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    private readonly getExamSubmissionsByOneStudent = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const studentId = parseInt(req.params.studentId, 10);
+            const examId = parseInt(req.params.examId, 10);
+            const classId = parseInt(req.params.classId, 10);
+            const examSubmissions = await this.examSubmissionService.getExamSubmissionByOneStudent(studentId, classId, examId);
+            return sendResponse(res, true, 200, "Fetched exam submissions by student successfully", examSubmissions);
+        } catch (error) {
+            next(error);
+        }
+    };
+
+    private readonly getExamSubmissionStatus = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const classId = parseInt(req.params.classId, 10);
+            const examId = parseInt(req.params.examId, 10);
+            const examSubmission = await this.examSubmissionService.getExamSubmissionHaveSubmit(classId, examId);
+            return sendResponse(res, true, 200, "Fetched exam submission status successfully", examSubmission);
         } catch (error) {
             next(error);
         }
@@ -41,11 +120,13 @@ export class ExamSubmissionController extends BaseController {
         next: NextFunction
     ) => {
         try {
-            const examId = parseInt(req.params.examId, 10);
-            const studentClassId = parseInt(req.params.studentClassId, 10);
             const examSubmission = req.body;
-            const createdExamSubmission = await this.examSubmissionService.createExamSubmission(examId, studentClassId, examSubmission);
-            return sendResponse(res, true, 200, "Create exam submission successfully", createdExamSubmission);
+            const createdExamSubmission = await this.examSubmissionService.createExamSubmission(
+                examSubmission.examId,
+                examSubmission.studentClassId,
+                examSubmission
+            );
+            return sendResponse(res, true, 201, "Created exam submission successfully", createdExamSubmission);
         } catch (error) {
             next(error);
         }
@@ -61,12 +142,17 @@ export class ExamSubmissionController extends BaseController {
             const studentId = parseInt(req.params.studentId, 10);
             const classId = parseInt(req.params.classId, 10);
             const examSubmission = req.body;
-            const createdExamSubmission = await this.examSubmissionService.createExamSubmissionByStudentAndClass(examId, studentId, classId, examSubmission);
-            return sendResponse(res, true, 200, "Create exam submission by student and class successfully", createdExamSubmission);
+            const createdExamSubmission = await this.examSubmissionService.createExamSubmissionByStudentAndClass(
+                examId, 
+                studentId, 
+                classId, 
+                examSubmission
+            );
+            return sendResponse(res, true, 201, "Created exam submission successfully", createdExamSubmission);
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     private readonly updateExamSubmission = async (
         req: Request,
@@ -74,14 +160,19 @@ export class ExamSubmissionController extends BaseController {
         next: NextFunction
     ) => {
         try {
-            const examSubmissionId = parseInt(req.params.examSubmissionId, 10);
+            const id = parseInt(req.params.id, 10);
             const examSubmission = req.body;
-            const updatedExamSubmission = await this.examSubmissionService.updateExamSubmission(examSubmissionId, examSubmission);
-            return sendResponse(res, true, 200, "Update exam submission successfully", updatedExamSubmission);
+            const updatedExamSubmission = await this.examSubmissionService.updateExamSubmission(id, examSubmission);
+            
+            if (!updatedExamSubmission) {
+                return sendResponse(res, false, 404, "Exam submission not found", null);
+            }
+            
+            return sendResponse(res, true, 200, "Updated exam submission successfully", updatedExamSubmission);
         } catch (error) {
             next(error);
         }
-    }
+    };
 
     private readonly deleteExamSubmission = async (
         req: Request,
@@ -89,11 +180,16 @@ export class ExamSubmissionController extends BaseController {
         next: NextFunction
     ) => {
         try {
-            const examSubmissionId = parseInt(req.params.examSubmissionId, 10);
-            const deletedExamSubmission = await this.examSubmissionService.deleteExamSubmission(examSubmissionId);
-            return sendResponse(res, true, 200, "Delete exam submission successfully", deletedExamSubmission);
+            const id = parseInt(req.params.id, 10);
+            const deletedExamSubmission = await this.examSubmissionService.deleteExamSubmission(id);
+            
+            if (!deletedExamSubmission) {
+                return sendResponse(res, false, 404, "Exam submission not found", null);
+            }
+            
+            return sendResponse(res, true, 200, "Deleted exam submission successfully", deletedExamSubmission);
         } catch (error) {
             next(error);
         }
-    }
+    };
 }

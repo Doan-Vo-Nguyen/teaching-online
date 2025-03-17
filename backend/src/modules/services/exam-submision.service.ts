@@ -1,7 +1,9 @@
 import { EXAM_SUBMISSION_FIELD_REQUIRED } from "../DTO/resDto/BaseErrorDto";
 import { ExamSubmission } from "../entity/Exam_submission.entity";
+import { IClassesRepository } from "../interfaces/classes.interface";
 import { IExamSubmissionRepository } from "../interfaces/exam-submission.interface";
 import { IStudentClassesRepository } from "../interfaces/student-classes.interface";
+import { ClassesRepository } from "../repositories/classes.repository";
 import { ExamSubmissionRepository } from "../repositories/exam-submission.repository";
 import { StudentClassesRepository } from "../repositories/student-classes.repository";
 import { ApiError } from "../types/ApiError";
@@ -9,9 +11,14 @@ import { ApiError } from "../types/ApiError";
 class ExamSubmissionService {
     private readonly examSubmissionRepository: IExamSubmissionRepository = new ExamSubmissionRepository();
     private readonly studentClassRepository: IStudentClassesRepository = new StudentClassesRepository();
+    private readonly classRepository: IClassesRepository = new ClassesRepository();
 
     constructor() {
         this.studentClassRepository = new StudentClassesRepository();
+    }
+
+    public async get(options: any): Promise<ExamSubmission[]> {
+        return await this.examSubmissionRepository.find(options);
     }
 
     public async getExamSubmissionByExamId(exam_id: number): Promise<ExamSubmission[]> {
@@ -23,6 +30,45 @@ class ExamSubmissionService {
             throw new ApiError(404, "Exam not found", "Exam not found");
         }
         return await this.examSubmissionRepository.getExamSubmissionByExamId(exam_id);
+    }
+
+    public async getExamSubmissionByOneStudent(student_id: number, class_id: number, exam_id: number): Promise<ExamSubmission> {
+        if (!exam_id || !student_id) {
+            throw new ApiError(400, EXAM_SUBMISSION_FIELD_REQUIRED.error.message, EXAM_SUBMISSION_FIELD_REQUIRED.error.details);
+        }
+        const existedStudentClass = await this.studentClassRepository.findByStudentId(student_id);
+        if (!existedStudentClass) {
+            throw new ApiError(404, "Student class not found", "Student class not found");
+        }
+        const existedClass = await this.classRepository.findById(class_id);
+        if (!existedClass) {
+            throw new ApiError(404, "Class not found", "Class not found");
+        }
+        const stcl = await this.studentClassRepository.findByUserIdAndClassId(student_id, class_id);
+        const result = await this.examSubmissionRepository.findByExamIdAndStudentClassId(exam_id, stcl.student_class_id);
+        return result;
+    }
+
+    public async getExamSubmissionHaveSubmit(class_id: number, exam_id: number): Promise<ExamSubmission[]> {
+        if (!class_id || !exam_id) {
+            throw new ApiError(400, EXAM_SUBMISSION_FIELD_REQUIRED.error.message, EXAM_SUBMISSION_FIELD_REQUIRED.error.details);
+        }
+        const classInfo = await this.studentClassRepository.findByClassId(class_id);
+        if (!classInfo) {
+            throw new ApiError(404, "Class not found", "Class not found");
+        }
+        // get all students in class
+        const listUser = await this.studentClassRepository.getAllStudentByClass(class_id);
+        const listExamSubmission = [];
+        // also add the student_id in the list too for display in the API response
+        for (const user of listUser) {
+            const examSubmission = await this.examSubmissionRepository.getExamSubmissionByOneStudent(user.student_id, class_id, exam_id);
+            if (examSubmission) {
+                listExamSubmission.push(examSubmission);
+                examSubmission.student_id = user.student_id;
+            }
+        }
+        return listExamSubmission;
     }
 
     public async createExamSubmission(exam_id: number, student_class_id: number, examSubmission: ExamSubmission): Promise<ExamSubmission> {

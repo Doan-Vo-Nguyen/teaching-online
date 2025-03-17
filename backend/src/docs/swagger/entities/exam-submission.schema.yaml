@@ -232,3 +232,92 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
+  /app/exams/{examId}/students/{studentId}/classes/{classId}/submissions:
+    get:
+      tags:
+        - ExamSubmission
+      summary: Get exam submissions for a specific student
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: examId
+          in: path
+          required: true
+          description: ID of the exam
+          schema:
+            type: integer
+        - name: studentId
+          in: path
+          required: true
+          description: ID of the student
+          schema:
+            type: integer
+        - name: classId
+          in: path
+          required: true
+          description: ID of the class
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Get exam submissions for a specific student successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ExamSubmission'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+  /app/exams/{examId}/classes/{classId}/status:
+    get:
+      tags:
+        - ExamSubmission
+      summary: Get exam submission status for a student in a class
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: examId
+          in: path
+          required: true
+          description: ID of the exam
+          schema:
+            type: integer
+        - name: classId
+          in: path
+          required: true
+          description: ID of the class
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Get exam submission status for a student in a class successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'

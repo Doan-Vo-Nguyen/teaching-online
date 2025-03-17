@@ -1,7 +1,9 @@
 import { ExamSubmission } from "../entity/Exam_submission.entity";
 import { BaseRepository } from "./base.repository";
+import { StudentClassesRepository } from "./student-classes.repository";
 
 export class ExamSubmissionRepository extends BaseRepository<ExamSubmission> {
+    private readonly studentClassRepository: StudentClassesRepository = new StudentClassesRepository();
     constructor() {
         super(ExamSubmission);
     }
@@ -33,8 +35,22 @@ export class ExamSubmissionRepository extends BaseRepository<ExamSubmission> {
         return this.repository.find({ where: { exam_id } });
     }
 
+    async findByExamIdAndStudentClassId(exam_id: number, student_class_id: number): Promise<ExamSubmission> {
+        return this.repository.findOneBy({ exam_id, student_class_id });
+    }
+
     async getExamSubmissionByExamId(exam_id: number): Promise<ExamSubmission[]> {
         return this.repository.find({ where: { exam_id } });
+    }
+
+    async getExamSubmissionByOneStudent(student_id: number, class_id: number, exam_id: number): Promise<ExamSubmission> {
+        const studentClass = await this.studentClassRepository.findByUserIdAndClassId(student_id, class_id);
+        return this.repository.findOneBy({ exam_id, student_class_id: studentClass.student_class_id });
+    }
+
+    // get all exam submission that have been submitted by all students in a class
+    async getExamSubmissionHaveSubmit(class_id: number, exam_id: number): Promise<ExamSubmission[]> {
+        return this.repository.find({ where: {exam_id} });
     }
 
     async createExamSubmission(exam_id: number, student_class_id: number, examSubmission: ExamSubmission): Promise<ExamSubmission> {
