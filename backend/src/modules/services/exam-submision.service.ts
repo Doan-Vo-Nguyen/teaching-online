@@ -1,9 +1,11 @@
 import { EXAM_SUBMISSION_FIELD_REQUIRED } from "../DTO/resDto/BaseErrorDto";
 import { ExamSubmission } from "../entity/Exam_submission.entity";
 import { IClassesRepository } from "../interfaces/classes.interface";
+import { IExamSubmissionContentRepository } from "../interfaces/exam-submission-content.interface";
 import { IExamSubmissionRepository } from "../interfaces/exam-submission.interface";
 import { IStudentClassesRepository } from "../interfaces/student-classes.interface";
 import { ClassesRepository } from "../repositories/classes.repository";
+import { ExamSubmissionContentRepository } from "../repositories/exam-submission-content.repository";
 import { ExamSubmissionRepository } from "../repositories/exam-submission.repository";
 import { StudentClassesRepository } from "../repositories/student-classes.repository";
 import { ApiError } from "../types/ApiError";
@@ -12,7 +14,7 @@ class ExamSubmissionService {
     private readonly examSubmissionRepository: IExamSubmissionRepository = new ExamSubmissionRepository();
     private readonly studentClassRepository: IStudentClassesRepository = new StudentClassesRepository();
     private readonly classRepository: IClassesRepository = new ClassesRepository();
-
+    private readonly examSubmissionContentRepository: IExamSubmissionContentRepository = new ExamSubmissionContentRepository();
     constructor() {
         this.studentClassRepository = new StudentClassesRepository();
     }
@@ -95,18 +97,67 @@ class ExamSubmissionService {
         return await this.examSubmissionRepository.createExamSubmission(exam_id, student_class_id, examSubmission);
     }
 
-    public async createExamSubmissionByStudentAndClass(exam_id: number, student_id: number, class_id: number, examSubmission: ExamSubmission): Promise<ExamSubmission> {
-        if (!examSubmission) {
-            throw new ApiError(400, EXAM_SUBMISSION_FIELD_REQUIRED.error.message, EXAM_SUBMISSION_FIELD_REQUIRED.error.details);
+    public async createExamSubmissionByStudentAndClass(
+        exam_id: number,
+        student_id: number,
+        class_id: number,
+        data: { file_content: string; grade?: number; feed_back?: string }
+    ): Promise<ExamSubmission> {
+        this.validateExamSubmissionData(data);
+
+        const studentClass = await this.getStudentClass(student_id, class_id);
+
+        const newExamSubmission = await this.createExamSubmissionRecord(exam_id, studentClass.student_class_id, data);
+
+        await this.createExamSubmissionContent(newExamSubmission.exam_submission_id, data.file_content);
+
+        return newExamSubmission;
+    }
+
+    private validateExamSubmissionData(data: { file_content: string; grade?: number; feed_back?: string }): void {
+        if (!data || !data.file_content) {
+            throw new ApiError(
+                400,
+                EXAM_SUBMISSION_FIELD_REQUIRED.error.message,
+                EXAM_SUBMISSION_FIELD_REQUIRED.error.details
+            );
         }
+    }
+
+    private async getStudentClass(student_id: number, class_id: number) {
         const studentClass = await this.studentClassRepository.findByUserIdAndClassId(student_id, class_id);
         if (!studentClass) {
             throw new ApiError(404, "Student class not found", "Student class not found");
         }
-        const student_class_id = studentClass.student_class_id;
-
-        return await this.examSubmissionRepository.createExamSubmission(exam_id, student_class_id, examSubmission);
+        return studentClass;
     }
+
+    private async createExamSubmissionRecord(
+        exam_id: number,
+        student_class_id: number,
+        data: { file_content: string; grade?: number; feed_back?: string }
+    ): Promise<ExamSubmission> {
+        return await this.examSubmissionRepository.save({
+            ...data,
+            exam_id,
+            student_class_id,
+            submitted_at: new Date(),
+            updated_at: new Date(),
+            grade: null,
+            feed_back: null,
+            exam_submission_id: 0,
+        });
+    }
+
+    private async createExamSubmissionContent(exam_submission_id: number, file_content: string): Promise<void> {
+        await this.examSubmissionContentRepository.save({
+            exam_submission_id,
+            file_content,
+            id: 0,
+            created_at: new Date(),
+        });
+    }
+
 
     public async updateExamSubmission(exam_submission_id: number, examSubmission: ExamSubmission): Promise<ExamSubmission> {    
         if (!examSubmission) {

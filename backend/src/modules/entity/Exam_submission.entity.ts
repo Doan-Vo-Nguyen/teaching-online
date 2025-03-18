@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Relation } from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Relation, OneToMany } from "typeorm"
 import { Exam } from "./Exam.entity"
 import { StudentClasses } from "./Student_classes.entity"
+import { ExamSubmissionContent } from "./ExamSubmissionContent.entity"
 
 @Entity({schema: "teaching"})
 export class ExamSubmission {
@@ -12,9 +13,6 @@ export class ExamSubmission {
 
     @Column({type: "int"})
     student_class_id: number
-
-    @Column({type: "text", nullable: true})
-    file_content: string
 
     @CreateDateColumn()
     submitted_at: Date
@@ -28,13 +26,16 @@ export class ExamSubmission {
     @Column({type: "text", nullable: true})
     feed_back: string
 
+    @OneToMany(() => ExamSubmissionContent, examSubmissionContent => examSubmissionContent.exam, { onDelete: 'CASCADE' }) // Relation with ExamSubmission 1-n
+    examSubmissionContents?: ExamSubmissionContent[]
+
     @ManyToOne(() => Exam, exam => exam.examSubmissions, { onDelete: 'NO ACTION' }) // Relation with Users n-1
     @JoinColumn({name: "exam_id"}) // Column name in the database
-    exam: Relation<Exam>
+    exam?: Relation<Exam>
 
     @ManyToOne(() => StudentClasses, studentClasses => studentClasses.examSubmissions, { onDelete: 'NO ACTION' }) // Relation with Users n-1
     @JoinColumn({name: "student_class_id"}) // Column name in the database
-    studentClass: Relation<StudentClasses>
+    studentClass?: Relation<StudentClasses>
     student_id?: number
     class_id?: number
 
