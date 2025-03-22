@@ -38,18 +38,37 @@ class ExamSubmissionService {
         if (!exam_id || !student_id) {
             throw new ApiError(400, EXAM_SUBMISSION_FIELD_REQUIRED.error.message, EXAM_SUBMISSION_FIELD_REQUIRED.error.details);
         }
+    
         const existedStudentClass = await this.studentClassRepository.findByStudentId(student_id);
         if (!existedStudentClass) {
             throw new ApiError(404, "Student class not found", "Student class not found");
         }
+    
         const existedClass = await this.classRepository.findById(class_id);
         if (!existedClass) {
             throw new ApiError(404, "Class not found", "Class not found");
         }
-        const stcl = await this.studentClassRepository.findByUserIdAndClassId(student_id, class_id);
-        const result = await this.examSubmissionRepository.findByExamIdAndStudentClassId(exam_id, stcl.student_class_id);
-        return result;
+    
+        const studentClass = await this.studentClassRepository.findByUserIdAndClassId(student_id, class_id);
+        if (!studentClass) {
+            throw new ApiError(404, "Student is not enrolled in this class", "Student class record not found");
+        }
+    
+        const examSubmission = await this.examSubmissionRepository.findByExamIdAndStudentClassId(exam_id, studentClass.student_class_id);
+        if (!examSubmission) {
+            throw new ApiError(404, "Exam submission not found", "Exam submission record not found");
+        }
+        console.log(examSubmission);
+    
+        const examSubmissionContents = await this.examSubmissionContentRepository.findByExamSubmissionId(examSubmission.exam_submission_id);
+        console.log(examSubmissionContents);
+        return {
+            ...examSubmission,
+            examSubmissionContents
+        };
     }
+    
+    
 
     public async getExamSubmissionHaveSubmit(class_id: number, exam_id: number): Promise<ExamSubmission[]> {
         if (!class_id || !exam_id) {
@@ -62,7 +81,7 @@ class ExamSubmissionService {
         // get all students in class
         const listUser = await this.studentClassRepository.getAllStudentByClass(class_id);
         const listExamSubmission = [];
-        // also add the student_id in the list too for display in the API response
+        // get all exam submission of students in class
         for (const user of listUser) {
             const examSubmission = await this.examSubmissionRepository.getExamSubmissionByOneStudent(user.student_id, class_id, exam_id);
             if (examSubmission) {
@@ -115,7 +134,7 @@ class ExamSubmissionService {
     }
 
     private validateExamSubmissionData(data: { file_content: string; grade?: number; feed_back?: string }): void {
-        if (!data || !data.file_content) {
+        if (!data?.file_content) {
             throw new ApiError(
                 400,
                 EXAM_SUBMISSION_FIELD_REQUIRED.error.message,
