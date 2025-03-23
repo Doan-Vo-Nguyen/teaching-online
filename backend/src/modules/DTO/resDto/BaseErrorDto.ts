@@ -64,7 +64,9 @@ export const MEET_ERROR = BaseErrorDto("Something went wrong", "An error occurre
 // Exam Submission Errors
 export const EXAM_SUBMISSION_NOT_FOUND = BaseErrorDto("Exam submission not found", "No exam submission was found");
 export const EXAM_SUBMISSION_FIELD_REQUIRED = BaseErrorDto("Exam submission field is required", "You must provide a value for this field");
-
+export const CODE_EXECUTION_FAILED = BaseErrorDto("Code execution failed", "An error occurred while executing the code");
+export const EXAM_SUBMISSION_ALREADY_EXISTS = BaseErrorDto("Exam submission already exists", "You have already submitted the exam");
+export const EXAM_SUBMISSION_ERROR = BaseErrorDto("Exam submission error", "An error occurred while processing this action with exam submission");
 // Validation Errors
 export const FIELD_REQUIRED = BaseErrorDto("Field is required", "You must provide a value for this field");
 export const WRONG_PASSWORD = BaseErrorDto("Wrong password", "Password is incorrect");

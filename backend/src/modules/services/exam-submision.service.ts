@@ -1,12 +1,15 @@
-import { EXAM_SUBMISSION_FIELD_REQUIRED } from "../DTO/resDto/BaseErrorDto";
+import { Logger } from "../config/logger";
+import { CODE_EXECUTION_FAILED, EXAM_SUBMISSION_ERROR, EXAM_SUBMISSION_FIELD_REQUIRED } from "../DTO/resDto/BaseErrorDto";
 import { ExamSubmission } from "../entity/Exam_submission.entity";
 import { IClassesRepository } from "../interfaces/classes.interface";
 import { IExamSubmissionContentRepository } from "../interfaces/exam-submission-content.interface";
 import { IExamSubmissionRepository } from "../interfaces/exam-submission.interface";
+import { ILanguageCodeRepository } from "../interfaces/language-code.interface";
 import { IStudentClassesRepository } from "../interfaces/student-classes.interface";
 import { ClassesRepository } from "../repositories/classes.repository";
 import { ExamSubmissionContentRepository } from "../repositories/exam-submission-content.repository";
 import { ExamSubmissionRepository } from "../repositories/exam-submission.repository";
+import { LanguageCodeRepository } from "../repositories/language-code.repository";
 import { StudentClassesRepository } from "../repositories/student-classes.repository";
 import { ApiError } from "../types/ApiError";
 
@@ -15,6 +18,7 @@ class ExamSubmissionService {
     private readonly studentClassRepository: IStudentClassesRepository = new StudentClassesRepository();
     private readonly classRepository: IClassesRepository = new ClassesRepository();
     private readonly examSubmissionContentRepository: IExamSubmissionContentRepository = new ExamSubmissionContentRepository();
+    private readonly languageRepository: ILanguageCodeRepository = new LanguageCodeRepository();
     constructor() {
         this.studentClassRepository = new StudentClassesRepository();
     }
@@ -58,10 +62,8 @@ class ExamSubmissionService {
         if (!examSubmission) {
             throw new ApiError(404, "Exam submission not found", "Exam submission record not found");
         }
-        console.log(examSubmission);
     
         const examSubmissionContents = await this.examSubmissionContentRepository.findByExamSubmissionId(examSubmission.exam_submission_id);
-        console.log(examSubmissionContents);
         return {
             ...examSubmission,
             examSubmissionContents
@@ -71,25 +73,32 @@ class ExamSubmissionService {
     
 
     public async getExamSubmissionHaveSubmit(class_id: number, exam_id: number): Promise<ExamSubmission[]> {
-        if (!class_id || !exam_id) {
-            throw new ApiError(400, EXAM_SUBMISSION_FIELD_REQUIRED.error.message, EXAM_SUBMISSION_FIELD_REQUIRED.error.details);
-        }
-        const classInfo = await this.studentClassRepository.findByClassId(class_id);
-        if (!classInfo) {
-            throw new ApiError(404, "Class not found", "Class not found");
-        }
-        // get all students in class
-        const listUser = await this.studentClassRepository.getAllStudentByClass(class_id);
-        const listExamSubmission = [];
-        // get all exam submission of students in class
-        for (const user of listUser) {
-            const examSubmission = await this.examSubmissionRepository.getExamSubmissionByOneStudent(user.student_id, class_id, exam_id);
-            if (examSubmission) {
-                listExamSubmission.push(examSubmission);
-                examSubmission.student_id = user.student_id;
+        try {
+            if (!class_id || !exam_id) {
+                throw new ApiError(400, EXAM_SUBMISSION_FIELD_REQUIRED.error.message, EXAM_SUBMISSION_FIELD_REQUIRED.error.details);
             }
+            const classInfo = await this.studentClassRepository.findByClassId(class_id);
+            if (!classInfo) {
+                throw new ApiError(404, "Class not found", "Class not found");
+            }
+            // get all students in class
+            const listUser = await this.studentClassRepository.getAllStudentByClass(class_id);
+            const listExamSubmission = [];
+            // get all exam submission of students in class
+            for (const user of listUser) {
+                const examSubmission = await this.examSubmissionRepository.getExamSubmissionHaveSubmit(user.student_id, class_id, exam_id);
+                if (examSubmission) {
+                    listExamSubmission.push({
+                        ...examSubmission,
+                        student_id: user.student_id
+                    });
+                }
+            }
+            return listExamSubmission;
+        } catch (error) {
+            Logger.error(error);
+            throw new ApiError(500, EXAM_SUBMISSION_ERROR.error.message, EXAM_SUBMISSION_ERROR.error.details);
         }
-        return listExamSubmission;
     }
 
     public async createExamSubmission(exam_id: number, student_class_id: number, examSubmission: ExamSubmission): Promise<ExamSubmission> {
@@ -108,8 +117,8 @@ class ExamSubmissionService {
         if (!existedClass) {
             throw new ApiError(404, "Class not found", "Class not found");
         }
-        const existedUSerAndClass = await this.studentClassRepository.findByUserIdAndClassId(existedUser, existedClass);
-        if (!existedUSerAndClass) {
+        const existedUserAndClass = await this.studentClassRepository.findByUserIdAndClassId(existedUser, existedClass);
+        if (!existedUserAndClass) {
             throw new ApiError(404, "User not in class", "User not in class");
         }
 
@@ -120,26 +129,75 @@ class ExamSubmissionService {
         exam_id: number,
         student_id: number,
         class_id: number,
-        data: { file_content: string; grade?: number; feed_back?: string }
+        data: { 
+            file_content: string;
+            language_id: number;
+            stdin?: string;
+            expected_output?: string;
+        }
     ): Promise<ExamSubmission> {
         this.validateExamSubmissionData(data);
 
-        const studentClass = await this.getStudentClass(student_id, class_id);
+        try {
+            // const judge0Response = await this.submitToJudge0({
+            //     source_code: data.file_content,
+            //     language_id: data.language_id,
+            //     stdin: data.stdin,
+            //     expected_output: data.expected_output
+            // });
 
-        const newExamSubmission = await this.createExamSubmissionRecord(exam_id, studentClass.student_class_id, data);
+            // const submissionResult = await this.getJudge0Result(judge0Response.token);
 
-        await this.createExamSubmissionContent(newExamSubmission.exam_submission_id, data.file_content);
+            // let grade = 0;
+            // let feedback = '';
 
-        return newExamSubmission;
+            // if (submissionResult.status.id === 3) {
+            //     grade = 100;
+            //     feedback = 'Solution accepted';
+            // } else {
+            //     feedback = `Execution failed: ${submissionResult.status.description}`;
+            //     if (submissionResult.compile_output) {
+            //         feedback += `\nCompiler output: ${submissionResult.compile_output}`;
+            //     }
+            // }
+
+            const studentClass = await this.getStudentClass(student_id, class_id);
+            // check if the student has already submitted the exam
+            const existedExamSubmission = await this.examSubmissionRepository.findByExamIdAndStudentClassId(exam_id, studentClass.student_class_id);
+            // if not will create a new exam submission record, else just update the content of submission
+            let newExamSubmission: ExamSubmission;
+            if (existedExamSubmission) {
+                await this.examSubmissionContentRepository.createExamSubmissionContentByExamSubmissionId(existedExamSubmission.exam_submission_id, {
+                    file_content: data.file_content,
+                    exam_submission_id: existedExamSubmission.exam_submission_id,
+                    id: 0,
+                    created_at: new Date(),
+                });
+                newExamSubmission = existedExamSubmission;
+            } else {
+                newExamSubmission = await this.createExamSubmissionRecord(
+                    exam_id,
+                    studentClass.student_class_id,
+                    data
+                );
+            }
+            await this.createExamSubmissionContent(newExamSubmission.exam_submission_id, data.file_content);
+            return newExamSubmission;
+
+        } catch (error) {
+            Logger.error(error);
+            throw new ApiError(500, CODE_EXECUTION_FAILED.error.message, CODE_EXECUTION_FAILED.error.details);
+            
+        }
     }
 
-    private validateExamSubmissionData(data: { file_content: string; grade?: number; feed_back?: string }): void {
-        if (!data?.file_content) {
-            throw new ApiError(
-                400,
-                EXAM_SUBMISSION_FIELD_REQUIRED.error.message,
-                EXAM_SUBMISSION_FIELD_REQUIRED.error.details
-            );
+    private async validateExamSubmissionData(data: { file_content: string; language_id: number; stdin?: string; expected_output?: string }): Promise<void> {
+        if (!data.file_content || !data.language_id) {
+            throw new ApiError(400, EXAM_SUBMISSION_FIELD_REQUIRED.error.message, EXAM_SUBMISSION_FIELD_REQUIRED.error.details);
+        }
+        const language = await this.languageRepository.findById(data.language_id);
+        if (!language) {
+            throw new ApiError(404, "Language not found", "Language not found");
         }
     }
 
@@ -162,9 +220,9 @@ class ExamSubmissionService {
             student_class_id,
             submitted_at: new Date(),
             updated_at: new Date(),
-            grade: null,
-            feed_back: null,
             exam_submission_id: 0,
+            ...(data.grade !== undefined && { grade: data.grade }),
+            ...(data.feed_back !== undefined && { feed_back: data.feed_back }),
         });
     }
 
@@ -176,7 +234,6 @@ class ExamSubmissionService {
             created_at: new Date(),
         });
     }
-
 
     public async updateExamSubmission(exam_submission_id: number, examSubmission: ExamSubmission): Promise<ExamSubmission> {    
         if (!examSubmission) {
@@ -198,6 +255,45 @@ class ExamSubmissionService {
         }
         return await this.examSubmissionRepository.delete(exam_submission_id);
     }
+
+    // private async submitToJudge0(submission: {
+    //     source_code: string;
+    //     language_id: number;
+    //     stdin?: string;
+    //     expected_output?: string;
+    // }) {
+    //     const response = await fetch('https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=true&fields=*&wait=false', {
+    //         method: 'POST',
+    //         headers: {
+    //             'content-type': 'application/json',
+    //             'X-RapidAPI-Key': process.env.JUDGE0_API_KEY,
+    //             'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
+    //         },
+    //         body: JSON.stringify(submission)
+    //     });
+
+    //     if (!response.ok) {
+    //         throw new Error('Failed to submit code to Judge0');
+    //     }
+
+    //     return await response.json();
+    // }
+
+    // private async getJudge0Result(token: string) {
+    //     const response = await fetch(`https://judge0-ce.p.rapidapi.com/submissions/${token}`, {
+    //         method: 'GET',
+    //         headers: {
+    //             'X-RapidAPI-Key': process.env.JUDGE0_API_KEY,
+    //             'X-RapidAPI-Host': 'judge0-ce.p.rapidapi.com'
+    //         }
+    //     });
+
+    //     if (!response.ok) {
+    //         throw new Error('Failed to get submission result from Judge0');
+    //     }
+
+    //     return await response.json();
+    // }
 }
 
 export default ExamSubmissionService;

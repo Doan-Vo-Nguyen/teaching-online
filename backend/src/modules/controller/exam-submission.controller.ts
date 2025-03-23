@@ -141,12 +141,13 @@ export class ExamSubmissionController extends BaseController {
             const examId = parseInt(req.params.examId, 10);
             const studentId = parseInt(req.params.studentId, 10);
             const classId = parseInt(req.params.classId, 10);
-            const examSubmission = req.body;
+            // the body: file_content is file type, language_id is number type, stdin is string type, expected_output is string type
+            const body = req.body;
             const createdExamSubmission = await this.examSubmissionService.createExamSubmissionByStudentAndClass(
-                examId, 
-                studentId, 
+                examId,
+                studentId,
                 classId, 
-                examSubmission
+                body
             );
             return sendResponse(res, true, 201, "Created exam submission successfully", createdExamSubmission);
         } catch (error) {

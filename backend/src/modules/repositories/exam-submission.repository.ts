@@ -50,7 +50,7 @@ export class ExamSubmissionRepository extends BaseRepository<ExamSubmission> {
 
     // get all exam submission that have been submitted by all students in a class
     async getExamSubmissionHaveSubmit(class_id: number, exam_id: number): Promise<ExamSubmission[]> {
-        return this.repository.find({ where: {exam_id} });
+        return this.repository.find({ where: {exam_id, class_id} });
     }
 
     async createExamSubmission(exam_id: number, student_class_id: number, examSubmission: ExamSubmission): Promise<ExamSubmission> {
