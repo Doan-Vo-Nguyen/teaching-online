@@ -70,8 +70,6 @@ class ExamSubmissionService {
         };
     }
     
-    
-
     public async getExamSubmissionHaveSubmit(class_id: number, exam_id: number): Promise<ExamSubmission[]> {
         try {
             if (!class_id || !exam_id) {
@@ -86,7 +84,7 @@ class ExamSubmissionService {
             const listExamSubmission = [];
             // get all exam submission of students in class
             for (const user of listUser) {
-                const examSubmission = await this.examSubmissionRepository.getExamSubmissionHaveSubmit(user.student_id, class_id, exam_id);
+                const examSubmission = await this.examSubmissionRepository.getExamSubmissionByOneStudent(user.student_id, class_id, exam_id);
                 if (examSubmission) {
                     listExamSubmission.push({
                         ...examSubmission,
@@ -164,7 +162,7 @@ class ExamSubmissionService {
             const studentClass = await this.getStudentClass(student_id, class_id);
             // check if the student has already submitted the exam
             const existedExamSubmission = await this.examSubmissionRepository.findByExamIdAndStudentClassId(exam_id, studentClass.student_class_id);
-            // if not will create a new exam submission record, else just update the content of submission
+            // if not will create a new exam submission record, else just create a new content of submission
             let newExamSubmission: ExamSubmission;
             if (existedExamSubmission) {
                 await this.examSubmissionContentRepository.createExamSubmissionContentByExamSubmissionId(existedExamSubmission.exam_submission_id, {
@@ -181,7 +179,6 @@ class ExamSubmissionService {
                     data
                 );
             }
-            await this.createExamSubmissionContent(newExamSubmission.exam_submission_id, data.file_content);
             return newExamSubmission;
 
         } catch (error) {
