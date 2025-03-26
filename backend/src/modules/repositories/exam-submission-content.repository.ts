@@ -1,4 +1,4 @@
-import { ExamSubmissionContent } from './../entity/ExamSubmissionContent.entity';
+import { ExamSubmissionContent } from '../entity/Exam_Submission_Content.entity';
 import { BaseRepository } from './base.repository';
 export class ExamSubmissionContentRepository extends BaseRepository<ExamSubmissionContent> {
     constructor() {
@@ -27,5 +27,9 @@ export class ExamSubmissionContentRepository extends BaseRepository<ExamSubmissi
     async createExamSubmissionContentByExamSubmissionId(exam_submission_id: number, data: ExamSubmissionContent) {
         const examSubmissionContent = await this.repository.save({ ...data, exam_submission_id });
         return examSubmissionContent;
+    }
+    async deleteExamSubmissionContent(exam_submission_id: number) {
+        const examSubmissionContent = await this.repository.findOneBy({ exam_submission_id });
+        return this.repository.remove(examSubmissionContent);
     }
 }

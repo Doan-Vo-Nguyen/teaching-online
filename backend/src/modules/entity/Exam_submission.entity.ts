@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Relation, OneToMany } from "typeorm"
 import { Exam } from "./Exam.entity"
 import { StudentClasses } from "./Student_classes.entity"
-import { ExamSubmissionContent } from "./ExamSubmissionContent.entity"
+import { ExamSubmissionContent } from "./Exam_Submission_Content.entity"
 
 @Entity({schema: "teaching"})
 export class ExamSubmission {
@@ -26,7 +26,7 @@ export class ExamSubmission {
     @Column({type: "text", nullable: true})
     feed_back: string
 
-    @OneToMany(() => ExamSubmissionContent, examSubmissionContent => examSubmissionContent.exam, { onDelete: 'CASCADE' }) // Relation with ExamSubmission 1-n
+    @OneToMany(() => ExamSubmissionContent, examSubmissionContent => examSubmissionContent.examSubmission) // Relation with ExamSubmissionContent 1-n
     examSubmissionContents?: ExamSubmissionContent[]
 
     @ManyToOne(() => Exam, exam => exam.examSubmissions, { onDelete: 'NO ACTION' }) // Relation with Users n-1

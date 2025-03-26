@@ -3,6 +3,7 @@ import { sendResponse } from "../../common/interfaces/base-response";
 import BaseController from "../abstracts/base-controller";
 import ExamSubmissionService from "../services/exam-submision.service";
 import { Request, Response, NextFunction } from "express";
+import { Logger } from '../config/logger';
 
 export class ExamSubmissionController extends BaseController {
     private readonly examSubmissionService: ExamSubmissionService;
@@ -22,6 +23,9 @@ export class ExamSubmissionController extends BaseController {
         this.router.get("/:id", authentication, this.getExamSubmissionById);
         this.router.put("/:id", authentication, this.updateExamSubmission);
         this.router.delete("/:id", authentication, this.deleteExamSubmission);
+
+        // Resource: delete submission for a student in a class
+        this.router.delete("/submissions/:submissionId", authentication, this.deleteExamSubmissionContent);
         
         // Resource: exam submissions for a specific exam
         this.router.get("/exams/:examId/submissions", authentication, this.getExamSubmissionsByExamId);
@@ -34,6 +38,8 @@ export class ExamSubmissionController extends BaseController {
         
         // Resource: create submission for a student in a class
         this.router.post("/exams/:examId/students/:studentId/classes/:classId/submissions", authentication, this.createExamSubmissionByStudentAndClass);
+
+        
     }
 
     private readonly getAllExamSubmissions = async (
@@ -123,11 +129,13 @@ export class ExamSubmissionController extends BaseController {
             const examSubmission = req.body;
             const createdExamSubmission = await this.examSubmissionService.createExamSubmission(
                 examSubmission.examId,
-                examSubmission.studentClassId,
+                examSubmission.student_id,
+                examSubmission.class_id,
                 examSubmission
             );
             return sendResponse(res, true, 201, "Created exam submission successfully", createdExamSubmission);
         } catch (error) {
+            Logger.error(error);
             next(error);
         }
     };
@@ -193,4 +201,18 @@ export class ExamSubmissionController extends BaseController {
             next(error);
         }
     };
+
+    private readonly deleteExamSubmissionContent = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const examSubmissionId = parseInt(req.params.submissionId, 10);
+            const deletedExamSubmissionContent = await this.examSubmissionService.deleteExamSubmissionContent(examSubmissionId);
+            return sendResponse(res, true, 200, "Deleted exam submission content successfully", deletedExamSubmissionContent);
+        } catch (error) {
+            next(error);
+        }
+    }
 }

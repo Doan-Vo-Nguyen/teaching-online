@@ -296,3 +296,27 @@ paths:
           description: Unauthorized
         '403':
           description: Forbidden
+  /app/exam-submissions/submissions/{submissionId}:
+    delete:
+      tags:
+        - ExamSubmission
+      summary: Delete exam submission content
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: submissionId
+          in: path
+          required: true
+          description: ID of the exam submission
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Deleted exam submission content successfully
+        '404':
+          description: Exam submission content not found
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+          
