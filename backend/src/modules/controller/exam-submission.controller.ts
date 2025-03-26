@@ -25,7 +25,7 @@ export class ExamSubmissionController extends BaseController {
         this.router.delete("/:id", authentication, this.deleteExamSubmission);
 
         // Resource: delete submission for a student in a class
-        this.router.delete("/submissions/:submissionId", authentication, this.deleteExamSubmissionContent);
+        this.router.delete("/submissions/:submissionId/content/:id", authentication, this.deleteExamSubmissionContent);
         
         // Resource: exam submissions for a specific exam
         this.router.get("/exams/:examId/submissions", authentication, this.getExamSubmissionsByExamId);
@@ -38,8 +38,6 @@ export class ExamSubmissionController extends BaseController {
         
         // Resource: create submission for a student in a class
         this.router.post("/exams/:examId/students/:studentId/classes/:classId/submissions", authentication, this.createExamSubmissionByStudentAndClass);
-
-        
     }
 
     private readonly getAllExamSubmissions = async (
@@ -209,7 +207,8 @@ export class ExamSubmissionController extends BaseController {
     ) => {
         try {
             const examSubmissionId = parseInt(req.params.submissionId, 10);
-            const deletedExamSubmissionContent = await this.examSubmissionService.deleteExamSubmissionContent(examSubmissionId);
+            const id = parseInt(req.params.id, 10);
+            const deletedExamSubmissionContent = await this.examSubmissionService.deleteExamSubmissionContent(examSubmissionId, id);
             return sendResponse(res, true, 200, "Deleted exam submission content successfully", deletedExamSubmissionContent);
         } catch (error) {
             next(error);

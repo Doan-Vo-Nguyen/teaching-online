@@ -28,8 +28,8 @@ export class ExamSubmissionContentRepository extends BaseRepository<ExamSubmissi
         const examSubmissionContent = await this.repository.save({ ...data, exam_submission_id });
         return examSubmissionContent;
     }
-    async deleteExamSubmissionContent(exam_submission_id: number) {
-        const examSubmissionContent = await this.repository.findOneBy({ exam_submission_id });
+    async deleteExamSubmissionContent(exam_submission_id: number, exam_submission_content_id: number) {
+        const examSubmissionContent = await this.repository.findOneBy({ id: exam_submission_content_id, exam_submission_id });
         return this.repository.remove(examSubmissionContent);
     }
 }

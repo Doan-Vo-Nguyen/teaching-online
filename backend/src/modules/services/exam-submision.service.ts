@@ -423,7 +423,8 @@ class ExamSubmissionService {
   }
 
   public async deleteExamSubmissionContent(
-    exam_submission_id: number
+    exam_submission_id: number,
+    id: number
   ): Promise<ExamSubmissionContent> {
     const existedExamSubmission =
       await this.examSubmissionRepository.findById(exam_submission_id);
@@ -446,9 +447,10 @@ class ExamSubmissionService {
       );
     }
     const deletedContent = await this.examSubmissionContentRepository.deleteExamSubmissionContent(
-      exam_submission_id
+      exam_submission_id,
+      id
     );
-    return deletedContent;  
+    return deletedContent;
   }
 
   private async submitToJudge0(submission: {

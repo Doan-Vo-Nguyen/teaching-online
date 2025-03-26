@@ -296,7 +296,7 @@ paths:
           description: Unauthorized
         '403':
           description: Forbidden
-  /app/exam-submissions/submissions/{submissionId}:
+  /app/exam-submissions/submissions/{submissionId}/content/{id}:
     delete:
       tags:
         - ExamSubmission
@@ -308,6 +308,12 @@ paths:
           in: path
           required: true
           description: ID of the exam submission
+          schema:
+            type: integer
+        - name: id
+          in: path
+          required: true
+          description: ID of the exam submission content
           schema:
             type: integer
       responses:
