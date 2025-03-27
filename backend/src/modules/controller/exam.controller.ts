@@ -24,6 +24,7 @@ export class ExamController extends BaseController {
         this.router.post("/:id/content", authentication, validParam("id"), this.createExamContentByExamId);
         this.router.delete("/:id/content", authentication, validParam("id"), this.deleteExamContentByExamId);
         this.router.post("/:classId/:teacherId", authentication, validParam("classId"), validParam("teacherId"), this.createExamByClassAndTeacher);
+        this.router.post("/content/:id/testcases", authentication, validParam("id"), this.createTestcase);
     }
 
     private readonly getAllExams = async (
@@ -149,6 +150,21 @@ export class ExamController extends BaseController {
             const examContentId = parseInt(req.params.id, 10);
             await this.examService.deleteExamContent(examContentId);
             return sendResponse(res, true, 200, "Delete exam content successfully");
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private readonly createTestcase = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const examId = parseInt(req.params.id, 10);
+            const testcase = req.body;
+            const newTestcase = await this.examService.createTestcase(examId, testcase);
+            return sendResponse(res, true, 200, "Create testcase successfully", newTestcase);
         } catch (error) {
             next(error);
         }

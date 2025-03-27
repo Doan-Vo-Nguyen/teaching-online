@@ -80,6 +80,7 @@ paths:
                 - description
                 - type
                 - due_date
+                - type_for_student
               properties:
                 class_id:
                   type: string
@@ -101,6 +102,10 @@ paths:
                   type: string
                   description: The due date of the exam
                   example: 2021-12-31:23:59:59
+                type_for_student:
+                  type: string
+                  description: The type of the exam for student
+                  example: common
       responses:
         "201":
           description: Exam created successfully
@@ -328,6 +333,7 @@ paths:
           schema:
             type: string
           description: ID of the teacher
+
       requestBody:
         required: true
         content:
@@ -339,6 +345,7 @@ paths:
                 - description
                 - type
                 - due_date
+                - type_for_student
               properties:
                 title:
                   type: string
@@ -356,6 +363,10 @@ paths:
                   type: string
                   description: The due date of the exam
                   example: 2021-12-31:23:59:59
+                type_for_student:
+                  type: string
+                  description: The type of the exam for student
+                  example: common
       responses:
         "201":
           description: Exam created successfully
@@ -371,39 +382,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
-  /app/student-classes/:
-    get:
+  /app/exams/{id}/testcases:
+    post:
       tags:
-        - Student Classes
-      summary: Get all student classes
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Get all student classes successfully
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/StudentClasses'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenError'
-  /app/student-classes/{id}:
-    get:
-      tags:
-        - Student Classes
-      summary: Get student class by id
+        - Exams
+      summary: Create a new testcase
       security:
         - bearerAuth: []
       parameters:
@@ -411,14 +394,23 @@ paths:
           in: path
           required: true
           schema:
-            type: integer
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                input:
+                  type: string
+                expected_output:
+                  type: string
+                score:
+                  type: number
       responses:
-        '200':
-          description: Get student class by id successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/StudentClasses'
+        "201":
+          description: Testcase created successfully
         '401':
           description: Unauthorized
           content:
@@ -431,110 +423,4 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
-  /app/student-classes/joined-class:
-    get:
-      tags:
-        - Student Classes
-      summary: Get student joined classes
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: user_id
-          in: query
-          required: true
-          schema:
-            type: integer
-        - name: class_id
-          in: query
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Get student joined classes successfully
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/StudentClasses'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenError'
-  /app/student-classes/student/{id}:
-    get:
-      tags:
-        - Student Classes
-      summary: Get classes student joined by student id
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Get classes student joined by student id successfully
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/StudentClasses'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenError'
-  /app/student-classes/class/{id}:
-    get:
-      tags:
-        - Student Classes
-      summary: Get students joined class by class id
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        '200':
-          description: Get students joined class by class id successfully
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/StudentClasses'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenError'
+                

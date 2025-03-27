@@ -2,7 +2,7 @@ import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, Re
 import { Classes } from "./Classes.entity"
 import { ExamSubmission } from "./Exam_submission.entity"
 import { ExamContent } from "./ExamContent.entity"
-import { ExamType } from "../constant/index"
+import { ExamType, ExamTypeForStudent } from "../constant/index"
 
 @Entity({schema: "teaching"})
 export class Exam {
@@ -12,14 +12,17 @@ export class Exam {
     @Column()
     class_id: number
 
-    @Column({type: "varchar", length: 100})
+    @Column({type: "varchar", length: 100, nullable: true})
     title: string
 
-    @Column({type: "text"})
+    @Column({type: "text", nullable: true})
     description: string
 
-    @Column({type: "enum", enum: ExamType})
+    @Column({type: "enum", enum: ExamType, nullable: true})
     type: ExamType
+
+    @Column({type: "enum", enum: ExamTypeForStudent, nullable: true})
+    type_for_student: ExamTypeForStudent
 
     @Column()
     due_date: Date

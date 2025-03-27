@@ -18,3 +18,8 @@ export enum ExamType {
     MIDTERM = "midterm",
     FINAL = "final"
 }
+
+export enum ExamTypeForStudent {
+    COMMON = "common",
+    IT = "it",
+}

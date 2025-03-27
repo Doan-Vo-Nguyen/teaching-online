@@ -1,4 +1,5 @@
 import { Exam } from "../entity/Exam.entity";
+import { TestCase } from "../entity/Testcase.entity";
 import { BaseRepository } from "./base.repository";
 
 export class ExamRepository extends BaseRepository<Exam> {

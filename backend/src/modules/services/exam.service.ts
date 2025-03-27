@@ -11,13 +11,16 @@ import { ExamContentRepository } from "../repositories/exam-content.repository";
 import { ExamRepository } from "../repositories/exam.repository";
 import { ApiError } from "../types/ApiError";
 import { NotificationRepository } from '../repositories/notification.repository';
-
+import { TestCase } from '../entity/Testcase.entity';
+import { ITestCaseRepository } from '../interfaces/testcase.interface';
+import { TestCaseRepository } from '../repositories/testcase.repository';
 class ExamService {
     private readonly examRepository: IExamRepository = new ExamRepository();
     private readonly examContentRepository: IExamContentRepository = new ExamContentRepository();
     private readonly userRepository: UserRepository = new UserRepository();
     private readonly studentClassesRepository: StudentClassesRepository = new StudentClassesRepository();
     private readonly notificationRepository: NotificationRepository = new NotificationRepository();
+    private readonly testCaseRepository: ITestCaseRepository = new TestCaseRepository();
 
     constructor() {
         this.examRepository = new ExamRepository();
@@ -50,8 +53,7 @@ class ExamService {
         
         // Save the new exam
         exam.class_id = class_id;
-        const newExam = await this.examRepository.save(exam);
-        
+        const newExam = await this.examRepository.save(exam);   
         try {
             // Get student emails from the class
             const emails = await this.getStudentEmailsByClassId(exam.class_id);
@@ -67,14 +69,18 @@ class ExamService {
                 teacher_id: teacher_id,
                 notification_id: undefined,
                 created_at: new Date(),
-                updated_at: new Date
+                updated_at: new Date()
             });
         } catch (error) {
             // Log error but don't fail the exam creation
             console.error('Failed to send exam notifications:', error);
         }
-        
         return newExam;
+    }
+
+    // * create testcase for an exam
+    public async createTestcase(exam_id: number, testcase: TestCase): Promise<TestCase> {
+        return await this.testCaseRepository.createTestcase(exam_id, testcase);
     }
 
     private async getStudentEmailsByClassId(classId: number): Promise<string[]> {

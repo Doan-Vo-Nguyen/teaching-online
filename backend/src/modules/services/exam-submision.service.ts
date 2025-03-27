@@ -17,7 +17,10 @@ import { ExamSubmissionContentRepository } from "../repositories/exam-submission
 import { LanguageCodeRepository } from "../repositories/language-code.repository";
 import { StudentClassesRepository } from "../repositories/student-classes.repository";
 import { ApiError } from "../types/ApiError";
-
+import { ITestCaseRepository } from "../interfaces/testcase.interface";
+import { TestCaseRepository } from "../repositories/testcase.repository";
+import { ExamContentRepository } from "../repositories/exam-content.repository";
+import { IExamContentRepository } from "../interfaces/exam-content.interface";
 class ExamSubmissionService {
   private readonly examSubmissionRepository: IExamSubmissionRepository =
     new ExamSubmissionRepository();
@@ -25,10 +28,14 @@ class ExamSubmissionService {
     new StudentClassesRepository();
   private readonly classRepository: IClassesRepository =
     new ClassesRepository();
-  private readonly examSubmissionContentRepository: IExamSubmissionContentRepository = new ExamSubmissionContentRepository();
+  private readonly examSubmissionContentRepository: IExamSubmissionContentRepository =
+    new ExamSubmissionContentRepository();
   private readonly languageRepository: ILanguageCodeRepository =
     new LanguageCodeRepository();
-
+  private readonly testcaseRepository: ITestCaseRepository =
+    new TestCaseRepository();
+  private readonly examContentRepository: IExamContentRepository =
+    new ExamContentRepository();
 
   public async get(options: any): Promise<ExamSubmission[]> {
     return await this.examSubmissionRepository.find(options);
@@ -225,7 +232,6 @@ class ExamSubmissionService {
         exam_id,
         studentClass.student_class_id,
         {
-          file_content: data.file_content,
           grade: data.grade,
           feed_back: data.feed_back,
         }
@@ -249,31 +255,49 @@ class ExamSubmissionService {
     data: {
       file_content: string;
       language_id: number;
-      stdin?: string;
-      expected_output?: string;
     }
   ): Promise<ExamSubmission> {
     this.validateExamSubmissionData(data);
+    // const examContent = await this.examContentRepository.findById(exam_id);
+    const testcases = await this.testcaseRepository.find({
+      where: {
+        exam_id: exam_id
+      }
+    });
+
     try {
-      const judge0Response = await this.submitToJudge0({
-        source_code: data.file_content,
-        language_id: data.language_id,
-        stdin: data.stdin,
-        expected_output: data.expected_output,
-      });
-
-      const submissionResult = await this.getJudge0Result(judge0Response.token);
-
-      let grade = 0;
+      let totalGrade = 0;
       let feedback = "";
 
-      if (submissionResult.status.id === 3) {
-        grade = 100;
-        feedback = "Solution accepted";
-      } else {
-        feedback = `Execution failed: ${submissionResult.status.description}`;
-        if (submissionResult.compile_output) {
-          feedback += `\nCompiler output: ${submissionResult.compile_output}`;
+      // Run each testcase
+      for (const testcase of testcases) {
+        const judge0Response = await this.submitToJudge0({
+          source_code: data.file_content,
+          language_id: data.language_id,
+          stdin: testcase.input,
+          expected_output: testcase.expected_output,
+        });
+
+        const submissionResult = await this.getJudge0Result(
+          judge0Response.token
+        );
+
+        // If testcase passed (status.id === 3 means Accepted)
+        if (submissionResult.status.id === 3) {
+          totalGrade += testcase.score;
+          feedback += `Testcase ${testcase.id}: Passed (+${testcase.score} points)\n`;
+          Logger.info(
+            `Testcase ${testcase.id}: Passed (+${testcase.score} points)`
+          );
+        } else {
+          feedback += `Testcase ${testcase.id}: Failed (${submissionResult.status.description})\n`;
+          Logger.info(
+            `Testcase ${testcase.id}: Failed (${submissionResult.status.description})`
+          );
+          if (submissionResult.compile_output) {
+            feedback += `Compiler output: ${submissionResult.compile_output}\n`;
+            Logger.info(submissionResult.compile_output);
+          }
         }
       }
 
@@ -284,9 +308,22 @@ class ExamSubmissionService {
           exam_id,
           studentClass.student_class_id
         );
+
       // if not will create a new exam submission record, else just create a new content of submission
       let newExamSubmission: ExamSubmission;
       if (existedExamSubmission) {
+        // Update grade and feedback in exam submission
+        existedExamSubmission.grade = totalGrade;
+        existedExamSubmission.feed_back = feedback;
+        existedExamSubmission.updated_at = new Date();
+
+        newExamSubmission =
+          await this.examSubmissionRepository.updateExamSubmission(
+            existedExamSubmission.exam_submission_id,
+            existedExamSubmission
+          );
+
+        // Create new content entry
         await this.examSubmissionContentRepository.createExamSubmissionContentByExamSubmissionId(
           existedExamSubmission.exam_submission_id,
           {
@@ -296,12 +333,21 @@ class ExamSubmissionService {
             created_at: new Date(),
           }
         );
-        newExamSubmission = existedExamSubmission;
       } else {
+        // Create new exam submission without file_content
         newExamSubmission = await this.createExamSubmissionRecord(
           exam_id,
           studentClass.student_class_id,
-          data
+          {
+            grade: totalGrade,
+            feed_back: feedback,
+          }
+        );
+
+        // Then create exam submission content with file_content
+        await this.createExamSubmissionContent(
+          newExamSubmission.exam_submission_id,
+          data.file_content
         );
       }
       return newExamSubmission;
@@ -353,7 +399,7 @@ class ExamSubmissionService {
   private async createExamSubmissionRecord(
     exam_id: number,
     student_class_id: number,
-    data: { file_content: string; grade?: number; feed_back?: string }
+    data: { grade?: number; feed_back?: string }
   ): Promise<ExamSubmission> {
     return await this.examSubmissionRepository.save({
       ...data,
@@ -446,10 +492,11 @@ class ExamSubmissionService {
         "Exam submission content not found"
       );
     }
-    const deletedContent = await this.examSubmissionContentRepository.deleteExamSubmissionContent(
-      exam_submission_id,
-      id
-    );
+    const deletedContent =
+      await this.examSubmissionContentRepository.deleteExamSubmissionContent(
+        exam_submission_id,
+        id
+      );
     return deletedContent;
   }
 
