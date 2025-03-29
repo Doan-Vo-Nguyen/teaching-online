@@ -12,7 +12,7 @@ import {
   TIME_EXPIRED,
   INVALID_TOKEN,
 } from "../DTO/resDto/BaseErrorDto";
-import { REFRESH_TOKEN_EXPIRE, RESET_CODE_EXPIRE, TOKEN_EXPIRE } from "../constant";
+import { REFRESH_TOKEN_EXPIRE, RESET_CODE_EXPIRE } from "../constant";
 import { generateResetToken } from "../utils/GenerateCode";
 import { sendMailResetPassword } from "../utils/mailer";
 import crypto from "crypto";
@@ -59,6 +59,7 @@ class AuthenService {
   }
 
   public async generateRefreshToken(user_id: number): Promise<string> {
+    console.log('Generating refresh token for user_id:', user_id);
     const token = crypto.randomBytes(40).toString('hex');
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRE * 1000); // Convert seconds to milliseconds
 
@@ -68,11 +69,11 @@ class AuthenService {
       expires_at: expiresAt,
       is_revoked: false,
       id: 0,
-      user: null
+
     });
 
-    await this.refreshTokenRepository.save(await refreshToken);
-    return token;
+    const savedToken = await this.refreshTokenRepository.save(await refreshToken);
+    return savedToken.token;
   }
 
   public async verifyRefreshToken(token: string): Promise<string> {
@@ -143,6 +144,14 @@ class AuthenService {
     await this.userRepository.update(user.user_id, user);
 
     return { message: "Reset link sent to email" };
+  }
+
+  public async logout(user_id: number) {
+    const refreshTokens = await this.refreshTokenRepository.findByUserId(user_id);
+    for (const token of refreshTokens) {
+      token.is_revoked = true;
+      await this.refreshTokenRepository.save(token);
+    }
   }
 
   private validateEmail(email: string) {

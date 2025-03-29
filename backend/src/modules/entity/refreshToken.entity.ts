@@ -1,12 +1,12 @@
 import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Relation } from "typeorm";
 import { Users } from "./User.entity";
 
-@Entity({schema: "teaching_online"})
+@Entity({schema: "teaching"})
 export class RefreshToken {
     @PrimaryGeneratedColumn()
     id: number
 
-    @Column({nullable: true})
+    @Column()
     user_id: number
 
     @Column({type: "varchar", length: 255})
