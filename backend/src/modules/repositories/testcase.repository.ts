@@ -6,6 +6,10 @@ export class TestCaseRepository extends BaseRepository<TestCase> {
         super(TestCase);
     }
 
+    async findAllTestcases(): Promise<TestCase[]> {
+        return this.repository.find();
+    }
+
     async createTestcase(exam_id: number, testcase: TestCase): Promise<TestCase> {
         return this.repository.save({ ...testcase, exam_id });
     }
