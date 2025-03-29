@@ -20,11 +20,8 @@ export const AppDataSource = new DataSource({
 // MongoDB DataSource
 export const AppDataSource2 = new DataSource({
     type: "mongodb",
-    host: "localhost",
-    port: 27017, 
-    database: "teaching_online",
-    username: process.env.MONGO_USERNAME,
-    password: process.env.MONGO_PASSWORD, 
+    url: process.env.MONGO_HOST,
+    useNewUrlParser: true,
     useUnifiedTopology: true,
     synchronize: true,
     logging: true,

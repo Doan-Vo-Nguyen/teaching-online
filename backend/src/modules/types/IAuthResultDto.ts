@@ -3,4 +3,5 @@ export interface IAuthResultDto {
     encryptedAccessToken: string | null;
     expireInSeconds: number;
     userId: number | null;
+    refreshToken: string | null;
 }

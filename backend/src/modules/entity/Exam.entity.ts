@@ -22,7 +22,7 @@ export class Exam {
     type: ExamType
 
     @Column({type: "enum", enum: ExamTypeForStudent, nullable: true})
-    type_for_student: ExamTypeForStudent
+    type_student: ExamTypeForStudent
 
     @Column()
     due_date: Date

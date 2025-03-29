@@ -18,6 +18,7 @@ export class AuthenController extends BaseController {
         this.router.post('/register', validate(['fullname', 'email', 'password']), this.register);
         this.router.post('/forgot-password', this.forgotPassword)
         this.router.put('/reset-password', validate(['code', 'password']), this.resetPassword);
+        this.router.post('/refresh-token', this.refreshToken);
     }
 
     private readonly authenticate = async (req: Request, res: Response, next: NextFunction) => {
@@ -60,4 +61,15 @@ export class AuthenController extends BaseController {
             next(error);
         }
     }
+
+    private readonly refreshToken = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { refreshToken } = req.body;
+            const accessToken = await this._authenService.generateRefreshToken(refreshToken);
+            return sendResponse(res, true, 200, "Refresh token successfully", accessToken);
+        } catch (error) {
+            next(error);
+        }
+    }
+
 }

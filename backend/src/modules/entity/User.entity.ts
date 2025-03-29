@@ -6,7 +6,7 @@ import { Classes } from "./Classes.entity"
 import { StudentClasses } from "./Student_classes.entity"
 import { Role } from "../constant/index"
 import { Notification } from "./Notification.entity"
-
+import { RefreshToken } from "./refreshToken.entity"
 dotenv.config()
 
 const JWT_KEY = process.env.JWT_KEY
@@ -72,6 +72,9 @@ export class Users {
 
     @OneToMany(() => Notification, notification => notification.teacher)
     notifications: Notification[]
+
+    @OneToMany(() => RefreshToken, refreshToken => refreshToken.user)
+    refreshTokens: RefreshToken[]
 
     async generateAuthToken(): Promise<string> {
         const token = jwt.sign(

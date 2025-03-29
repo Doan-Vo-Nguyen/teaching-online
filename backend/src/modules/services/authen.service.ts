@@ -10,13 +10,18 @@ import {
   USER_NOT_EXISTS,
   INVALID_RESET_CODE,
   TIME_EXPIRED,
+  INVALID_TOKEN,
 } from "../DTO/resDto/BaseErrorDto";
-import { RESET_CODE_EXPIRE } from "../constant";
+import { REFRESH_TOKEN_EXPIRE, RESET_CODE_EXPIRE, TOKEN_EXPIRE } from "../constant";
 import { generateResetToken } from "../utils/GenerateCode";
 import { sendMailResetPassword } from "../utils/mailer";
+import crypto from "crypto";
+import { IRefreshToken } from "../interfaces/refresh-token.interface";
+import { RefreshTokenRepository } from "../repositories/refresh-token.repository";
 
 class AuthenService {
   private readonly userRepository: IUserRepository = new UserRepository();
+  private readonly refreshTokenRepository: IRefreshToken = new RefreshTokenRepository()
 
   public async authenticate(email: string, password: string) {
     if (!email || !password) {
@@ -48,7 +53,55 @@ class AuthenService {
     }
 
     const accessToken = await this.userRepository.generateToken(email);
-    return { accessToken };
+    const refreshToken = await this.generateRefreshToken(existedUser.user_id);
+    
+    return { accessToken, refreshToken };
+  }
+
+  public async generateRefreshToken(user_id: number): Promise<string> {
+    const token = crypto.randomBytes(40).toString('hex');
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRE * 1000); // Convert seconds to milliseconds
+
+    const refreshToken = this.refreshTokenRepository.create({
+      user_id,
+      token,
+      expires_at: expiresAt,
+      is_revoked: false,
+      id: 0,
+      user: null
+    });
+
+    await this.refreshTokenRepository.save(await refreshToken);
+    return token;
+  }
+
+  public async verifyRefreshToken(token: string): Promise<string> {
+    const refreshToken = await this.refreshTokenRepository.findByToken(token);
+
+    if (!refreshToken) {
+      throw new ApiError(401, INVALID_TOKEN.error.message, INVALID_TOKEN.error.details);
+    }
+
+    if (refreshToken.is_revoked) {
+      throw new ApiError(401, INVALID_TOKEN.error.message, INVALID_TOKEN.error.details);
+    }
+
+    if (new Date() > refreshToken.expires_at) {
+      throw new ApiError(401, TIME_EXPIRED.error.message, TIME_EXPIRED.error.details);
+    }
+
+    // Generate new access token
+    const accessToken = await this.userRepository.generateToken(refreshToken.user.email);
+    return accessToken;
+  }
+
+  public async revokeRefreshToken(token: string): Promise<void> {
+    const refreshToken = await this.refreshTokenRepository.findByToken(token);
+
+    if (refreshToken) {
+      refreshToken.is_revoked = true;
+      await this.refreshTokenRepository.save(refreshToken);
+    }
   }
 
   public async register(userData: any) {

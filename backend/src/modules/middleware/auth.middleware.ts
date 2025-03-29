@@ -71,6 +71,30 @@ const authorize = (allowedRoles: string[]) => (req: IRequest, res: Response, nex
     next();
 };
 
+export const verifyRefreshToken = async (req: IRequest, res: Response, next: NextFunction) => {
+    const authHeader = req.headers['authorization']
+    const token = authHeader?.split(' ')[1]
+    if (!token) {
+        return res.status(401).json({ error: AUTHENTICATION_ERROR })
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_KEY) as DecodedToken
+        req.user = {
+            id: decoded.id,
+            role: decoded.role,
+            username: decoded.username,
+            fullname: decoded.fullname,
+            email: decoded.email
+        }
+        next()
+    } catch (error) {
+        return res.status(401).json({ error: INVALID_TOKEN })
+    }
+    
+    
+}
+
 export const authorAdmin = authorize(['admin']);
 export const authorTeacher = authorize(['teacher']);
 export const authorAdOrTeacher = authorize(['admin', 'teacher']);

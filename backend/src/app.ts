@@ -2,7 +2,7 @@ import "reflect-metadata";
 import express, { Express, Request, Response } from "express";
 import "dotenv/config";
 import { sendResponse } from "./common/interfaces/base-response";
-import { AppDataSource } from "./data-source";
+import { AppDataSource, AppDataSource2 } from "./data-source";
 import { CommentController } from "./modules/controller/comment.controller";
 import { UserController } from "./modules/controller/users.controller";
 import { ClassesController } from "./modules/controller/classes.controller";
@@ -116,7 +116,9 @@ export class Application {
     const name = process.env.APP_SERVER || "Teaching_Online_Server";
     try {
       await AppDataSource.initialize();
-      Logger.info("Data Source has been initialized!");
+      await AppDataSource2.initialize();
+      Logger.info("MySQL Data Source has been initialized!");
+      Logger.info("MongoDB Data Source has been initialized!");
       this.app.listen(port, () => {
         Logger.info(`Server ${name} is running at port ${port}`);
       });
