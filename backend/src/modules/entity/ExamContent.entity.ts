@@ -1,6 +1,6 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Relation } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Relation } from "typeorm";
 import { Exam } from "./Exam.entity";
-import { TestCase } from "./Testcase.entity";
+import { ExamContentDetails } from "./ExamContentDetails.entity";
 
 @Entity({schema: "teaching"})
 export class ExamContent {
@@ -10,20 +10,19 @@ export class ExamContent {
     @Column()
     exam_id: number
 
-    @Column({nullable: true})
-    testcase_id: number
+    @Column({type: "varchar", length: 500, nullable: true})
+    title: string
 
-    @Column({type: "varchar", length: 500})
-    content: string
+    @Column({type: "text", nullable: true})
+    description: string
 
     @CreateDateColumn()
     created_at: Date
 
-    @ManyToOne(() => TestCase, testcase => testcase.examContent, { onDelete: 'NO ACTION' }) // Relation with Exam n-1
-    @JoinColumn({name: "testcase_id"}) // Column name in the database
-    testcases: Relation<TestCase>
-
     @ManyToOne(() => Exam, exam => exam.examContents, { onDelete: 'NO ACTION' }) // Relation with Exam n-1
     @JoinColumn({name: "exam_id"}) // Column name in the database
     exam: Relation<Exam>
+
+    @OneToMany(() => ExamContentDetails, examContentDetails => examContentDetails.examContent)
+    examContentDetails: ExamContentDetails[]
 }

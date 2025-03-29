@@ -1,0 +1,149 @@
+components:
+  schemas:
+    ExamContentDetails:
+      type: object
+      properties:
+        id:
+          type: integer
+        exam_content_id:
+          type: integer
+        exam_id:
+          type: integer
+        content:
+          type: string
+        created_at:
+          type: string
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates if the operation was successful
+        statusCode:
+          type: integer
+          description: HTTP status code
+        message:
+          type: string
+          description: Response message
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/ExamContentDetails'
+            - type: array
+              items:
+                $ref: '#/components/schemas/ExamContentDetails'
+          description: Response data
+paths:
+  /app/exam-content-details/{exam_content_id}:
+    post:
+      tags:
+        - ExamContentDetails
+      security:
+        - bearerAuth: []
+      summary: Create a new exam content details
+      parameters:
+        - name: exam_content_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the exam content
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExamContentDetails'
+      responses:
+        '201':
+          description: Created successfully with exam content details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /app/exam-content-details:
+    get:
+      tags:
+        - ExamContentDetails
+      security:
+        - bearerAuth: []
+      summary: Get all exam content details
+      responses:
+        '200':
+          description: Successfully retrieved exam content details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+  /app/exam-content-details/{id}:
+    put:
+      tags:
+        - ExamContentDetails
+      security:
+        - bearerAuth: []
+      summary: Update an exam content details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the exam content details to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExamContentDetails'
+      responses:
+        '200':
+          description: Updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '400':
+          description: Bad request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+
+    delete:
+      tags:
+        - ExamContentDetails
+      security:
+        - bearerAuth: []
+      summary: Delete an exam content details
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the exam content details to delete
+      responses:
+        '200':
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Not found
+  

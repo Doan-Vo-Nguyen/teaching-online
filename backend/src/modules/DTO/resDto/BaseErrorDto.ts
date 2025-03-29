@@ -67,6 +67,11 @@ export const EXAM_SUBMISSION_FIELD_REQUIRED = BaseErrorDto("Exam submission fiel
 export const CODE_EXECUTION_FAILED = BaseErrorDto("Code execution failed", "An error occurred while executing the code");
 export const EXAM_SUBMISSION_ALREADY_EXISTS = BaseErrorDto("Exam submission already exists", "You have already submitted the exam");
 export const EXAM_SUBMISSION_ERROR = BaseErrorDto("Exam submission error", "An error occurred while processing this action with exam submission");
+
+// Exam Content Details Errors
+export const EXAM_CONTENT_DETAILS_NOT_FOUND = BaseErrorDto("Exam content details not found", "No exam content details was found");
+export const EXAM_CONTENT_DETAILS_FIELD_REQUIRED = BaseErrorDto("Exam content details field is required", "You must provide a value for this field");
+
 // Validation Errors
 export const FIELD_REQUIRED = BaseErrorDto("Field is required", "You must provide a value for this field");
 export const WRONG_PASSWORD = BaseErrorDto("Wrong password", "Password is incorrect");

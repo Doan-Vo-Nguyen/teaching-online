@@ -1,4 +1,4 @@
-export const TOKEN_EXPIRE = 60 * 5; // 5 minutes
+export const TOKEN_EXPIRE = 60 * 60 * 24 * 7; // 5 minutes
 export const REFRESH_TOKEN_EXPIRE = 60 * 60 * 24 * 7; // 7 days
 export const RESET_CODE_EXPIRE = 60 * 10 * 1000; // 10 minutes
 

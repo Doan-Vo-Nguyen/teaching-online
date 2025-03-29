@@ -1,0 +1,179 @@
+components:
+  schemas:
+    Testcase:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the testcase
+        exam_content_details_id:
+          type: integer
+          description: ID of the associated exam content details
+        input:
+          type: string
+          description: Input for the testcase
+        expected_output:
+          type: string
+          description: Expected output for the testcase
+        score:
+          type: number
+          description: Score assigned to the testcase
+      required:
+        - input
+        - expected_output
+        - score
+    TestcaseInput:
+      type: object
+      properties:
+        input:
+          type: string
+          description: Input for the testcase
+        expected_output:
+          type: string
+          description: Expected output for the testcase
+        score:
+          type: number
+          description: Score assigned to the testcase
+      required:
+        - input
+        - expected_output
+        - score
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates whether the operation was successful
+        statusCode:
+          type: integer
+          description: HTTP status code
+        message:
+          type: string
+          description: Response message
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/Testcase'
+            - type: array
+              items:
+                $ref: '#/components/schemas/Testcase'
+          description: Response data
+
+paths:
+  /app/testcases/{exam_content_details_id}:
+    post:
+      summary: Create a new testcase
+      tags:
+        - Testcase
+      security:
+        - bearerAuth: []
+      description: Creates a new testcase for a specific exam content detail
+      parameters:
+        - name: exam_content_details_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the exam content detail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestcaseInput'
+      responses:
+        '201':
+          description: Testcase created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  
+  /app/testcases:
+    get:
+      summary: Get all testcases
+      tags:
+        - Testcase
+      security:
+        - bearerAuth: []
+      description: Retrieves a list of all testcases
+      responses:
+        '200':
+          description: Testcases fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  
+  /app/testcases/{id}:
+    get:
+      summary: Get testcase by ID
+      tags:
+        - Testcase
+      security:
+        - bearerAuth: []
+      description: Retrieves a specific testcase by its ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the testcase to retrieve
+      responses:
+        '200':
+          description: Testcase fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    
+    put:
+      summary: Update a testcase
+      tags:
+        - Testcase
+      security:
+        - bearerAuth: []
+      description: Updates an existing testcase by its ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the testcase to update
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestcaseInput'
+      responses:
+        '200':
+          description: Testcase updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    
+    delete:
+      summary: Delete a testcase
+      tags:
+        - Testcase
+      security:
+        - bearerAuth: []
+      description: Deletes an existing testcase by its ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the testcase to delete
+      responses:
+        '200':
+          description: Testcase deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+

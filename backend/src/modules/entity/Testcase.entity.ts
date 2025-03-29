@@ -1,20 +1,24 @@
-import { Column, Entity, OneToMany, PrimaryGeneratedColumn, Relation } from "typeorm";
-import { ExamContent } from "./ExamContent.entity";
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Relation } from "typeorm";
+import { ExamContentDetails } from "./ExamContentDetails.entity";
 
 @Entity({schema: "teaching"})
 export class TestCase {
     @PrimaryGeneratedColumn()
     id: number;
     
-    @Column({type: "varchar", length: 255})
+    @Column({type: "varchar", length: 255, nullable: true})
     input: string;
 
-    @Column({type: "varchar", length: 255})
+    @Column({type: 'int', nullable: true})
+    exam_content_details_id: number;
+
+    @Column({type: "varchar", length: 255, nullable: true})
     expected_output: string;
 
-    @Column({type: "float"})
+    @Column({type: "float", nullable: true})
     score: number;
     
-    @OneToMany(() => ExamContent, examContent => examContent.testcases)
-    examContent: Relation<ExamContent>;
+    @ManyToOne(() => ExamContentDetails, examContentDetails => examContentDetails.testcases, { onDelete: 'NO ACTION' })
+    @JoinColumn({name: "exam_content_details_id"})
+    examContentDetails?: Relation<ExamContentDetails>
 }
