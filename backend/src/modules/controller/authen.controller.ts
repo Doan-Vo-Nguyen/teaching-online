@@ -19,6 +19,7 @@ export class AuthenController extends BaseController {
         this.router.post('/forgot-password', this.forgotPassword)
         this.router.put('/reset-password', validate(['code', 'password']), this.resetPassword);
         this.router.post('/refresh-token', this.refreshToken);
+        this.router.post('/logout', this.logout);
     }
 
     private readonly authenticate = async (req: Request, res: Response, next: NextFunction) => {
@@ -67,6 +68,16 @@ export class AuthenController extends BaseController {
             const { refreshToken } = req.body;
             const accessToken = await this._authenService.generateRefreshToken(refreshToken);
             return sendResponse(res, true, 200, "Refresh token successfully", accessToken);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private readonly logout = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { user_id } = req.body;
+            await this._authenService.logout(user_id);
+            return sendResponse(res, true, 200, "Logout successfully", { redirect: '/login' });
         } catch (error) {
             next(error);
         }
