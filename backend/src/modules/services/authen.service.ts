@@ -53,9 +53,9 @@ class AuthenService {
     }
 
     const accessToken = await this.userRepository.generateToken(email);
-    const refreshToken = await this.generateRefreshToken(existedUser.user_id);
+    // const refreshToken = await this.generateRefreshToken(existedUser.user_id);
     
-    return { accessToken, refreshToken };
+    return { accessToken};
   }
 
   public async generateRefreshToken(user_id: number): Promise<string> {
