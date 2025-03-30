@@ -21,7 +21,6 @@ import { ExamController } from "./modules/controller/exam.controller";
 import { NotificationController } from "./modules/controller/notification.controller";
 import { MeetController } from "./modules/controller/meet.controller";
 import { ExamSubmissionController } from "./modules/controller/exam-submission.controller";
-import { ExamContentDetailsController } from "./modules/controller/exam-content-details.controller";
 import { TestcaseController } from "./modules/controller/testcase.controller";
 
 export class Application {
@@ -98,7 +97,6 @@ export class Application {
       new NotificationController("/app/notifications"),
       new MeetController("/app/meetings"),
       new ExamSubmissionController("/app/exam-submissions"),
-      new ExamContentDetailsController("/app/exam-content-details"), 
       new TestcaseController("/app/testcases"),
     ];
 
