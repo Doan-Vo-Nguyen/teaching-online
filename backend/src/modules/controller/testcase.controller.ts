@@ -25,7 +25,7 @@ export class TestcaseController extends BaseController {
         const testcase = await this.testcaseService.createTestcase(exam_content_details_id, {
             input, expected_output, score,
             id: 0,
-            exam_content_details_id: 0
+            exam_content_id: 0
         });
         return sendResponse(res, true, 201, "Testcase created successfully", testcase);
     }
@@ -47,7 +47,7 @@ export class TestcaseController extends BaseController {
         const testcase = await this.testcaseService.updateTestcase(id, {
             input, expected_output, score,
             id: 0,
-            exam_content_details_id: 0
+            exam_content_id: 0
         });
         return sendResponse(res, true, 200, "Testcase updated successfully", testcase);
     }

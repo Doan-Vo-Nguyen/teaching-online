@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Relation } from "typeorm";
 import { Exam } from "./Exam.entity";
-import { ExamContentDetails } from "./ExamContentDetails.entity";
+import { TestCase } from "./Testcase.entity";
 
 @Entity({schema: "teaching"})
 export class ExamContent {
@@ -23,6 +23,6 @@ export class ExamContent {
     @JoinColumn({name: "exam_id"}) // Column name in the database
     exam: Relation<Exam>
 
-    @OneToMany(() => ExamContentDetails, examContentDetails => examContentDetails.examContent)
-    examContentDetails: ExamContentDetails[]
+    @OneToMany(() => TestCase, testcase => testcase.examContent)
+    testcases: TestCase[]
 }
