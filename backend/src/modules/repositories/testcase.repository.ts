@@ -17,12 +17,15 @@ export class TestCaseRepository extends BaseRepository<TestCase> {
     async getTestcaseById(id: number): Promise<TestCase> {
         return this.repository.findOne({ where: { id } });
     }
-    async updateTestcase(id: number, testcase: TestCase): Promise<TestCase> {
-        await this.repository.update(id, testcase);
+    async updateTestcase(id: number, exam_content_id: number, testcase: TestCase): Promise<TestCase> {
+        await this.repository.update(id, { ...testcase, exam_content_id });
         return this.repository.findOne({ where: { id } });
     }
     async deleteTestcase(id: number): Promise<void> {
         await this.repository.delete(id);
+    }
+    async getAllTestcasesByExamContentId(exam_content_id: number): Promise<TestCase[]> {
+        return this.repository.find({ where: { exam_content_id } });
     }
     
 }

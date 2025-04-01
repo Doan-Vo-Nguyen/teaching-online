@@ -118,7 +118,6 @@ class ExamService {
         return examContent;
     }
 
-
     public async createExamContentByExamId(exam_id: number, data: ExamContent): Promise<ExamContent> {
         const exam = await this.examRepository.findById(exam_id);
         if (!exam) {
@@ -149,6 +148,10 @@ class ExamService {
         catch (error) {
             console.error(`Failed to send mail to ${to}:`, error);
         }
+    }
+
+    public async getDetailExam(id: number, exam_content_id: number): Promise<ExamContent> {
+        return await this.examContentRepository.getDetailExam(id, exam_content_id);
     }
 }
 

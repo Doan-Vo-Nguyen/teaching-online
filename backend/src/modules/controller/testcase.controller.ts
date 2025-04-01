@@ -17,8 +17,9 @@ export class TestcaseController extends BaseController {
         this.router.post("/:exam_content_id", this.createTestcase.bind(this));
         this.router.get("/", this.getAllTestcases.bind(this));
         this.router.get("/:id", this.getTestcaseById.bind(this));
-        this.router.put("/:id", this.updateTestcase.bind(this));
+        this.router.put("/:id/content/:exam_content_id", this.updateTestcase.bind(this));
         this.router.delete("/:id", this.deleteTestcase.bind(this));
+        this.router.get("/content/:exam_content_id", this.getAllTestcasesByExamContentId.bind(this));
     }
 
     public async createTestcase(req: Request, res: Response, next: NextFunction) {
@@ -57,12 +58,9 @@ export class TestcaseController extends BaseController {
     public async updateTestcase(req: Request, res: Response, next: NextFunction) {
         try {
             const id = parseInt(req.params.id);
-            const { input, expected_output, score } = req.body;
-            const testcase = await this.testcaseService.updateTestcase(id, {
-                input, expected_output, score,
-                id: 0,
-                exam_content_id: 0
-            });
+            const exam_content_id = parseInt(req.params.exam_content_id);
+            const data = req.body;
+            const testcase = await this.testcaseService.updateTestcase(id, exam_content_id, data);
             return sendResponse(res, true, 200, "Testcase updated successfully", testcase);
         } catch (error) {
             Logger.error(`Controller error in updateTestcase: ${error}`);
@@ -77,6 +75,17 @@ export class TestcaseController extends BaseController {
             return sendResponse(res, true, 200, "Testcase deleted successfully", testcase);
         } catch (error) {
             Logger.error(`Controller error in deleteTestcase: ${error}`);
+            next(error);
+        }
+    }
+
+    public async getAllTestcasesByExamContentId(req: Request, res: Response, next: NextFunction) {
+        try {
+            const exam_content_id = parseInt(req.params.exam_content_id);
+            const testcases = await this.testcaseService.getAllTestcasesByExamContentId(exam_content_id);
+            return sendResponse(res, true, 200, "Testcases fetched successfully", testcases);
+        } catch (error) {
+            Logger.error(`Controller error in getAllTestcasesByExamContentId: ${error}`);
             next(error);
         }
     }

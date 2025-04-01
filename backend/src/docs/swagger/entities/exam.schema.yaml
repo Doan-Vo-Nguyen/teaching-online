@@ -313,6 +313,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
+  /app/exams/content/{id}:
     patch:
       tags:
         - Exams
@@ -345,6 +346,33 @@ paths:
               schema:
                 $ref: '#/components/schemas/UnauthorizedError'
         '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+    delete:
+      tags:
+        - Exams
+      summary: Delete exam content by exam content ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Exam content deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403': 
           description: Forbidden
           content:
             application/json:

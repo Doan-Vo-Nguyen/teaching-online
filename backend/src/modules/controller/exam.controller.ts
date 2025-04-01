@@ -24,8 +24,9 @@ export class ExamController extends BaseController {
         this.router.post("/:id/content", authentication, validParam("id"), this.createExamContentByExamId);
         this.router.delete("/:id/content", authentication, validParam("id"), this.deleteExamContentByExamId);
         this.router.post("/:classId/:teacherId", authentication, validParam("classId"), validParam("teacherId"), this.createExamByClassAndTeacher);
-        this.router.patch("/:id/content", authentication, validParam("id"), this.updateExamContent);
-        this.router.delete("/:id/content", authentication, validParam("id"), this.deleteExamContent);
+        this.router.patch("/content/:id", authentication, validParam("id"), this.updateExamContent);
+        this.router.delete("/content/:id", authentication, validParam("id"), this.deleteExamContent);
+        this.router.get("/:id/content/:exam_content_id", validParam("id"), validParam("exam_content_id"), this.getDetailExam);
     }
 
     private readonly getAllExams = async (
@@ -185,5 +186,18 @@ export class ExamController extends BaseController {
         }
     }
     
-    
+    private readonly getDetailExam = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const examId = parseInt(req.params.id, 10);
+            const examContentId = parseInt(req.params.exam_content_id, 10);
+            const exam = await this.examService.getDetailExam(examId, examContentId);
+            return sendResponse(res, true, 200, "Get detail exam successfully", exam);
+        } catch (error) {
+            next(error);
+        }
+    }
 }
