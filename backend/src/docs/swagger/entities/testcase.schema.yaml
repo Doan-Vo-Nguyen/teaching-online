@@ -164,6 +164,12 @@ paths:
           schema:
             type: integer
           description: ID of the testcase to update
+        - name: exam_content_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the exam content
       requestBody:
         required: true
         content:
@@ -177,3 +183,38 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
+  /app/testcases/content/{exam_content_id}:
+    get:
+      summary: Get all testcases by exam content ID
+      tags:
+        - Testcase
+      security:
+        - bearerAuth: []
+      description: Retrieves all testcases for a specific exam content
+      parameters:
+        - name: exam_content_id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the exam content
+      responses:
+        '200':
+          description: Testcases fetched successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '404':
+          description: Exam content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+    
