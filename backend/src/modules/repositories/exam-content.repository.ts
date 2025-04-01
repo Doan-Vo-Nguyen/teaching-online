@@ -32,8 +32,17 @@ export class ExamContentRepository extends BaseRepository<ExamContent> {
         return this.repository.remove(examContent);
     }
 
-    async createExamContentByExamId(exam_id: number, data: ExamContent): Promise<ExamContent> {
-        const examContent = await this.repository.save({ ...data, exam_id });
-        return examContent;
+    async findByExamIdAndContentId(examContentId: number): Promise<ExamContent> {
+        return this.repository.findOneBy({ id: examContentId });
+    }
+
+    async updateExamContent(examContentId: number, data: ExamContent): Promise<ExamContent> {
+        await this.repository.update(examContentId, data);
+        return this.repository.findOneBy({ id: examContentId });
+    }
+
+    async deleteExamContent(examContentId: number): Promise<ExamContent> {
+        const examContent = await this.repository.findOneBy({ id: examContentId });
+        return this.repository.remove(examContent);
     }
 }

@@ -118,12 +118,17 @@ class ExamService {
         return examContent;
     }
 
+
     public async createExamContentByExamId(exam_id: number, data: ExamContent): Promise<ExamContent> {
         const exam = await this.examRepository.findById(exam_id);
         if (!exam) {
             throw new ApiError(404, EXAM_NOT_FOUND.error.message, EXAM_NOT_FOUND.error.details);
         }
         return await this.examContentRepository.save({ ...data, exam_id });
+    }
+
+    public async updateExamContent(examContentId: number, data: ExamContent): Promise<ExamContent> {
+        return await this.examContentRepository.update(examContentId, data);
     }
 
     public async deleteExamContent(examContentId: number): Promise<ExamContent> {

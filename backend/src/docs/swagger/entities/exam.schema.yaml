@@ -313,6 +313,44 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
+    patch:
+      tags:
+        - Exams
+      summary: Update exam content by exam content ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExamContent'
+            example:
+              exam_content_id: 1
+              title: Exam 1
+              description: This is the first exam
+      responses:
+        "200":
+          description: Exam content updated successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+
   /app/exams/{classId}/{teacherId}:
     post:
       tags:
@@ -382,45 +420,4 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
-  /app/exams/{id}/testcases:
-    post:
-      tags:
-        - Exams
-      summary: Create a new testcase
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                input:
-                  type: string
-                expected_output:
-                  type: string
-                score:
-                  type: number
-      responses:
-        "201":
-          description: Testcase created successfully
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UnauthorizedError'
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ForbiddenError'
-                
+    

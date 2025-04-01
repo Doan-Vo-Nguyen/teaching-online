@@ -6,9 +6,9 @@ components:
         id:
           type: integer
           description: Unique identifier for the testcase
-        exam_content_details_id:
+        exam_content_id:
           type: integer
-          description: ID of the associated exam content details
+          description: ID of the associated exam content
         input:
           type: string
           description: Input for the testcase
@@ -19,6 +19,7 @@ components:
           type: number
           description: Score assigned to the testcase
       required:
+        - exam_content_id
         - input
         - expected_output
         - score
@@ -35,6 +36,7 @@ components:
           type: number
           description: Score assigned to the testcase
       required:
+        - exam_content_id
         - input
         - expected_output
         - score
@@ -59,21 +61,21 @@ components:
           description: Response data
 
 paths:
-  /app/testcases/{exam_content_details_id}:
+  /app/testcases/{exam_content_id}:
     post:
       summary: Create a new testcase
       tags:
         - Testcase
       security:
         - bearerAuth: []
-      description: Creates a new testcase for a specific exam content detail
+      description: Creates a new testcase for a specific exam content
       parameters:
-        - name: exam_content_details_id
+        - name: exam_content_id
           in: path
           required: true
           schema:
             type: integer
-          description: ID of the exam content detail
+          description: ID of the exam content
       requestBody:
         required: true
         content:
