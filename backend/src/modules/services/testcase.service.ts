@@ -2,40 +2,78 @@ import { ITestCaseRepository } from "../interfaces/testcase.interface";
 import { TestCaseRepository } from "../repositories/testcase.repository";
 import { TestCase } from "../entity/Testcase.entity";
 import { ApiError } from "../types/ApiError";
+import { Logger } from "../config/logger";
+import { IExamContentRepository } from "../interfaces/exam-content.interface";
+import { ExamContentRepository } from "../repositories/exam-content.repository";
+
 class TestcaseService {
     private readonly testcaseRepository: ITestCaseRepository = new TestCaseRepository();
+    private readonly examContentRepository: IExamContentRepository = new ExamContentRepository();
 
     public async getTestcaseById(id: number) {
-        const testcase = await this.testcaseRepository.getTestcaseById(id);
-        if (!testcase) {
-            throw new ApiError(404, "Testcase not found", "Testcase not found");
+        try {
+            const testcase = await this.testcaseRepository.getTestcaseById(id);
+            if (!testcase) {
+                throw new ApiError(404, "Testcase not found", "Testcase not found");
+            }
+            return testcase;
+        } catch (error) {
+            Logger.error(error);
+            throw error;
         }
-        return testcase;
     }
 
-    public async createTestcase(exam_content_details_id: number, testcase: TestCase) {
-        if(!exam_content_details_id) {
-            throw new ApiError(400, "Exam content details id is required", "Exam content details id is required");
+    public async createTestcase(exam_content_id: number, testcase: TestCase) {
+        try {
+            if(!exam_content_id) {
+                throw new ApiError(400, "Exam content id is required", "Exam content id is required");
+            }
+            const examContent = await this.examContentRepository.findById(exam_content_id);
+            if(!examContent) {
+                throw new ApiError(404, "Exam content not found", "Exam content not found");
+            }
+            const result = await this.testcaseRepository.createTestcase(exam_content_id, testcase);
+            return result;
+        } catch (error) {
+            Logger.error(error);
+            throw error;
         }
-        return await this.testcaseRepository.createTestcase(exam_content_details_id, testcase);
     }
 
     public async updateTestcase(id: number, testcase: TestCase) {
-        if(!id) {
-            throw new ApiError(400, "Testcase id is required", "Testcase id is required");
+        try {
+            if(!id) {
+                throw new ApiError(400, "Testcase id is required", "Testcase id is required");
+            }
+            const result = await this.testcaseRepository.updateTestcase(id, testcase);
+            return result;
+        } catch (error) {
+            Logger.error(error);
+            throw error;
         }
-        return await this.testcaseRepository.updateTestcase(id, testcase);
     }
 
     public async deleteTestcase(id: number) {
-        if(!id) {
-            throw new ApiError(400, "Testcase id is required", "Testcase id is required");
+        try {
+            if(!id) {
+                throw new ApiError(400, "Testcase id is required", "Testcase id is required");
+            }
+            const result = await this.testcaseRepository.deleteTestcase(id);
+            return result;
+        } catch (error) {
+            Logger.error(error);
+            throw error;
         }
-        return await this.testcaseRepository.deleteTestcase(id);
     }
 
     public async getAllTestcases() {
-        return await this.testcaseRepository.findAllTestcases();
+        try {
+            const testcases = await this.testcaseRepository.findAllTestcases();
+            return testcases;
+        } catch (error) {
+            Logger.error(error);
+            throw error;
+        }
     }
 }   
 
