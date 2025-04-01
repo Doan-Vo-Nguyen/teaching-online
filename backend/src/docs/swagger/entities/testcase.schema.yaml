@@ -128,7 +128,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-    
+    delete:
+      summary: Delete a testcase
+      tags:
+        - Testcase
+      security:
+        - bearerAuth: []
+      description: Deletes an existing testcase by its ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the testcase to delete
+      responses:
+        '200':
+          description: Testcase deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+  /app/testcases/{id}/content/{exam_content_id}:
     put:
       summary: Update a testcase
       tags:
@@ -156,26 +177,3 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ApiResponse'
-    
-    delete:
-      summary: Delete a testcase
-      tags:
-        - Testcase
-      security:
-        - bearerAuth: []
-      description: Deletes an existing testcase by its ID
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-          description: ID of the testcase to delete
-      responses:
-        '200':
-          description: Testcase deleted successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ApiResponse'
-

@@ -40,12 +40,12 @@ class TestcaseService {
         }
     }
 
-    public async updateTestcase(id: number, testcase: TestCase) {
+    public async updateTestcase(id: number, exam_content_id: number, testcase: TestCase) {
         try {
             if(!id) {
                 throw new ApiError(400, "Testcase id is required", "Testcase id is required");
             }
-            const result = await this.testcaseRepository.updateTestcase(id, testcase);
+            const result = await this.testcaseRepository.updateTestcase(id, exam_content_id, testcase);
             return result;
         } catch (error) {
             Logger.error(error);
@@ -69,6 +69,16 @@ class TestcaseService {
     public async getAllTestcases() {
         try {
             const testcases = await this.testcaseRepository.findAllTestcases();
+            return testcases;
+        } catch (error) {
+            Logger.error(error);
+            throw error;
+        }
+    }
+
+    public async getAllTestcasesByExamContentId(exam_content_id: number) {
+        try {
+            const testcases = await this.testcaseRepository.getAllTestcasesByExamContentId(exam_content_id);
             return testcases;
         } catch (error) {
             Logger.error(error);

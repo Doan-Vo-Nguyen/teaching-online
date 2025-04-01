@@ -45,4 +45,10 @@ export class ExamContentRepository extends BaseRepository<ExamContent> {
         const examContent = await this.repository.findOneBy({ id: examContentId });
         return this.repository.remove(examContent);
     }
+
+    async getDetailExam(id: number, exam_content_id: number): Promise<ExamContent> {
+        return this.repository.findOne({
+            where: { exam_id: id, id: exam_content_id }
+        });
+    }
 }
