@@ -38,6 +38,9 @@ export class ExamSubmissionController extends BaseController {
         
         // Resource: create submission for a student in a class
         this.router.post("/exams/:examId/students/:studentId/classes/:classId/submissions", authentication, this.createExamSubmissionByStudentAndClass);
+
+        // Resource: run code
+        this.router.post("/exams/:examContentId/run", authentication, this.runCode);
     }
 
     private readonly getAllExamSubmissions = async (
@@ -210,6 +213,21 @@ export class ExamSubmissionController extends BaseController {
             const id = parseInt(req.params.id, 10);
             const deletedExamSubmissionContent = await this.examSubmissionService.deleteExamSubmissionContent(examSubmissionId, id);
             return sendResponse(res, true, 200, "Deleted exam submission content successfully", deletedExamSubmissionContent);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    private readonly runCode = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const examContentId = parseInt(req.params.examContentId, 10);
+            const body = req.body;
+            const result = await this.examSubmissionService.runCode(examContentId, body);
+            return sendResponse(res, true, 200, "Run code successfully", result);
         } catch (error) {
             next(error);
         }

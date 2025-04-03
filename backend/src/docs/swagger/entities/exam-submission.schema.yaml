@@ -251,6 +251,16 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ExamSubmission'
+            example:
+              exam_id: 1
+              student_id: 1
+              class_id: 1
+              examSubmissionContent: [
+                {
+                  file_content: "file_content",
+                  language_id: 1
+                }
+              ]
       responses:
         '201':
           description: Created exam submission successfully
@@ -325,4 +335,40 @@ paths:
           description: Unauthorized
         '403':
           description: Forbidden
+  /app/exam-submissions/exams/{examContentId}/run:
+    post:
+      tags:
+        - ExamSubmission
+      summary: Run code
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: examContentId
+          in: path
+          required: true
+          description: ID of the exam content
+          schema:
+            type: integer
+      requestBody:
+        description: Run code data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExamSubmission'
+            example:
+              file_content: "file_content"
+              language_id: 1
+      responses:
+        '200':
+          description: Run code successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Exam content not found
+        '400':
+          description: Bad request
+          
           
