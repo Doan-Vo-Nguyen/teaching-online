@@ -254,53 +254,11 @@ class ExamSubmissionService {
     class_id: number,
     data: {
       file_content: string;
-      language_id: number;
     }
   ): Promise<ExamSubmission> {
     this.validateExamSubmissionData(data);
-    // const examContent = await this.examContentRepository.findById(exam_id);
-    const testcases = await this.testcaseRepository.find({
-      where: {
-        exam_id: exam_id
-      }
-    });
 
     try {
-      let totalGrade = 0;
-      let feedback = "";
-
-      // Run each testcase
-      for (const testcase of testcases) {
-        const judge0Response = await this.submitToJudge0({
-          source_code: data.file_content,
-          language_id: data.language_id,
-          stdin: testcase.input,
-          expected_output: testcase.expected_output,
-        });
-
-        const submissionResult = await this.getJudge0Result(
-          judge0Response.token
-        );
-
-        // If testcase passed (status.id === 3 means Accepted)
-        if (submissionResult.status.id === 3) {
-          totalGrade += testcase.score;
-          feedback += `Testcase ${testcase.id}: Passed (+${testcase.score} points)\n`;
-          Logger.info(
-            `Testcase ${testcase.id}: Passed (+${testcase.score} points)`
-          );
-        } else {
-          feedback += `Testcase ${testcase.id}: Failed (${submissionResult.status.description})\n`;
-          Logger.info(
-            `Testcase ${testcase.id}: Failed (${submissionResult.status.description})`
-          );
-          if (submissionResult.compile_output) {
-            feedback += `Compiler output: ${submissionResult.compile_output}\n`;
-            Logger.info(submissionResult.compile_output);
-          }
-        }
-      }
-
       const studentClass = await this.getStudentClass(student_id, class_id);
       // check if the student has already submitted the exam
       const existedExamSubmission =
@@ -312,9 +270,7 @@ class ExamSubmissionService {
       // if not will create a new exam submission record, else just create a new content of submission
       let newExamSubmission: ExamSubmission;
       if (existedExamSubmission) {
-        // Update grade and feedback in exam submission
-        existedExamSubmission.grade = totalGrade;
-        existedExamSubmission.feed_back = feedback;
+        // Update timestamp in exam submission
         existedExamSubmission.updated_at = new Date();
 
         newExamSubmission =
@@ -338,10 +294,7 @@ class ExamSubmissionService {
         newExamSubmission = await this.createExamSubmissionRecord(
           exam_id,
           studentClass.student_class_id,
-          {
-            grade: totalGrade,
-            feed_back: feedback,
-          }
+          {}
         );
 
         // Then create exam submission content with file_content
@@ -355,28 +308,110 @@ class ExamSubmissionService {
       Logger.error(error);
       throw new ApiError(
         500,
+        EXAM_SUBMISSION_ERROR.error.message,
+        EXAM_SUBMISSION_ERROR.error.details
+      );
+    }
+  }
+
+  public async runCode(
+    exam_content_id: number,
+    data: {
+      file_content: string;
+      language_id: number;
+    }
+  ): Promise<{ grade: number; run_code_result: string }> {
+    this.validateExamSubmissionData(data);
+    
+    try {
+      const testcases = await this.testcaseRepository.find({
+        where: {
+          exam_content_id: exam_content_id
+        }
+      });
+
+      let totalGrade = 0;
+      let run_code_result = "";
+
+      // Run each testcase
+      for (const testcase of testcases) {
+        const judge0Response = await this.submitToJudge0({
+          source_code: data.file_content,
+          language_id: data.language_id,
+          stdin: testcase.input,
+          expected_output: testcase.expected_output,
+        });
+
+        const submissionResult = await this.getJudge0Result(
+          judge0Response.token
+        );
+
+        // If testcase passed (status.id === 3 means Accepted)
+        if (submissionResult.status.id === 3) {
+          totalGrade += testcase.score;
+          run_code_result += `Testcase ${testcase.id}: Passed (+${testcase.score} points)\n`;
+        } else {
+          run_code_result += `Testcase ${testcase.id}: Failed (${submissionResult.status.description})\n`;
+          if (submissionResult.compile_output) {
+            run_code_result += submissionResult.compile_output;
+          }
+        }
+      }
+
+      return { grade: totalGrade, run_code_result };
+    } catch (error) {
+      Logger.error(error);
+      throw new ApiError(
+        500,
         CODE_EXECUTION_FAILED.error.message,
         CODE_EXECUTION_FAILED.error.details
       );
     }
   }
 
+  public async updateExamSubmissionWithGrade(
+    exam_submission_id: number,
+    grade: number,
+    feedback: string
+  ): Promise<ExamSubmission> {
+    const existedExamSubmission =
+      await this.examSubmissionRepository.findById(exam_submission_id);
+    if (!existedExamSubmission) {
+      throw new ApiError(
+        404,
+        "Exam submission not found",
+        "Exam submission not found"
+      );
+    }
+    
+    existedExamSubmission.grade = grade;
+    existedExamSubmission.feed_back = feedback;
+    existedExamSubmission.updated_at = new Date();
+    
+    return this.examSubmissionRepository.updateExamSubmission(
+      exam_submission_id,
+      existedExamSubmission
+    );
+  }
+
   private async validateExamSubmissionData(data: {
     file_content: string;
-    language_id: number;
+    language_id?: number;
     stdin?: string;
     expected_output?: string;
   }): Promise<void> {
-    if (!data.file_content || !data.language_id) {
+    if (!data.file_content) {
       throw new ApiError(
         400,
         EXAM_SUBMISSION_FIELD_REQUIRED.error.message,
         EXAM_SUBMISSION_FIELD_REQUIRED.error.details
       );
     }
-    const language = await this.languageRepository.findById(data.language_id);
-    if (!language) {
-      throw new ApiError(404, "Language not found", "Language not found");
+    if (data.language_id) {
+      const language = await this.languageRepository.findById(data.language_id);
+      if (!language) {
+        throw new ApiError(404, "Language not found", "Language not found");
+      }
     }
   }
 
@@ -399,7 +434,7 @@ class ExamSubmissionService {
   private async createExamSubmissionRecord(
     exam_id: number,
     student_class_id: number,
-    data: { grade?: number; feed_back?: string }
+    data: { grade?: number; feed_back?: string; run_code_result?: string }
   ): Promise<ExamSubmission> {
     return await this.examSubmissionRepository.save({
       ...data,
@@ -410,6 +445,7 @@ class ExamSubmissionService {
       exam_submission_id: 0,
       ...(data.grade !== undefined && { grade: data.grade }),
       ...(data.feed_back !== undefined && { feed_back: data.feed_back }),
+      ...(data.run_code_result !== undefined && { run_code_result: data.run_code_result }),
     });
   }
 
@@ -507,7 +543,7 @@ class ExamSubmissionService {
     expected_output?: string;
   }) {
     const response = await fetch(
-      "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=true&fields=*&wait=false",
+      "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&fields=*&wait=false",
       {
         method: "POST",
         headers: {

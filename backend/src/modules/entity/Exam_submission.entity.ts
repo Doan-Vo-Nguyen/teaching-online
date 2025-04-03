@@ -26,6 +26,9 @@ export class ExamSubmission {
     @Column({type: "text", nullable: true})
     feed_back: string
 
+    @Column({type: "text", nullable: true})
+    run_code_result: string
+
     @OneToMany(() => ExamSubmissionContent, examSubmissionContent => examSubmissionContent.examSubmission) // Relation with ExamSubmissionContent 1-n
     examSubmissionContents?: ExamSubmissionContent[]
 
