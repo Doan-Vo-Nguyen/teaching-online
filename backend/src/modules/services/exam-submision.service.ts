@@ -319,9 +319,26 @@ class ExamSubmissionService {
     data: {
       file_content: string;
       language_id: number;
+      input?: string;
     }
   ): Promise<{ grade: number; run_code_result: string }> {
     this.validateExamSubmissionData(data);
+
+    // case student input the data and judge0 will run the code with the input and return the result
+    if (data.input) {
+      // run dependent judge0 for input and expected output
+      const judge0ResponseForInputAndExpectedOutput = await this.submitToJudge0({
+        source_code: data.file_content,
+        language_id: data.language_id,
+        stdin: data.input,
+      });
+
+      const submissionResultForInputAndExpectedOutput = await this.getJudge0Result(
+        judge0ResponseForInputAndExpectedOutput.token
+      );
+
+      return { grade: 0, run_code_result: submissionResultForInputAndExpectedOutput.stdout };
+    }
     
     try {
       const testcases = await this.testcaseRepository.find({
@@ -332,6 +349,7 @@ class ExamSubmissionService {
 
       let totalGrade = 0;
       let run_code_result = "";
+        
 
       // Run each testcase
       for (const testcase of testcases) {
