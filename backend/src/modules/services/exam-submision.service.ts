@@ -327,37 +327,56 @@ class ExamSubmissionService {
       input?: string;
     }
   ): Promise<{ grade?: number; run_code_result?: string }> {
+    Logger.info(`Starting runCode for exam_content_id: ${exam_content_id}, language_id: ${data.language_id}`);
     this.validateExamSubmissionData(data);
 
     // case student input the data and judge0 will run the code with the input and return the result
     if (data.input) {
-      // run dependent judge0 for input
-      const judge0ResponseForInput = await this.submitToJudge0({
-        source_code: data.file_content,
-        language_id: data.language_id,
-        stdin: data.input,
-      });
+      Logger.info(`Running code with user-provided input: ${data.input.substring(0, 50)}...`);
+      try {
+        // run dependent judge0 for input
+        const judge0ResponseForInput = await this.submitToJudge0({
+          source_code: data.file_content,
+          language_id: data.language_id,
+          stdin: data.input,
+        });
+        
+        Logger.info(`Judge0 submission successful. Token: ${judge0ResponseForInput.token}`);
 
-      const submissionResultForInput = await this.getJudge0Result(
-        judge0ResponseForInput.token
-      );
+        const submissionResultForInput = await this.getJudge0Result(
+          judge0ResponseForInput.token
+        );
+        
+        Logger.info(`Judge0 result received. Status: ${JSON.stringify(submissionResultForInput.status)}`);
 
-      return { run_code_result: submissionResultForInput.stdout };
+        return { run_code_result: submissionResultForInput.stdout };
+      } catch (error) {
+        Logger.error(`Error running code with input: ${(error as Error).message}`);
+        throw new ApiError(
+          500,
+          CODE_EXECUTION_FAILED.error.message,
+          CODE_EXECUTION_FAILED.error.details
+        );
+      }
     }
     
     try {
+      Logger.info(`Fetching testcases for exam_content_id: ${exam_content_id}`);
       const testcases = await this.testcaseRepository.find({
         where: {
           exam_content_id: exam_content_id
         }
       });
+      
+      Logger.info(`Found ${testcases.length} testcases`);
 
       let totalGrade = 0;
       let run_code_result = "";
         
-
       // Run each testcase
       for (const testcase of testcases) {
+        Logger.info(`Running testcase ${testcase.id} with input: ${testcase.input.substring(0, 50)}...`);
+        
         const judge0Response = await this.submitToJudge0({
           source_code: data.file_content,
           language_id: data.language_id,
@@ -365,25 +384,32 @@ class ExamSubmissionService {
           expected_output: testcase.expected_output,
         });
 
+        Logger.info(`Judge0 submission for testcase ${testcase.id} successful. Token: ${judge0Response.token}`);
+
         const submissionResult = await this.getJudge0Result(
           judge0Response.token
         );
+
+        Logger.info(`Judge0 result for testcase ${testcase.id} received. Status: ${JSON.stringify(submissionResult.status)}`);
 
         // If testcase passed (status.id === 3 means Accepted)
         if (submissionResult.status.id === 3) {
           totalGrade += testcase.score;
           run_code_result += `Testcase ${testcase.id}: Passed (+${testcase.score} points)\n`;
+          Logger.info(`Testcase ${testcase.id} passed. Score: ${testcase.score}`);
         } else {
           run_code_result += `Testcase ${testcase.id}: Failed (${submissionResult.status.description})\n`;
           if (submissionResult.compile_output) {
             run_code_result += submissionResult.compile_output;
           }
+          Logger.info(`Testcase ${testcase.id} failed. Status: ${submissionResult.status.description}`);
         }
       }
 
+      Logger.info(`All testcases completed. Total grade: ${totalGrade}`);
       return { grade: totalGrade, run_code_result };
     } catch (error) {
-      Logger.error(error);
+      Logger.error(`Error in runCode: ${(error as Error).message}`);
       throw new ApiError(
         500,
         CODE_EXECUTION_FAILED.error.message,
@@ -571,9 +597,15 @@ class ExamSubmissionService {
     stdin?: string;
     expected_output?: string;
   }) {
-    const response = await fetch(
-      "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=true&fields=*&wait=false",
-      {
+    Logger.info(`Submitting code to Judge0. Language ID: ${submission.language_id}`);
+    
+    try {
+      Logger.info(`Judge0 API Key present: ${!!process.env.JUDGE0_API_KEY}`);
+      
+      const apiUrl = "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=true&fields=*&wait=false";
+      Logger.info(`Making request to: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -581,33 +613,51 @@ class ExamSubmissionService {
           "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
         },
         body: JSON.stringify(submission),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        Logger.error(`Judge0 API error: ${response.status} ${response.statusText}. Response: ${errorText}`);
+        throw new Error(`Failed to submit code to Judge0: ${response.status} ${response.statusText}`);
       }
-    );
 
-    if (!response.ok) {
-      throw new Error("Failed to submit code to Judge0");
+      const result = await response.json();
+      Logger.info(`Judge0 submission successful. Token: ${result.token}`);
+      return result;
+    } catch (error) {
+      Logger.error(`Error in submitToJudge0: ${(error as Error).message}`);
+      throw error;
     }
-
-    return await response.json();
   }
 
   private async getJudge0Result(token: string) {
-    const response = await fetch(
-      `https://judge0-ce.p.rapidapi.com/submissions/${token}`,
-      {
+    Logger.info(`Getting Judge0 result for token: ${token}`);
+    
+    try {
+      const apiUrl = `https://judge0-ce.p.rapidapi.com/submissions/${token}`;
+      Logger.info(`Making request to: ${apiUrl}`);
+      
+      const response = await fetch(apiUrl, {
         method: "GET",
         headers: {
           "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
           "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
         },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        Logger.error(`Judge0 API error: ${response.status} ${response.statusText}. Response: ${errorText}`);
+        throw new Error(`Failed to get submission result from Judge0: ${response.status} ${response.statusText}`);
       }
-    );
 
-    if (!response.ok) {
-      throw new Error("Failed to get submission result from Judge0");
+      const result = await response.json();
+      Logger.info(`Judge0 result received. Status ID: ${result.status?.id}`);
+      return result;
+    } catch (error) {
+      Logger.error(`Error in getJudge0Result: ${(error as Error).message}`);
+      throw error;
     }
-
-    return await response.json();
   }
 }
 
