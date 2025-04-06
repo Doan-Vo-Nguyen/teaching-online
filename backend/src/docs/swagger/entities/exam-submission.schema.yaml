@@ -359,6 +359,7 @@ paths:
             example:
               file_content: "file_content"
               language_id: 1
+              input: "input"
       responses:
         '200':
           description: Run code successfully

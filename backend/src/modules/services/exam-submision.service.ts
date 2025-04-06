@@ -21,6 +21,7 @@ import { ITestCaseRepository } from "../interfaces/testcase.interface";
 import { TestCaseRepository } from "../repositories/testcase.repository";
 import { ExamContentRepository } from "../repositories/exam-content.repository";
 import { IExamContentRepository } from "../interfaces/exam-content.interface";
+import { ChildProcess, spawn } from "child_process";
 class ExamSubmissionService {
   private readonly examSubmissionRepository: IExamSubmissionRepository =
     new ExamSubmissionRepository();
@@ -254,9 +255,13 @@ class ExamSubmissionService {
     class_id: number,
     data: {
       file_content: string;
+      grade?: number;
+      feed_back?: string;
     }
   ): Promise<ExamSubmission> {
     this.validateExamSubmissionData(data);
+
+    // get the grade and run_code_result from the judge0
 
     try {
       const studentClass = await this.getStudentClass(student_id, class_id);
@@ -319,9 +324,26 @@ class ExamSubmissionService {
     data: {
       file_content: string;
       language_id: number;
+      input?: string;
     }
-  ): Promise<{ grade: number; run_code_result: string }> {
+  ): Promise<{ grade?: number; run_code_result?: string }> {
     this.validateExamSubmissionData(data);
+
+    // case student input the data and judge0 will run the code with the input and return the result
+    if (data.input) {
+      // run dependent judge0 for input
+      const judge0ResponseForInput = await this.submitToJudge0({
+        source_code: data.file_content,
+        language_id: data.language_id,
+        stdin: data.input,
+      });
+
+      const submissionResultForInput = await this.getJudge0Result(
+        judge0ResponseForInput.token
+      );
+
+      return { run_code_result: submissionResultForInput.stdout };
+    }
     
     try {
       const testcases = await this.testcaseRepository.find({
@@ -332,6 +354,7 @@ class ExamSubmissionService {
 
       let totalGrade = 0;
       let run_code_result = "";
+        
 
       // Run each testcase
       for (const testcase of testcases) {
@@ -413,6 +436,12 @@ class ExamSubmissionService {
         throw new ApiError(404, "Language not found", "Language not found");
       }
     }
+
+    // // using child_process to run the code for validate the code
+    // const child = spawn(language.name, [data.file_content]);
+    // child.stdout.on("data", (data) => {
+    //   console.log(data.toString());
+    // });
   }
 
   private async getStudentClass(student_id: number, class_id: number) {
@@ -543,7 +572,7 @@ class ExamSubmissionService {
     expected_output?: string;
   }) {
     const response = await fetch(
-      "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=false&fields=*&wait=false",
+      "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=true&fields=*&wait=false",
       {
         method: "POST",
         headers: {
