@@ -330,11 +330,13 @@ class ExamSubmissionService {
     Logger.info(`Starting runCode for exam_content_id: ${exam_content_id}, language_id: ${data.language_id}`);
     this.validateExamSubmissionData(data);
 
-    // case student input the data and judge0 will run the code with the input and return the result
-    if (data.input) {
+    let run_code_result = "";
+    let totalGrade = 0;
+
+    // Handle user input if provided
+    if (data.input && data.input !== "") {
       Logger.info(`Running code with user-provided input: ${data.input.substring(0, 50)}...`);
       try {
-        // run dependent judge0 for input
         const judge0ResponseForInput = await this.submitToJudge0({
           source_code: data.file_content,
           language_id: data.language_id,
@@ -348,8 +350,7 @@ class ExamSubmissionService {
         );
         
         Logger.info(`Judge0 result received. Status: ${JSON.stringify(submissionResultForInput.status)}`);
-
-        return { run_code_result: submissionResultForInput.stdout };
+        run_code_result += `User Input Result:\n${submissionResultForInput.stdout}\n\n`;
       } catch (error) {
         Logger.error(`Error running code with input: ${(error as Error).message}`);
         throw new ApiError(
@@ -359,7 +360,8 @@ class ExamSubmissionService {
         );
       }
     }
-    
+
+    // Handle testcases
     try {
       Logger.info(`Fetching testcases for exam_content_id: ${exam_content_id}`);
       const testcases = await this.testcaseRepository.find({
@@ -370,9 +372,6 @@ class ExamSubmissionService {
       
       Logger.info(`Found ${testcases.length} testcases`);
 
-      let totalGrade = 0;
-      let run_code_result = "";
-        
       // Run each testcase
       for (const testcase of testcases) {
         Logger.info(`Running testcase ${testcase.id} with input: ${testcase.input.substring(0, 50)}...`);
@@ -602,7 +601,7 @@ class ExamSubmissionService {
     try {
       Logger.info(`Judge0 API Key present: ${!!process.env.JUDGE0_API_KEY}`);
       
-      const apiUrl = "https://judge0-ce.p.rapidapi.com/submissions/?base64_encoded=true&fields=*&wait=false";
+      const apiUrl = "https://judge0-ce.p.rapidapi.com/submissions/?base64_encoded=true&fields=*";
       Logger.info(`Making request to: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
@@ -634,7 +633,7 @@ class ExamSubmissionService {
     Logger.info(`Getting Judge0 result for token: ${token}`);
     
     try {
-      const apiUrl = `https://judge0-ce.p.rapidapi.com/submissions/${token}?base64_encoded=true&fields=*&wait=false`;
+      const apiUrl = `https://judge0-ce.p.rapidapi.com/submissions/${token}?base64_encoded=true&fields=*`;
       Logger.info(`Making request to: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
