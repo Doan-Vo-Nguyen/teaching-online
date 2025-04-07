@@ -632,31 +632,56 @@ class ExamSubmissionService {
   private async getJudge0Result(token: string) {
     Logger.info(`Getting Judge0 result for token: ${token}`);
     
-    try {
-      const apiUrl = `https://judge0-ce.p.rapidapi.com/submissions/${token}?base64_encoded=true&fields=*`;
-      Logger.info(`Making request to: ${apiUrl}`);
-      
-      const response = await fetch(apiUrl, {
-        method: "GET",
-        headers: {
-          "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
-          "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
-        },
-      });
+    const maxAttempts = 10;
+    const pollingInterval = 1000; // 1 second
+    
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const apiUrl = `https://judge0-ce.p.rapidapi.com/submissions/${token}?base64_encoded=true&fields=*`;
+        Logger.info(`Polling attempt ${attempt}/${maxAttempts} - Making request to: ${apiUrl}`);
+        
+        const response = await fetch(apiUrl, {
+          method: "GET",
+          headers: {
+            "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
+            "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+          },
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        Logger.error(`Judge0 API error: ${response.status} ${response.statusText}. Response: ${errorText}`);
-        throw new Error(`Failed to get submission result from Judge0: ${response.status} ${response.statusText}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          Logger.error(`Judge0 API error: ${response.status} ${response.statusText}. Response: ${errorText}`);
+          throw new Error(`Failed to get submission result from Judge0: ${response.status} ${response.statusText}`);
+        }
+
+        const result = await response.json();
+        Logger.info(`Judge0 result received. Status ID: ${result.status?.id}, Description: ${result.status?.description}`);
+        
+        // If status is not "Processing" (id=2), we can return the result
+        if (result.status?.id !== 2) {
+          return result;
+        }
+        
+        // If we're still processing and haven't reached max attempts, wait before trying again
+        if (attempt < maxAttempts) {
+          Logger.info(`Code still processing. Waiting ${pollingInterval}ms before next attempt...`);
+          await new Promise(resolve => setTimeout(resolve, pollingInterval));
+        } else {
+          Logger.info(`Maximum polling attempts (${maxAttempts}) reached. Last status was "Processing".`);
+          return result; // Return the last result even if it's still processing
+        }
+      } catch (error) {
+        Logger.error(`Error in getJudge0Result attempt ${attempt}: ${(error as Error).message}`);
+        if (attempt === maxAttempts) {
+          throw error;
+        }
+        // Wait before retrying after an error
+        await new Promise(resolve => setTimeout(resolve, pollingInterval));
       }
-
-      const result = await response.json();
-      Logger.info(`Judge0 result received. Status ID: ${result.status?.id}`);
-      return result;
-    } catch (error) {
-      Logger.error(`Error in getJudge0Result: ${(error as Error).message}`);
-      throw error;
     }
+    
+    // This should not be reached due to the return in the loop, but TypeScript might expect a return
+    throw new Error("Failed to get Judge0 result after maximum attempts");
   }
 }
 
