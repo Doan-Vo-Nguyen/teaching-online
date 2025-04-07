@@ -602,7 +602,7 @@ class ExamSubmissionService {
     try {
       Logger.info(`Judge0 API Key present: ${!!process.env.JUDGE0_API_KEY}`);
       
-      const apiUrl = "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=true&fields=*&wait=false";
+      const apiUrl = "https://judge0-ce.p.rapidapi.com/submissions/?base64_encoded=true&fields=*&wait=false";
       Logger.info(`Making request to: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
