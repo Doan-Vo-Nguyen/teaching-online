@@ -350,7 +350,13 @@ class ExamSubmissionService {
         );
         
         Logger.info(`Judge0 result received. Status: ${JSON.stringify(submissionResultForInput.status)}`);
-        run_code_result += `User Input Result:\n${submissionResultForInput.stdout}\n\n`;
+        
+        // Decode base64 stdout if it exists
+        const stdout = submissionResultForInput.stdout 
+          ? Buffer.from(submissionResultForInput.stdout, 'base64').toString() 
+          : "";
+        
+        run_code_result += `User Input Result:\n${stdout}\n\n`;
       } catch (error) {
         Logger.error(`Error running code with input: ${(error as Error).message}`);
         throw new ApiError(
@@ -398,9 +404,24 @@ class ExamSubmissionService {
           Logger.info(`Testcase ${testcase.id} passed. Score: ${testcase.score}`);
         } else {
           run_code_result += `Testcase ${testcase.id}: Failed (${submissionResult.status.description})\n`;
+          
+          // Decode base64 outputs if they exist
           if (submissionResult.compile_output) {
-            run_code_result += submissionResult.compile_output;
+            const decodedOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
+            run_code_result += `Compilation Error:\n${decodedOutput}\n`;
           }
+          
+          if (submissionResult.stderr) {
+            const decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
+            run_code_result += `Standard Error:\n${decodedStderr}\n`;
+          }
+          
+          // Add decoded stdout if available (for runtime errors, etc.)
+          if (submissionResult.stdout) {
+            const decodedStdout = Buffer.from(submissionResult.stdout, 'base64').toString();
+            run_code_result += `Program Output:\n${decodedStdout}\n`;
+          }
+          
           Logger.info(`Testcase ${testcase.id} failed. Status: ${submissionResult.status.description}`);
         }
       }
