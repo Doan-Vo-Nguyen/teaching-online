@@ -634,7 +634,7 @@ class ExamSubmissionService {
     Logger.info(`Getting Judge0 result for token: ${token}`);
     
     try {
-      const apiUrl = `https://judge0-ce.p.rapidapi.com/submissions/${token}`;
+      const apiUrl = `https://judge0-ce.p.rapidapi.com/submissions/${token}?base64_encoded=true&fields=*&wait=false`;
       Logger.info(`Making request to: ${apiUrl}`);
       
       const response = await fetch(apiUrl, {
