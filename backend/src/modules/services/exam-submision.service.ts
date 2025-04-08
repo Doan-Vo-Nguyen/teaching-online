@@ -22,6 +22,8 @@ import { TestCaseRepository } from "../repositories/testcase.repository";
 import { ExamContentRepository } from "../repositories/exam-content.repository";
 import { IExamContentRepository } from "../interfaces/exam-content.interface";
 import { ChildProcess, spawn } from "child_process";
+import axios, { AxiosError } from "axios";
+
 class ExamSubmissionService {
   private readonly examSubmissionRepository: IExamSubmissionRepository =
     new ExamSubmissionRepository();
@@ -621,31 +623,36 @@ class ExamSubmissionService {
     
     try {
       Logger.info(`Judge0 API Key present: ${!!process.env.JUDGE0_API_KEY}`);
-      
-      const apiUrl = "https://judge0-ce.p.rapidapi.com/submissions/?base64_encoded=true&fields=*";
-      Logger.info(`Making request to: ${apiUrl}`);
-      
-      const response = await fetch(apiUrl, {
+      const options = {
         method: "POST",
+        url: "https://judge0-ce.p.rapidapi.com/submissions",
+        params: {
+          base64_encoded: "true",
+          fields: "*",
+        },
         headers: {
           "content-type": "application/json",
           "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
           "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
         },
-        body: JSON.stringify(submission),
+      }
+      Logger.info(`Making request to: ${options.url}`);
+      
+      const response = await axios.post(options.url, submission, {
+        headers: options.headers,
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        Logger.error(`Judge0 API error: ${response.status} ${response.statusText}. Response: ${errorText}`);
-        throw new Error(`Failed to submit code to Judge0: ${response.status} ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      Logger.info(`Judge0 submission successful. Token: ${result.token}`);
-      return result;
+      Logger.info(`Judge0 submission successful. Token: ${response.data.token}`);
+      return response.data;
     } catch (error) {
       Logger.error(`Error in submitToJudge0: ${(error as Error).message}`);
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        if (axiosError.response) {
+          Logger.error(`Judge0 API error: ${axiosError.response.status} ${axiosError.response.statusText}`);
+          Logger.error(`Response data: ${JSON.stringify(axiosError.response.data)}`);
+        }
+      }
       throw error;
     }
   }
@@ -658,29 +665,29 @@ class ExamSubmissionService {
     
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
-        const apiUrl = `https://judge0-ce.p.rapidapi.com/submissions/${token}?base64_encoded=true&fields=*`;
-        Logger.info(`Polling attempt ${attempt}/${maxAttempts} - Making request to: ${apiUrl}`);
-        
-        const response = await fetch(apiUrl, {
+        const options = {
           method: "GET",
+          url: `https://judge0-ce.p.rapidapi.com/submissions/${token}`,
+          params: {
+            base64_encoded: "true",
+            fields: "*",
+          },
           headers: {
             "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
             "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
           },
+        }
+        Logger.info(`Polling attempt ${attempt}/${maxAttempts} - Making request to: ${options.url}`);
+        
+        const response = await axios.get(options.url, {
+          headers: options.headers,
         });
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          Logger.error(`Judge0 API error: ${response.status} ${response.statusText}. Response: ${errorText}`);
-          throw new Error(`Failed to get submission result from Judge0: ${response.status} ${response.statusText}`);
-        }
-
-        const result = await response.json();
-        Logger.info(`Judge0 result received. Status ID: ${result.status?.id}, Description: ${result.status?.description}`);
+        Logger.info(`Judge0 result received. Status ID: ${response.data.status?.id}, Description: ${response.data.status?.description}`);
         
         // If status is not "Processing" (id=2), we can return the result
-        if (result.status?.id !== 2) {
-          return result;
+        if (response.data.status?.id !== 2) {
+          return response.data;
         }
         
         // If we're still processing and haven't reached max attempts, wait before trying again
@@ -689,10 +696,17 @@ class ExamSubmissionService {
           await new Promise(resolve => setTimeout(resolve, pollingInterval));
         } else {
           Logger.info(`Maximum polling attempts (${maxAttempts}) reached. Last status was "Processing".`);
-          return result; // Return the last result even if it's still processing
+          return response.data; // Return the last result even if it's still processing
         }
       } catch (error) {
         Logger.error(`Error in getJudge0Result attempt ${attempt}: ${(error as Error).message}`);
+        if (axios.isAxiosError(error)) {
+          const axiosError = error as AxiosError;
+          if (axiosError.response) {
+            Logger.error(`Judge0 API error: ${axiosError.response.status} ${axiosError.response.statusText}`);
+            Logger.error(`Response data: ${JSON.stringify(axiosError.response.data)}`);
+          }
+        }
         if (attempt === maxAttempts) {
           throw error;
         }
