@@ -328,12 +328,39 @@ class ExamSubmissionService {
       language_id: number;
       input?: string;
     }
-  ): Promise<{ grade?: number; run_code_result?: string }> {
+  ): Promise<{ 
+    grade?: number; 
+    run_code_result?: string;
+    testcase_results?: Array<{
+      id: number;
+      passed: boolean;
+      score: number;
+      status: {
+        id: number;
+        description: string;
+      };
+      output?: string;
+      error?: string;
+      expected_output?: string;
+    }>;
+  }> {
     Logger.info(`Starting runCode for exam_content_id: ${exam_content_id}, language_id: ${data.language_id}`);
     this.validateExamSubmissionData(data);
 
     let run_code_result = "";
     let totalGrade = 0;
+    const testcase_results: Array<{
+      id: number;
+      passed: boolean;
+      score: number;
+      status: {
+        id: number;
+        description: string;
+      };
+      output?: string;
+      error?: string;
+      expected_output?: string;
+    }> = [];
 
     // Handle user input if provided
     if (data.input && data.input !== "") {
@@ -399,6 +426,19 @@ class ExamSubmissionService {
 
         Logger.info(`Judge0 result for testcase ${testcase.id} received. Status: ${JSON.stringify(submissionResult.status)}`);
 
+        const testcaseResult = {
+          id: testcase.id,
+          passed: submissionResult.status.id === 3,
+          score: testcase.score,
+          status: {
+            id: submissionResult.status.id,
+            description: submissionResult.status.description,
+          },
+          output: '',
+          error: '',
+          expected_output: testcase.expected_output,
+        };
+
         // If testcase passed (status.id === 3 means Accepted)
         if (submissionResult.status.id === 3) {
           totalGrade += testcase.score;
@@ -407,29 +447,40 @@ class ExamSubmissionService {
         } else {
           run_code_result += `Testcase ${testcase.id}: Failed (${submissionResult.status.description})\n`;
           
+          let errorInfo = '';
+          
           // Decode base64 outputs if they exist
           if (submissionResult.compile_output) {
             const decodedOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
             run_code_result += `Compilation Error:\n${decodedOutput}\n`;
+            errorInfo += `Compilation Error:\n${decodedOutput}\n`;
           }
           
           if (submissionResult.stderr) {
             const decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
             run_code_result += `Standard Error:\n${decodedStderr}\n`;
+            errorInfo += `Standard Error:\n${decodedStderr}\n`;
           }
           
           // Add decoded stdout if available (for runtime errors, etc.)
           if (submissionResult.stdout) {
             const decodedStdout = Buffer.from(submissionResult.stdout, 'base64').toString();
             run_code_result += `Program Output:\n${decodedStdout}\n`;
+            testcaseResult.output = decodedStdout;
+          }
+          
+          if (errorInfo) {
+            testcaseResult.error = errorInfo;
           }
           
           Logger.info(`Testcase ${testcase.id} failed. Status: ${submissionResult.status.description}`);
         }
+        
+        testcase_results.push(testcaseResult);
       }
 
       Logger.info(`All testcases completed. Total grade: ${totalGrade}`);
-      return { grade: totalGrade, run_code_result };
+      return { grade: totalGrade, run_code_result, testcase_results };
     } catch (error) {
       Logger.error(`Error in runCode: ${(error as Error).message}`);
       throw new ApiError(
