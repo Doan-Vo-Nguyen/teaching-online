@@ -343,12 +343,30 @@ class ExamSubmissionService {
       error?: string;
       expected_output?: string;
     }>;
+    user_input_result?: {
+      status: {
+        id: number;
+        description: string;
+      };
+      output?: string;
+      error?: string;
+      input?: string;
+    };
   }> {
     Logger.info(`Starting runCode for exam_content_id: ${exam_content_id}, language_id: ${data.language_id}`);
     this.validateExamSubmissionData(data);
 
     let run_code_result = "";
     let totalGrade = 0;
+    let user_input_result: {
+      status: {
+        id: number;
+        description: string;
+      };
+      output?: string;
+      error?: string;
+      input?: string;
+    } | undefined;
     const testcase_results: Array<{
       id: number;
       passed: boolean;
@@ -381,11 +399,57 @@ class ExamSubmissionService {
         Logger.info(`Judge0 result received. Status: ${JSON.stringify(submissionResultForInput.status)}`);
         
         // Decode base64 stdout if it exists
-        const stdout = submissionResultForInput.stdout 
-          ? Buffer.from(submissionResultForInput.stdout, 'base64').toString() 
-          : "";
+        let stdout = '';
+        if (submissionResultForInput.stdout) {
+          try {
+            stdout = Buffer.from(submissionResultForInput.stdout, 'base64').toString();
+            Logger.info(`User input stdout received: ${stdout.substring(0, 100)}${stdout.length > 100 ? '...' : ''}`);
+          } catch (error) {
+            Logger.error(`Error decoding stdout for user input: ${(error as Error).message}`);
+            stdout = 'Error decoding output';
+          }
+        } else {
+          Logger.info('No stdout available for user input');
+        }
         
-        run_code_result += `User Input Result:\n${stdout}\n\n`;
+        run_code_result += `User Input Result:\n${submissionResultForInput.stdout}\n\n`;
+        
+        // Create user input result object
+        user_input_result = {
+          status: {
+            id: submissionResultForInput.status.id,
+            description: submissionResultForInput.status.description,
+          },
+          output: submissionResultForInput.stdout,
+          input: data.input,
+          error: submissionResultForInput.stderr
+        };
+        
+        // Add any error information
+        let errorInfo = '';
+        if (submissionResultForInput.compile_output) {
+          try {
+            const decodedOutput = Buffer.from(submissionResultForInput.compile_output, 'base64').toString();
+            errorInfo += `Compilation Error:\n${decodedOutput}\n`;
+          } catch (error) {
+            Logger.error(`Error decoding compile_output for user input: ${(error as Error).message}`);
+            errorInfo += `Compilation Error: Error decoding output\n`;
+          }
+        }
+        
+        if (submissionResultForInput.stderr) {
+          try {
+            const decodedStderr = Buffer.from(submissionResultForInput.stderr, 'base64').toString();
+            errorInfo += `Standard Error:\n${decodedStderr}\n`;
+          } catch (error) {
+            Logger.error(`Error decoding stderr for user input: ${(error as Error).message}`);
+            errorInfo += `Standard Error: Error decoding output\n`;
+          }
+        }
+        
+        if (errorInfo) {
+          user_input_result.error = errorInfo;
+        }
       } catch (error) {
         Logger.error(`Error running code with input: ${(error as Error).message}`);
         throw new ApiError(
@@ -439,10 +503,27 @@ class ExamSubmissionService {
           expected_output: testcase.expected_output,
         };
 
+        // Always decode stdout if it exists, for both passing and failing testcases
+        if (submissionResult.stdout) {
+          try {
+            const decodedStdout = Buffer.from(submissionResult.stdout, 'base64').toString();
+            testcaseResult.output = decodedStdout;
+            Logger.info(`Testcase ${testcase.id} output: ${decodedStdout.substring(0, 100)}${decodedStdout.length > 100 ? '...' : ''}`);
+          } catch (error) {
+            Logger.error(`Error decoding stdout for testcase ${testcase.id}: ${(error as Error).message}`);
+            testcaseResult.output = 'Error decoding output';
+          }
+        } else {
+          Logger.info(`No stdout available for testcase ${testcase.id}`);
+        }
+
         // If testcase passed (status.id === 3 means Accepted)
         if (submissionResult.status.id === 3) {
           totalGrade += testcase.score;
           run_code_result += `Testcase ${testcase.id}: Passed (+${testcase.score} points)\n`;
+          if (testcaseResult.output) {
+            run_code_result += `Program Output:\n${testcaseResult.output}\n`;
+          }
           Logger.info(`Testcase ${testcase.id} passed. Score: ${testcase.score}`);
         } else {
           run_code_result += `Testcase ${testcase.id}: Failed (${submissionResult.status.description})\n`;
@@ -451,22 +532,30 @@ class ExamSubmissionService {
           
           // Decode base64 outputs if they exist
           if (submissionResult.compile_output) {
-            const decodedOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
-            run_code_result += `Compilation Error:\n${decodedOutput}\n`;
-            errorInfo += `Compilation Error:\n${decodedOutput}\n`;
+            try {
+              const decodedOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
+              run_code_result += `Compilation Error:\n${decodedOutput}\n`;
+              errorInfo += `Compilation Error:\n${decodedOutput}\n`;
+            } catch (error) {
+              Logger.error(`Error decoding compile_output for testcase ${testcase.id}: ${(error as Error).message}`);
+              errorInfo += `Compilation Error: Error decoding output\n`;
+            }
           }
           
           if (submissionResult.stderr) {
-            const decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
-            run_code_result += `Standard Error:\n${decodedStderr}\n`;
-            errorInfo += `Standard Error:\n${decodedStderr}\n`;
+            try {
+              const decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
+              run_code_result += `Standard Error:\n${decodedStderr}\n`;
+              errorInfo += `Standard Error:\n${decodedStderr}\n`;
+            } catch (error) {
+              Logger.error(`Error decoding stderr for testcase ${testcase.id}: ${(error as Error).message}`);
+              errorInfo += `Standard Error: Error decoding output\n`;
+            }
           }
           
-          // Add decoded stdout if available (for runtime errors, etc.)
-          if (submissionResult.stdout) {
-            const decodedStdout = Buffer.from(submissionResult.stdout, 'base64').toString();
-            run_code_result += `Program Output:\n${decodedStdout}\n`;
-            testcaseResult.output = decodedStdout;
+          // Add program output to run_code_result if it exists
+          if (testcaseResult.output) {
+            run_code_result += `Program Output:\n${testcaseResult.output}\n`;
           }
           
           if (errorInfo) {
@@ -480,7 +569,7 @@ class ExamSubmissionService {
       }
 
       Logger.info(`All testcases completed. Total grade: ${totalGrade}`);
-      return { grade: totalGrade, run_code_result, testcase_results };
+      return { grade: totalGrade, run_code_result, testcase_results, user_input_result };
     } catch (error) {
       Logger.error(`Error in runCode: ${(error as Error).message}`);
       throw new ApiError(
