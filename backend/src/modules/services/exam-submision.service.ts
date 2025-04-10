@@ -261,12 +261,19 @@ class ExamSubmissionService {
     exam_id: number,
     student_id: number,
     class_id: number,
+    exam_submission_content_id: number,
     data: {
       file_content: string;
       grade?: number;
       feed_back?: string;
-      exam_content_id?: number;
       language_id?: number;
+      detailed_testcase_results?: {
+        testcase_id: number;
+        score: number;
+        status: string;
+        output?: string;
+        error?: string;
+      };
     }
   ): Promise<ExamSubmission> {
     this.validateExamSubmissionData(data);
@@ -280,28 +287,12 @@ class ExamSubmissionService {
           studentClass.student_class_id
         );
 
-      // Run code and get results if exam_content_id and language_id are provided
-      let codeResults = null;
-      if (data.exam_content_id && data.language_id) {
-        codeResults = await this.runCode(data.exam_content_id, {
-          file_content: data.file_content,
-          language_id: data.language_id,
-          input: ''
-        });
-      }
-
       // if not will create a new exam submission record, else just create a new content of submission
       let newExamSubmission: ExamSubmission;
       if (existedExamSubmission) {
         // Update timestamp in exam submission
         existedExamSubmission.updated_at = new Date();
         
-        // Update grade if we have code results
-        if (codeResults && codeResults.grade !== undefined) {
-          existedExamSubmission.grade = codeResults.grade;
-          existedExamSubmission.run_code_result = codeResults.run_code_result;
-        }
-
         newExamSubmission =
           await this.examSubmissionRepository.updateExamSubmission(
             existedExamSubmission.exam_submission_id,
@@ -319,9 +310,19 @@ class ExamSubmissionService {
           }
         );
         
-        // Save testcase results if available
-        if (codeResults && codeResults.testcase_results && codeResults.testcase_results.length > 0) {
-          await this.saveTestcaseResults(submissionContent.id, codeResults.testcase_results);
+        // Save testcase results
+        if (data.detailed_testcase_results) {
+          // If detailed results are provided, use them
+          Logger.info(`Saving detailed testcase result for exam submission content ${submissionContent.id}`);
+          Logger.info(`Detailed testcase result: ${JSON.stringify(data.detailed_testcase_results)}`);
+          await this.saveTestcaseResult(
+            exam_submission_content_id,
+            data.detailed_testcase_results.testcase_id,
+            data.detailed_testcase_results.score,
+            data.detailed_testcase_results.status,
+            data.detailed_testcase_results.output || '',
+            data.detailed_testcase_results.error || ''
+          );
         }
       } else {
         // Create new exam submission
@@ -329,9 +330,8 @@ class ExamSubmissionService {
           exam_id,
           studentClass.student_class_id,
           {
-            grade: codeResults?.grade,
+            grade: data.grade,
             feed_back: data.feed_back,
-            run_code_result: codeResults?.run_code_result
           }
         );
 
@@ -341,9 +341,19 @@ class ExamSubmissionService {
           data.file_content
         );
         
-        // Save testcase results if available
-        if (codeResults && codeResults.testcase_results && codeResults.testcase_results.length > 0) {
-          await this.saveTestcaseResults(submissionContent.id, codeResults.testcase_results);
+        // Save testcase results
+        if (data.detailed_testcase_results) {
+          // If detailed results are provided, use them
+          Logger.info(`Saving detailed testcase result for exam submission content ${submissionContent.id}`);
+          Logger.info(`Detailed testcase result: ${JSON.stringify(data.detailed_testcase_results)}`);
+          await this.saveTestcaseResult(
+            submissionContent.id,
+            data.detailed_testcase_results.testcase_id,
+            data.detailed_testcase_results.score,
+            data.detailed_testcase_results.status,
+            data.detailed_testcase_results.output || '',
+            data.detailed_testcase_results.error || ''
+          );
         }
       }
       return newExamSubmission;
@@ -896,6 +906,34 @@ class ExamSubmissionService {
     throw new Error("Failed to get Judge0 result after maximum attempts");
   }
 
+  /**
+   * Get detailed exam submission information including testcase results
+   */
+  public async getDetailsExamSubmission(exam_submission_id: number, data: {
+    exam_submission_content_id?: number;
+    exam_submission_content_details_id?: number;
+  }): Promise<ExamSubmission> {
+    const existedExamSubmission = await this.examSubmissionRepository.findById(exam_submission_id);
+    if (!existedExamSubmission) {
+      throw new ApiError(404, "Exam submission not found", "Exam submission not found");
+    }
+
+    const examSubmissionContents = await this.examSubmissionContentRepository.findByExamSubmissionId(exam_submission_id);
+    if (!examSubmissionContents) {
+      throw new ApiError(404, "Exam submission content not found", "Exam submission content not found");
+    }
+
+    const examSubmissionContent = await this.examSubmissionContentRepository.findById(data.exam_submission_content_id);
+    if (!examSubmissionContent) {
+      throw new ApiError(404, "Exam submission content not found", "Exam submission content not found");
+    }
+
+    return await this.examSubmissionRepository.getDetailsExamSubmission(exam_submission_id, data);
+  }
+
+  /**
+   * Save a testcase result
+   */
   private async saveTestcaseResult(
     exam_submission_content_id: number,
     testcase_id: number,
@@ -924,136 +962,6 @@ class ExamSubmissionService {
     }
   }
 
-  /**
-   * Get detailed testcase results for a specific exam submission content
-   */
-  public async getExamSubmissionContentDetails(
-    exam_submission_content_id: number
-  ): Promise<ExamSubmissionContentDetails[]> {
-    try {
-      Logger.info(`Getting testcase results for exam_submission_content_id: ${exam_submission_content_id}`);
-      
-      // Check if exam submission content exists
-      const examSubmissionContent = await this.examSubmissionContentRepository.findById(exam_submission_content_id);
-      if (!examSubmissionContent) {
-        throw new ApiError(
-          404,
-          "Exam submission content not found",
-          "Exam submission content not found"
-        );
-      }
-      
-      // Get all testcase results for this submission content using our repository
-      return await this.examSubmissionContentDetailsRepository.findByExamSubmissionContentId(exam_submission_content_id);
-    } catch (error) {
-      Logger.error(`Error getting testcase results: ${(error as Error).message}`);
-      throw error;
-    }
-  }
-  
-  /**
-   * Get all testcase results for a specific exam submission
-   */
-  public async getAllExamSubmissionTestcaseResults(
-    exam_submission_id: number
-  ): Promise<{ [contentId: number]: ExamSubmissionContentDetails[] }> {
-    try {
-      Logger.info(`Getting all testcase results for exam_submission_id: ${exam_submission_id}`);
-      
-      // Check if exam submission exists
-      const examSubmission = await this.examSubmissionRepository.findById(exam_submission_id);
-      if (!examSubmission) {
-        throw new ApiError(
-          404,
-          "Exam submission not found",
-          "Exam submission not found"
-        );
-      }
-      
-      // Get all content submissions for this exam submission
-      const contentSubmissions = await this.examSubmissionContentRepository.findByExamSubmissionId(
-        exam_submission_id
-      );
-      
-      if (!contentSubmissions || contentSubmissions.length === 0) {
-        return {};
-      }
-      
-      // Get testcase results for each content submission
-      const results: { [contentId: number]: ExamSubmissionContentDetails[] } = {};
-      
-      for (const content of Array.isArray(contentSubmissions) ? contentSubmissions : [contentSubmissions]) {
-        const testcaseResults = await this.examSubmissionContentDetailsRepository.findByExamSubmissionContentId(content.id);
-        results[content.id] = testcaseResults;
-      }
-      
-      return results;
-    } catch (error) {
-      Logger.error(`Error getting all testcase results: ${(error as Error).message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Save multiple testcase results
-   */
-  private async saveTestcaseResults(
-    exam_submission_content_id: number,
-    testcaseResults: Array<{
-      id: number;
-      passed: boolean;
-      score: number;
-      status: {
-        id: number;
-        description: string;
-      };
-      output?: string;
-      error?: string;
-    }>
-  ): Promise<void> {
-    try {
-      Logger.info(`Saving ${testcaseResults.length} testcase results for exam_submission_content_id: ${exam_submission_content_id}`);
-      
-      // Save each testcase result
-      for (const result of testcaseResults) {
-        await this.saveTestcaseResult(
-          exam_submission_content_id,
-          result.id,
-          result.passed ? result.score : 0,
-          result.status.description,
-          result.output || '',
-          result.error || ''
-        );
-      }
-      
-      Logger.info(`Successfully saved all testcase results`);
-    } catch (error) {
-      Logger.error(`Error saving testcase results: ${(error as Error).message}`);
-      throw error;
-    }
-  }
-
-  public async getDetailsExamSubmission(exam_submission_id: number, data: {
-    exam_submission_content_id?: number;
-    exam_submission_content_details_id?: number;
-  }): Promise<ExamSubmission> {
-    const existedExamSubmission = await this.examSubmissionRepository.findById(exam_submission_id);
-    if (!existedExamSubmission) {
-      throw new ApiError(404, "Exam submission not found", "Exam submission not found");
-    }
-
-    const examSubmissionContents = await this.examSubmissionContentRepository.findByExamSubmissionId(exam_submission_id);
-    if (!examSubmissionContents) {
-      throw new ApiError(404, "Exam submission content not found", "Exam submission content not found");
-    }
-
-    const examSubmissionContent = await this.examSubmissionContentRepository.findById(data.exam_submission_content_id);
-    if (!examSubmissionContent) {
-      throw new ApiError(404, "Exam submission content not found", "Exam submission content not found");
-    }
-
-    return await this.examSubmissionRepository.getDetailsExamSubmission(exam_submission_id, data);
-  }
 }
 
 export default ExamSubmissionService;

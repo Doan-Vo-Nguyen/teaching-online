@@ -37,7 +37,7 @@ export class ExamSubmissionController extends BaseController {
         this.router.get("/exams/:examId/classes/:classId/status", authentication, this.getExamSubmissionStatus);
         
         // Resource: create submission for a student in a class
-        this.router.post("/exams/:examId/students/:studentId/classes/:classId/submissions", authentication, this.createExamSubmissionByStudentAndClass);
+        this.router.post("/exams/:examId/students/:studentId/classes/:classId/exam-contents/:examContentId/submissions", authentication, this.createExamSubmissionByStudentAndClass);
 
         // Resource: run code
         this.router.post("/exams/:examContentId/run", authentication, this.runCode);
@@ -153,12 +153,14 @@ export class ExamSubmissionController extends BaseController {
             const examId = parseInt(req.params.examId, 10);
             const studentId = parseInt(req.params.studentId, 10);
             const classId = parseInt(req.params.classId, 10);
+            const examContentId = parseInt(req.params.examContentId, 10);
             // the body: file_content is file type, language_id is number type, stdin is string type, expected_output is string type
             const body = req.body;
             const createdExamSubmission = await this.examSubmissionService.createExamSubmissionByStudentAndClass(
                 examId,
                 studentId,
                 classId, 
+                examContentId,
                 body
             );
             return sendResponse(res, true, 201, "Created exam submission successfully", createdExamSubmission);

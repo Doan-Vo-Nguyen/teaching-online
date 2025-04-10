@@ -219,6 +219,7 @@ paths:
           description: Unauthorized
         '403':
           description: Forbidden
+  /app/exam-submissions/exams/{examId}/students/{studentId}/classes/{classId}/exam-contents/{examContentId}/submissions:
     post:
       tags:
         - ExamSubmission
@@ -244,6 +245,12 @@ paths:
           description: ID of the class
           schema:
             type: integer
+        - name: examContentId
+          in: path
+          required: true
+          description: ID of the exam content
+          schema:
+            type: integer
       requestBody:
         description: Exam submission data
         required: true
@@ -252,16 +259,19 @@ paths:
             schema:
               $ref: '#/components/schemas/ExamSubmission'
             example:
-              exam_id: 1
-              student_id: 1
-              class_id: 1
               examSubmissionContent: [
                 {
                   file_content: "file_content",
                   language_id: 1,
                   grade: 1,
-                  feed_back: "feed_back",
-                  exam_content_id: 1
+                  exam_content_id: 1,
+                  detailed_testcase_results: [
+                    {
+                      testcase_id: 1,
+                      score: 1,
+                      status: "status",
+                    }
+                  ]
                 }
               ]
       responses:

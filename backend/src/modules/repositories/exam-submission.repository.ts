@@ -59,7 +59,7 @@ export class ExamSubmissionRepository extends BaseRepository<ExamSubmission> {
         return this.repository.save(examSubmission);
     }
 
-    async createExamSubmissionByStudentAndClass(exam_id: number, student_id: number, class_id: number, examSubmission: ExamSubmission): Promise<ExamSubmission> {
+    async createExamSubmissionByStudentAndClass(exam_id: number, student_id: number, class_id: number, exam_content_id: number, examSubmission: ExamSubmission): Promise<ExamSubmission> {
         examSubmission.exam_id = exam_id;
         examSubmission.student_id = student_id;
         examSubmission.class_id = class_id;
