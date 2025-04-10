@@ -21,10 +21,8 @@ import { ITestCaseRepository } from "../interfaces/testcase.interface";
 import { TestCaseRepository } from "../repositories/testcase.repository";
 import { ExamContentRepository } from "../repositories/exam-content.repository";
 import { IExamContentRepository } from "../interfaces/exam-content.interface";
-import { ChildProcess, spawn } from "child_process";
 import axios, { AxiosError } from "axios";
 import { ExamSubmissionContentDetails } from "../entity/ExamSubmissionContentDetails.entity";
-import { getRepository } from "typeorm";
 import { IExamSubmissionContentDetailsRepository } from "../interfaces/exam-submisison-content-details.interface";
 import { ExamSubmissionContentDetailsRepository } from "../repositories/exam-submission-content-details.repository";
 
@@ -41,8 +39,6 @@ class ExamSubmissionService {
     new LanguageCodeRepository();
   private readonly testcaseRepository: ITestCaseRepository =
     new TestCaseRepository();
-  private readonly examContentRepository: IExamContentRepository =
-    new ExamContentRepository();
   private readonly examSubmissionContentDetailsRepository: IExamSubmissionContentDetailsRepository =
     new ExamSubmissionContentDetailsRepository();
 
@@ -313,15 +309,11 @@ class ExamSubmissionService {
         // Save testcase results
         if (data.detailed_testcase_results) {
           // If detailed results are provided, use them
-          Logger.info(`Saving detailed testcase result for exam submission content ${submissionContent.id}`);
+          Logger.info(`Saving detailed testcase result for exam submission content ${exam_submission_content_id}`);
           Logger.info(`Detailed testcase result: ${JSON.stringify(data.detailed_testcase_results)}`);
           await this.saveTestcaseResult(
             exam_submission_content_id,
-            data.detailed_testcase_results.testcase_id,
-            data.detailed_testcase_results.score,
-            data.detailed_testcase_results.status,
-            data.detailed_testcase_results.output || '',
-            data.detailed_testcase_results.error || ''
+            data.detailed_testcase_results
           );
         }
       } else {
@@ -344,15 +336,11 @@ class ExamSubmissionService {
         // Save testcase results
         if (data.detailed_testcase_results) {
           // If detailed results are provided, use them
-          Logger.info(`Saving detailed testcase result for exam submission content ${submissionContent.id}`);
+          Logger.info(`Saving detailed testcase result for exam submission content ${exam_submission_content_id}`);
           Logger.info(`Detailed testcase result: ${JSON.stringify(data.detailed_testcase_results)}`);
           await this.saveTestcaseResult(
-            submissionContent.id,
-            data.detailed_testcase_results.testcase_id,
-            data.detailed_testcase_results.score,
-            data.detailed_testcase_results.status,
-            data.detailed_testcase_results.output || '',
-            data.detailed_testcase_results.error || ''
+            exam_submission_content_id,
+            data.detailed_testcase_results
           );
         }
       }
@@ -936,23 +924,25 @@ class ExamSubmissionService {
    */
   private async saveTestcaseResult(
     exam_submission_content_id: number,
-    testcase_id: number,
-    score: number,
-    status: string,
-    output: string,
-    error: string
+    detailed_testcase_results: {
+      testcase_id: number;
+      score: number;
+      status: string;
+      output?: string;
+      error?: string;
+    }
   ): Promise<ExamSubmissionContentDetails> {
     try {
-      Logger.info(`Saving testcase result for exam_submission_content_id: ${exam_submission_content_id}, testcase_id: ${testcase_id}`);
+      Logger.info(`Saving testcase result for exam_submission_content_id: ${exam_submission_content_id}, testcase_id: ${detailed_testcase_results.testcase_id}`);
       
       // Create new entity
       const testcaseResult = new ExamSubmissionContentDetails();
       testcaseResult.exam_submission_content_id = exam_submission_content_id;
-      testcaseResult.testcase_id = testcase_id;
-      testcaseResult.score = score;
-      testcaseResult.status = status;
-      testcaseResult.output = output;
-      testcaseResult.error = error;
+      testcaseResult.testcase_id = detailed_testcase_results.testcase_id;
+      testcaseResult.score = detailed_testcase_results.score;
+      testcaseResult.status = detailed_testcase_results.status;
+      testcaseResult.output = detailed_testcase_results.output;
+      testcaseResult.error = detailed_testcase_results.error;
       
       // Save to database using our repository
       return await this.examSubmissionContentDetailsRepository.save(testcaseResult);

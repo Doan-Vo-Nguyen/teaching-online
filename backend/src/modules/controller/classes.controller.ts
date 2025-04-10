@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import BaseController from "../abstracts/base-controller";
 import ClassesService from "../services/classes.service";
-import { authorAdmin } from "../middleware/auth.middleware";
 import { validParam } from "../middleware/validate/field.validate";
 import { sendResponse } from "../../common/interfaces/base-response";
 
@@ -22,7 +21,7 @@ export class ClassesController extends BaseController {
       "/teacher/:teacher_id/:class_id",
       this.getClassDetailsByTeacher
     );
-    this.router.post("/", authorAdmin, this.createClass);
+    this.router.post("/", this.createClass);
     this.router.patch("/:id", validParam("id"), this.updateClass);
     this.router.delete("/:id", validParam("id"), this.deleteClass);
   }
