@@ -534,7 +534,7 @@ class ExamSubmissionService {
           },
           input: testcase.input,
           expected_output: testcase.expected_output,
-          output: '',
+          output: submissionResult.stdout,
           error: submissionResult.stderr,
         };
 
