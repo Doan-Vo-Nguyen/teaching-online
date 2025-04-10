@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne, JoinColumn, Relation, OneToMany } from "typeorm"
 import { ExamSubmissionContent } from "./Exam_Submission_Content.entity"
 import { TestCase } from "./Testcase.entity"
-
+import { ExamContent } from "./ExamContent.entity" 
 @Entity({schema: "teaching"})
 export class ExamSubmissionContentDetails {
     @PrimaryGeneratedColumn({name: "exam_submission_content_details_id"})
@@ -10,6 +10,8 @@ export class ExamSubmissionContentDetails {
     @Column({type: "int"})
     exam_submission_content_id: number
 
+    @Column({type: "int"})
+    exam_content_id: number
     @Column({type: "int"})
     testcase_id: number
 
@@ -31,11 +33,15 @@ export class ExamSubmissionContentDetails {
     @Column({type: "text", nullable: true})
     error: string
 
-    @ManyToOne(() => ExamSubmissionContent, examSubmissionContent => examSubmissionContent.examSubmissionContentDetails)
+    @ManyToOne(() => ExamSubmissionContent, examSubmissionContent => examSubmissionContent.examSubmissionContentDetails, { onDelete: 'CASCADE', nullable: true })
     @JoinColumn({name: "exam_submission_content_id"})
     examSubmissionContent?: Relation<ExamSubmissionContent>
 
-    @ManyToOne(() => TestCase, testcase => testcase.examSubmissionContentDetails)
+    @ManyToOne(() => TestCase, testcase => testcase.examSubmissionContentDetails, { onDelete: 'CASCADE', nullable: true })
     @JoinColumn({name: "testcase_id"})
     testcase?: Relation<TestCase>
+
+    @ManyToOne(() => ExamContent, examContent => examContent.examSubmissionContentDetails, { onDelete: 'CASCADE', nullable: true })
+    @JoinColumn({name: "exam_content_id"})
+    examContent?: Relation<ExamContent>
 }

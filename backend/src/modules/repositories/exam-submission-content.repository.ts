@@ -1,6 +1,8 @@
 import { ExamSubmissionContent } from '../entity/Exam_Submission_Content.entity';
 import { BaseRepository } from './base.repository';
-export class ExamSubmissionContentRepository extends BaseRepository<ExamSubmissionContent> {
+import { IExamSubmissionContentRepository } from '../interfaces/exam-submission-content.interface';
+
+export class ExamSubmissionContentRepository extends BaseRepository<ExamSubmissionContent> implements IExamSubmissionContentRepository {
     constructor() {
         super(ExamSubmissionContent);
     }
@@ -31,5 +33,26 @@ export class ExamSubmissionContentRepository extends BaseRepository<ExamSubmissi
     async deleteExamSubmissionContent(exam_submission_id: number, exam_submission_content_id: number) {
         const examSubmissionContent = await this.repository.findOneBy({ id: exam_submission_content_id, exam_submission_id });
         return this.repository.remove(examSubmissionContent);
+    }
+    /**
+     * Find the latest exam submission content associated with an exam content ID
+     * This is used to link test results to the appropriate submission
+     */
+    async findLatestByExamContentId(exam_content_id: number): Promise<ExamSubmissionContent | null> {
+        try {
+            // Join with ExamSubmissionContentDetails to find content related to this exam_content_id
+            // Order by submission date descending to get the latest one
+            const result = await this.repository
+                .createQueryBuilder('esc')
+                .innerJoin('teaching.exam_submission_content_details', 'escd', 'esc.id = escd.exam_submission_content_id')
+                .where('escd.exam_content_id = :exam_content_id', { exam_content_id })
+                .orderBy('esc.created_at', 'DESC')
+                .getOne();
+                
+            return result;
+        } catch (error) {
+            console.error(`Error finding latest submission for exam_content_id ${exam_content_id}:`, error);
+            return null;
+        }
     }
 }

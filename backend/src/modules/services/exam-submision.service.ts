@@ -257,19 +257,29 @@ class ExamSubmissionService {
     exam_id: number,
     student_id: number,
     class_id: number,
-    exam_submission_content_id: number,
+    exam_content_id: number,
     data: {
       file_content: string;
       grade?: number;
       feed_back?: string;
       language_id?: number;
-      detailed_testcase_results?: {
+      detailed_testcase_results?: string | {
         testcase_id: number;
         score: number;
         status: string;
         output?: string;
         error?: string;
-      };
+        exam_submission_content_id?: number;
+        passed?: boolean;
+      } | Array<{
+        testcase_id: number;
+        score: number;
+        status: string;
+        output?: string;
+        error?: string;
+        exam_submission_content_id?: number;
+        passed?: boolean;
+      }>;
     }
   ): Promise<ExamSubmission> {
     this.validateExamSubmissionData(data);
@@ -285,6 +295,8 @@ class ExamSubmissionService {
 
       // if not will create a new exam submission record, else just create a new content of submission
       let newExamSubmission: ExamSubmission;
+      let submissionContent: ExamSubmissionContent;
+      
       if (existedExamSubmission) {
         // Update timestamp in exam submission
         existedExamSubmission.updated_at = new Date();
@@ -296,7 +308,7 @@ class ExamSubmissionService {
           );
 
         // Create new content entry
-        const submissionContent = await this.examSubmissionContentRepository.createExamSubmissionContentByExamSubmissionId(
+        submissionContent = await this.examSubmissionContentRepository.createExamSubmissionContentByExamSubmissionId(
           existedExamSubmission.exam_submission_id,
           {
             file_content: data.file_content,
@@ -306,16 +318,12 @@ class ExamSubmissionService {
           }
         );
         
-        // Save testcase results
-        if (data.detailed_testcase_results) {
-          // If detailed results are provided, use them
-          Logger.info(`Saving detailed testcase result for exam submission content ${exam_submission_content_id}`);
-          Logger.info(`Detailed testcase result: ${JSON.stringify(data.detailed_testcase_results)}`);
-          await this.saveTestcaseResult(
-            exam_submission_content_id,
-            data.detailed_testcase_results
-          );
-        }
+        // Always process testcase results (even if no results provided, it will create default entries)
+        await this.processAndSaveTestcaseResults(
+          exam_content_id, 
+          submissionContent.id, 
+          data.detailed_testcase_results
+        );
       } else {
         // Create new exam submission
         newExamSubmission = await this.createExamSubmissionRecord(
@@ -328,22 +336,19 @@ class ExamSubmissionService {
         );
 
         // Then create exam submission content with file_content
-        const submissionContent = await this.createExamSubmissionContent(
+        submissionContent = await this.createExamSubmissionContent(
           newExamSubmission.exam_submission_id,
           data.file_content
         );
         
-        // Save testcase results
-        if (data.detailed_testcase_results) {
-          // If detailed results are provided, use them
-          Logger.info(`Saving detailed testcase result for exam submission content ${exam_submission_content_id}`);
-          Logger.info(`Detailed testcase result: ${JSON.stringify(data.detailed_testcase_results)}`);
-          await this.saveTestcaseResult(
-            exam_submission_content_id,
-            data.detailed_testcase_results
-          );
-        }
+        // Always process testcase results (even if no results provided, it will create default entries)
+        await this.processAndSaveTestcaseResults(
+          exam_content_id, 
+          submissionContent.id, 
+          data.detailed_testcase_results
+        );
       }
+      
       return newExamSubmission;
     } catch (error) {
       Logger.error(error);
@@ -837,7 +842,7 @@ class ExamSubmissionService {
    * Get detailed exam submission information including testcase results
    */
   public async getDetailsExamSubmission(exam_submission_id: number, data: {
-    exam_submission_content_id?: number;
+    exam_content_id?: number;
     exam_submission_content_details_id?: number;
   }): Promise<ExamSubmission> {
     const existedExamSubmission = await this.examSubmissionRepository.findById(exam_submission_id);
@@ -850,7 +855,7 @@ class ExamSubmissionService {
       throw new ApiError(404, "Exam submission content not found", "Exam submission content not found");
     }
 
-    const examSubmissionContent = await this.examSubmissionContentRepository.findById(data.exam_submission_content_id);
+    const examSubmissionContent = await this.examSubmissionContentRepository.findById(data.exam_content_id);
     if (!examSubmissionContent) {
       throw new ApiError(404, "Exam submission content not found", "Exam submission content not found");
     }
@@ -862,32 +867,200 @@ class ExamSubmissionService {
    * Save a testcase result
    */
   private async saveTestcaseResult(
-    exam_submission_content_id: number,
+    exam_content_id: number,
     detailed_testcase_results: {
       testcase_id: number;
       score: number;
       status: string;
       output?: string;
       error?: string;
+      exam_submission_content_id?: number;
+      passed?: boolean;
     }
   ): Promise<ExamSubmissionContentDetails> {
     try {
-      Logger.info(`Saving testcase result for exam_submission_content_id: ${exam_submission_content_id}, testcase_id: ${detailed_testcase_results.testcase_id}`);
+      // First ensure detailed_testcase_results is an object and not a string
+      let resultObj = detailed_testcase_results;
+      
+      // If it's a string, try to parse it
+      if (typeof detailed_testcase_results === 'string') {
+        try {
+          resultObj = JSON.parse(detailed_testcase_results);
+          Logger.info(`Parsed detailed_testcase_results string into object: ${JSON.stringify(resultObj)}`);
+        } catch (parseError) {
+          Logger.error(`Error parsing detailed_testcase_results string: ${(parseError as Error).message}`);
+          throw new Error(`Invalid detailed_testcase_results format: ${(parseError as Error).message}`);
+        }
+      }
+      
+      // If the parsed result is an array, take the first item
+      if (Array.isArray(resultObj)) {
+        if (resultObj.length === 0) {
+          throw new Error('Empty detailed_testcase_results array provided');
+        }
+        Logger.info(`detailed_testcase_results is an array, using first element: ${JSON.stringify(resultObj[0])}`);
+        resultObj = resultObj[0];
+      }
+      
+      // Check if we have a valid testcase_id
+      if (!resultObj.testcase_id) {
+        Logger.error(`Missing testcase_id in detailed_testcase_results: ${JSON.stringify(resultObj)}`);
+        throw new Error('Missing testcase_id in detailed_testcase_results');
+      }
+      
+      Logger.info(`Saving testcase result for exam_content_id: ${exam_content_id}, testcase_id: ${resultObj.testcase_id}`);
       
       // Create new entity
       const testcaseResult = new ExamSubmissionContentDetails();
-      testcaseResult.exam_submission_content_id = exam_submission_content_id;
-      testcaseResult.testcase_id = detailed_testcase_results.testcase_id;
-      testcaseResult.score = detailed_testcase_results.score;
-      testcaseResult.status = detailed_testcase_results.status;
-      testcaseResult.output = detailed_testcase_results.output;
-      testcaseResult.error = detailed_testcase_results.error;
+      
+      // Set both fields - exam_content_id is required, exam_submission_content_id might come from detailed results
+      testcaseResult.exam_content_id = exam_content_id;
+      
+      // Set exam_submission_content_id from detailed results if provided
+      if (resultObj.exam_submission_content_id) {
+        testcaseResult.exam_submission_content_id = resultObj.exam_submission_content_id;
+      } else {
+        // If exam_submission_content_id is not provided, try to get the most recent submission
+        try {
+          const latestSubmission = await this.examSubmissionContentRepository.findLatestByExamContentId(exam_content_id);
+          if (latestSubmission) {
+            testcaseResult.exam_submission_content_id = latestSubmission.id;
+            Logger.info(`Using latest submission content ID: ${latestSubmission.id}`);
+          } else {
+            Logger.error(`No exam submission content found for exam_content_id: ${exam_content_id}`);
+            throw new Error(`No exam submission content found for exam_content_id: ${exam_content_id}`);
+          }
+        } catch (error) {
+          Logger.error(`Error finding latest submission: ${(error as Error).message}`);
+          throw error;
+        }
+      }
+      
+      testcaseResult.testcase_id = resultObj.testcase_id;
+      
+      // Default score to 0 unless explicitly passed and has a valid status
+      const isPassed = resultObj.passed === true || resultObj.status === 'Accepted' || resultObj.status === 'passed';
+      
+      // If testcase passed, use provided score, otherwise 0
+      if (isPassed && typeof resultObj.score === 'number' && !isNaN(resultObj.score)) {
+        testcaseResult.score = resultObj.score;
+      } else {
+        testcaseResult.score = 0;
+        Logger.info(`Testcase ${resultObj.testcase_id} failed or not run. Setting score to 0.`);
+      }
+      
+      // Set status with appropriate default value
+      if (!resultObj.status || resultObj.status.trim() === '') {
+        testcaseResult.status = isPassed ? 'Accepted' : 'Failed';
+      } else {
+        testcaseResult.status = resultObj.status;
+      }
+      
+      testcaseResult.output = resultObj.output || '';
+      testcaseResult.error = resultObj.error || '';
       
       // Save to database using our repository
       return this.examSubmissionContentDetailsRepository.save(testcaseResult);
     } catch (error) {
       Logger.error(`Error saving testcase result: ${(error as Error).message}`);
       throw error;
+    }
+  }
+
+  /**
+   * Process and save testcase results with proper submission content ID
+   */
+  private async processAndSaveTestcaseResults(
+    exam_content_id: number,
+    exam_submission_content_id: number,
+    detailed_testcase_results: any
+  ): Promise<void> {
+    Logger.info(`Saving detailed testcase result for exam content ${exam_content_id} and submission content ${exam_submission_content_id}`);
+    
+    // Check if detailed_testcase_results is undefined or null
+    if (!detailed_testcase_results) {
+      // No test results provided - fetch testcases for this exam content and save with default values
+      Logger.info(`No testcase results provided. Fetching testcases for exam_content_id: ${exam_content_id}`);
+      
+      try {
+        const testcases = await this.testcaseRepository.find({
+          where: { exam_content_id }
+        });
+        
+        if (testcases && testcases.length > 0) {
+          Logger.info(`Found ${testcases.length} testcases to save with default values`);
+          
+          // Save each testcase with default values (score=0, status="Not Run")
+          for (const testcase of testcases) {
+            const defaultResult = {
+              testcase_id: testcase.id,
+              score: 0,
+              status: "Not Run",
+              output: "",
+              error: "",
+              exam_submission_content_id
+            };
+            
+            await this.saveTestcaseResult(exam_content_id, defaultResult);
+          }
+        } else {
+          Logger.info(`No testcases found for exam_content_id: ${exam_content_id}`);
+        }
+        
+        return;
+      } catch (error) {
+        Logger.error(`Error fetching testcases: ${(error as Error).message}`);
+        throw error;
+      }
+    }
+    
+    Logger.info(`Detailed testcase result: ${JSON.stringify(detailed_testcase_results)}`);
+    
+    // Handle both single result and array of results
+    if (Array.isArray(detailed_testcase_results) || 
+        (typeof detailed_testcase_results === 'string' && 
+         detailed_testcase_results.trim().startsWith('['))) {
+      // It's an array or array-like string
+      let results = detailed_testcase_results;
+      if (typeof results === 'string') {
+        try {
+          results = JSON.parse(results);
+          Logger.info(`Parsed string array into object: ${JSON.stringify(results)}`);
+        } catch (error) {
+          Logger.error(`Error parsing testcase results string: ${(error as Error).message}`);
+        }
+      }
+      
+      // Process each result in the array
+      if (Array.isArray(results)) {
+        for (const result of results) {
+          // Add the submission content ID to each result
+          const resultWithSubmissionId = {
+            ...result,
+            exam_submission_content_id
+          };
+          await this.saveTestcaseResult(exam_content_id, resultWithSubmissionId);
+        }
+      }
+    } else {
+      // It's a single result
+      // Parse if it's a string
+      let resultObj = detailed_testcase_results;
+      if (typeof detailed_testcase_results === 'string') {
+        try {
+          resultObj = JSON.parse(detailed_testcase_results);
+        } catch (error) {
+          Logger.error(`Error parsing single test result: ${(error as Error).message}`);
+        }
+      }
+      
+      // Add the submission content ID
+      const resultWithSubmissionId = {
+        ...resultObj,
+        exam_submission_content_id
+      };
+      
+      await this.saveTestcaseResult(exam_content_id, resultWithSubmissionId);
     }
   }
 
