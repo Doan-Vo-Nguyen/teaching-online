@@ -43,7 +43,7 @@ class ExamSubmissionService {
     new ExamSubmissionContentDetailsRepository();
 
   public async get(options: any): Promise<ExamSubmission[]> {
-    return await this.examSubmissionRepository.find(options);
+    return this.examSubmissionRepository.find(options);
   }
 
   public async getExamSubmissionByExamId(
@@ -60,7 +60,7 @@ class ExamSubmissionService {
     if (!exam) {
       throw new ApiError(404, "Exam not found", "Exam not found");
     }
-    return await this.examSubmissionRepository.getExamSubmissionByExamId(
+    return this.examSubmissionRepository.getExamSubmissionByExamId(
       exam_id
     );
   }
@@ -688,7 +688,7 @@ class ExamSubmissionService {
     student_class_id: number,
     data: { grade?: number; feed_back?: string; run_code_result?: string }
   ): Promise<ExamSubmission> {
-    return await this.examSubmissionRepository.save({
+    return this.examSubmissionRepository.save({
       ...data,
       exam_id,
       student_class_id,
@@ -705,7 +705,7 @@ class ExamSubmissionService {
     exam_submission_id: number,
     file_content: string
   ): Promise<ExamSubmissionContent> {
-    return await this.examSubmissionContentRepository.save({
+    return this.examSubmissionContentRepository.save({
       exam_submission_id,
       file_content,
       id: 0,
@@ -916,7 +916,7 @@ class ExamSubmissionService {
       throw new ApiError(404, "Exam submission content not found", "Exam submission content not found");
     }
 
-    return await this.examSubmissionRepository.getDetailsExamSubmission(exam_submission_id, data);
+    return this.examSubmissionRepository.getDetailsExamSubmission(exam_submission_id, data);
   }
 
   /**
@@ -945,7 +945,7 @@ class ExamSubmissionService {
       testcaseResult.error = detailed_testcase_results.error;
       
       // Save to database using our repository
-      return await this.examSubmissionContentDetailsRepository.save(testcaseResult);
+      return this.examSubmissionContentDetailsRepository.save(testcaseResult);
     } catch (error) {
       Logger.error(`Error saving testcase result: ${(error as Error).message}`);
       throw error;
