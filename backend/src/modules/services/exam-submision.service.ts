@@ -432,21 +432,11 @@ class ExamSubmissionService {
         
         Logger.info(`Judge0 result received. Status: ${JSON.stringify(submissionResultForInput.status)}`);
         
-        // Decode base64 stdout if it exists
-        let stdout = '';
+        // Add the results to run_code_result without decoding
+        run_code_result += `User Input Result:\n${submissionResultForInput.status.description}\n`;
         if (submissionResultForInput.stdout) {
-          try {
-            stdout = Buffer.from(submissionResultForInput.stdout, 'base64').toString();
-            Logger.info(`User input stdout received: ${stdout.substring(0, 100)}${stdout.length > 100 ? '...' : ''}`);
-          } catch (error) {
-            Logger.error(`Error decoding stdout for user input: ${(error as Error).message}`);
-            stdout = 'Error decoding output';
-          }
-        } else {
-          Logger.info('No stdout available for user input');
+          run_code_result += `Program Output (Base64):\n${submissionResultForInput.stdout}\n`;
         }
-        
-        run_code_result += `User Input Result:\n${submissionResultForInput.stdout}\n\n`;
         
         // Create user input result object
         user_input_result = {
@@ -459,30 +449,13 @@ class ExamSubmissionService {
           error: submissionResultForInput.stderr
         };
         
-        // Add any error information
-        let errorInfo = '';
+        // Add error information
         if (submissionResultForInput.compile_output) {
-          try {
-            const decodedOutput = Buffer.from(submissionResultForInput.compile_output, 'base64').toString();
-            errorInfo += `Compilation Error:\n${decodedOutput}\n`;
-          } catch (error) {
-            Logger.error(`Error decoding compile_output for user input: ${(error as Error).message}`);
-            errorInfo += `Compilation Error: Error decoding output\n`;
-          }
+          run_code_result += `Compilation Output (Base64):\n${submissionResultForInput.compile_output}\n`;
         }
         
         if (submissionResultForInput.stderr) {
-          try {
-            const decodedStderr = Buffer.from(submissionResultForInput.stderr, 'base64').toString();
-            errorInfo += `Standard Error:\n${decodedStderr}\n`;
-          } catch (error) {
-            Logger.error(`Error decoding stderr for user input: ${(error as Error).message}`);
-            errorInfo += `Standard Error: Error decoding output\n`;
-          }
-        }
-        
-        if (errorInfo) {
-          user_input_result.error = errorInfo;
+          run_code_result += `Standard Error (Base64):\n${submissionResultForInput.stderr}\n`;
         }
       } catch (error) {
         Logger.error(`Error running code with input: ${(error as Error).message}`);
@@ -538,63 +511,29 @@ class ExamSubmissionService {
           error: submissionResult.stderr,
         };
 
-        // Always decode stdout if it exists, for both passing and failing testcases
-        if (submissionResult.stdout) {
-          try {
-            const decodedStdout = Buffer.from(submissionResult.stdout, 'base64').toString();
-            testcaseResult.output = decodedStdout;
-            Logger.info(`Testcase ${testcase.id} output: ${decodedStdout.substring(0, 100)}${decodedStdout.length > 100 ? '...' : ''}`);
-          } catch (error) {
-            Logger.error(`Error decoding stdout for testcase ${testcase.id}: ${(error as Error).message}`);
-            testcaseResult.output = 'Error decoding output';
-          }
-        } else {
-          Logger.info(`No stdout available for testcase ${testcase.id}`);
-        }
-
         // If testcase passed (status.id === 3 means Accepted)
         if (submissionResult.status.id === 3) {
           totalGrade += testcase.score;
           run_code_result += `Testcase ${testcase.id}: Passed (+${testcase.score} points)\n`;
           if (testcaseResult.output) {
-            run_code_result += `Program Output:\n${testcaseResult.output}\n`;
+            run_code_result += `Program Output (Base64):\n${testcaseResult.output}\n`;
           }
           Logger.info(`Testcase ${testcase.id} passed. Score: ${testcase.score}`);
         } else {
           run_code_result += `Testcase ${testcase.id}: Failed (${submissionResult.status.description})\n`;
           
-          let errorInfo = '';
-          
-          // Decode base64 outputs if they exist
+          // Include Base64 outputs
           if (submissionResult.compile_output) {
-            try {
-              const decodedOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
-              run_code_result += `Compilation Error:\n${decodedOutput}\n`;
-              errorInfo += `Compilation Error:\n${decodedOutput}\n`;
-            } catch (error) {
-              Logger.error(`Error decoding compile_output for testcase ${testcase.id}: ${(error as Error).message}`);
-              errorInfo += `Compilation Error: Error decoding output\n`;
-            }
+            run_code_result += `Compilation Output (Base64):\n${submissionResult.compile_output}\n`;
           }
           
           if (submissionResult.stderr) {
-            try {
-              const decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
-              run_code_result += `Standard Error:\n${decodedStderr}\n`;
-              errorInfo += `Standard Error:\n${decodedStderr}\n`;
-            } catch (error) {
-              Logger.error(`Error decoding stderr for testcase ${testcase.id}: ${(error as Error).message}`);
-              errorInfo += `Standard Error: Error decoding output\n`;
-            }
+            run_code_result += `Standard Error (Base64):\n${submissionResult.stderr}\n`;
           }
           
-          // Add program output to run_code_result if it exists
+          // Add program output if it exists
           if (testcaseResult.output) {
-            run_code_result += `Program Output:\n${testcaseResult.output}\n`;
-          }
-          
-          if (errorInfo) {
-            testcaseResult.error = errorInfo;
+            run_code_result += `Program Output (Base64):\n${testcaseResult.output}\n`;
           }
           
           Logger.info(`Testcase ${testcase.id} failed. Status: ${submissionResult.status.description}`);
