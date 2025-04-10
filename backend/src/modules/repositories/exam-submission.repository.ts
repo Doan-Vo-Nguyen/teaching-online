@@ -70,4 +70,11 @@ export class ExamSubmissionRepository extends BaseRepository<ExamSubmission> {
         await this.repository.update(exam_submission_id, examSubmission);
         return this.repository.findOneBy({ exam_submission_id });
     }
+
+    async getDetailsExamSubmission(exam_submission_id: number): Promise<ExamSubmission> {
+        return this.repository.findOne({
+            where: { exam_submission_id },
+            relations: ["examSubmissionContents", "examSubmissionContents.examSubmissionContentDetails"]
+        });
+    }
 }

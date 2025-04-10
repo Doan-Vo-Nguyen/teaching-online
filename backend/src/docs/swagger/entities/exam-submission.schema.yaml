@@ -258,7 +258,10 @@ paths:
               examSubmissionContent: [
                 {
                   file_content: "file_content",
-                  language_id: 1
+                  language_id: 1,
+                  grade: 1,
+                  feed_back: "feed_back",
+                  exam_content_id: 1
                 }
               ]
       responses:
@@ -371,5 +374,42 @@ paths:
           description: Exam content not found
         '400':
           description: Bad request
-          
-          
+  /app/exam-submissions/{id}/details:
+    get:
+      tags:
+        - ExamSubmission
+      summary: Get details exam submission
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the exam submission
+          schema:
+            type: integer
+      requestBody:
+        description: Details exam submission data
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExamSubmission'
+            example:
+              exam_submission_content_id: 1
+              exam_submission_content_details_id: 1
+      responses:
+        '200':
+          description: Fetched details exam submission successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamSubmission'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '404':
+          description: Exam submission not found
+        '400':
+          description: Bad request

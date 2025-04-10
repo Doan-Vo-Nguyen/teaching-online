@@ -10,7 +10,7 @@ export class ExamContent {
     @Column()
     exam_id: number
 
-    @Column({type: "varchar", length: 500, nullable: true})
+    @Column({type: "text", nullable: true})
     title: string
 
     @Column({type: "text", nullable: true})

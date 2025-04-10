@@ -2,6 +2,7 @@ import { ExamSubmission } from "../entity/Exam_submission.entity";
 import { IBaseRepository } from "./base.interface";
 
 export interface IExamSubmissionRepository extends IBaseRepository<ExamSubmission> {
+    getDetailsExamSubmission(exam_submission_id: number, data: any): Promise<ExamSubmission>;
     findByExamId(exam_id: number): Promise<ExamSubmission[]>;
     findByExamIdAndStudentClassId(exam_id: number, student_class_id: number): Promise<ExamSubmission>;
     getExamSubmissionByExamId(exam_id: number): Promise<ExamSubmission[]>

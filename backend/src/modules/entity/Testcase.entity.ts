@@ -1,5 +1,6 @@
-import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Relation } from "typeorm";
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Relation } from "typeorm";
 import { ExamContent } from "./ExamContent.entity";
+import { ExamSubmissionContentDetails } from "./ExamSubmissionContentDetails.entity";
 
 @Entity({schema: "teaching"})
 export class TestCase {
@@ -21,4 +22,7 @@ export class TestCase {
     @ManyToOne(() => ExamContent, examContent => examContent.testcases, { onDelete: 'NO ACTION' })
     @JoinColumn({name: "exam_content_id"})
     examContent?: Relation<ExamContent>
+
+    @OneToMany(() => ExamSubmissionContentDetails, examSubmissionContentDetails => examSubmissionContentDetails.testcase)
+    examSubmissionContentDetails?: Relation<ExamSubmissionContentDetails>
 }

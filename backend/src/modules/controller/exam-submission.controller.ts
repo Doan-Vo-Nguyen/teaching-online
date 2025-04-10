@@ -41,6 +41,9 @@ export class ExamSubmissionController extends BaseController {
 
         // Resource: run code
         this.router.post("/exams/:examContentId/run", authentication, this.runCode);
+
+        // Resource: get details exam submission
+        this.router.get("/:id/details", authentication, this.getDetailsExamSubmission);
     }
 
     private readonly getAllExamSubmissions = async (
@@ -232,4 +235,20 @@ export class ExamSubmissionController extends BaseController {
             next(error);
         }
     }
+
+    private readonly getDetailsExamSubmission = async (
+        req: Request,
+        res: Response,
+        next: NextFunction
+    ) => {
+        try {
+            const examSubmissionId = parseInt(req.params.id, 10);
+            const data = req.body;
+            const examSubmission = await this.examSubmissionService.getDetailsExamSubmission(examSubmissionId, data);
+            return sendResponse(res, true, 200, "Fetched details exam submission successfully", examSubmission);
+        } catch (error) {
+            next(error);
+        }
+    }
+    
 }
