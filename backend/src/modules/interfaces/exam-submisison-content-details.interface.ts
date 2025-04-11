@@ -6,6 +6,8 @@ export interface IExamSubmissionContentDetailsRepository extends IBaseRepository
     findById(id: number): Promise<ExamSubmissionContentDetails>;
     findByExamSubmissionContentId(exam_submission_content_id: number): Promise<ExamSubmissionContentDetails[]>;
     findByTestcaseId(testcase_id: number): Promise<ExamSubmissionContentDetails[]>;
+    findByExamContentId(exam_content_id: number): Promise<ExamSubmissionContentDetails[]>;
+    findLatestByExamContentAndSubmissionId(exam_content_id: number, exam_submission_id: number): Promise<ExamSubmissionContentDetails[]>;
     save(examSubmissionContentDetails: ExamSubmissionContentDetails): Promise<ExamSubmissionContentDetails>;
     update(id: number, examSubmissionContentDetails: ExamSubmissionContentDetails): Promise<ExamSubmissionContentDetails>;
     delete(id: number): Promise<ExamSubmissionContentDetails>;

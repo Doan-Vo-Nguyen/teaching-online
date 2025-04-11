@@ -54,4 +54,51 @@ export class ExamSubmissionContentDetailsRepository extends BaseRepository<ExamS
         }
         return this.repository.remove(examSubmissionContentDetails);
     }
+
+    /**
+     * Find all details for a specific exam content and submission ID
+     * This is used to calculate the total score across all exam contents for a submission
+     */
+    async findByExamContentId(exam_content_id: number) {
+        return this.repository.find({
+            where: { exam_content_id },
+            relations: ["testcase"]
+        });
+    }
+
+    /**
+     * Find the latest results for a specific exam content and submission ID
+     */
+    async findLatestByExamContentAndSubmissionId(exam_content_id: number, exam_submission_id: number) {
+        try {
+            // First get all exam submission contents for this submission
+            const examSubmissionContents = await this.repository.manager.query(
+                `SELECT esc.id 
+                 FROM teaching.exam_submission_content esc 
+                 JOIN teaching.exam_submission es ON esc.exam_submission_id = es.exam_submission_id 
+                 WHERE es.exam_submission_id = $1
+                 ORDER BY esc.created_at DESC`,
+                [exam_submission_id]
+            );
+            
+            if (!examSubmissionContents || examSubmissionContents.length === 0) {
+                return [];
+            }
+            
+            // Get the IDs of submission contents
+            const contentIds = examSubmissionContents.map(content => content.id);
+            
+            // Find details that match both exam_content_id and are in the list of submission content IDs
+            return this.repository.find({
+                where: {
+                    exam_content_id,
+                    exam_submission_content_id: contentIds.length > 0 ? contentIds[0] : -1 // Use first/latest content ID
+                },
+                relations: ["testcase"]
+            });
+        } catch (error) {
+            console.error(`Error finding details for exam_content_id ${exam_content_id} and submission ${exam_submission_id}:`, error);
+            return [];
+        }
+    }
 }

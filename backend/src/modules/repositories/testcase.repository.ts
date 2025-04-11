@@ -10,6 +10,10 @@ export class TestCaseRepository extends BaseRepository<TestCase> {
         return this.repository.find();
     }
 
+    async findById(id: number): Promise<TestCase> {
+        return this.repository.findOne({ where: { id } });
+    }
+
     async createTestcase(exam_content_id: number, testcase: TestCase): Promise<TestCase> {
         return this.repository.save({ ...testcase, exam_content_id });
     }

@@ -448,6 +448,7 @@ class ExamSubmissionService {
   /**
    * Calculates and updates the grade for an exam submission based on passing testcases
    * This will only apply automatic grading to students with an IT type exam
+   * The grade is the sum of all exam_content_id submissions for the same exam_id
    */
   public async calculateAndUpdateGrade(
     exam_id: number,
@@ -461,7 +462,7 @@ class ExamSubmissionService {
     try {
       Logger.info(`***** CALCULATE AND UPDATE GRADE STARTING *****`);
       Logger.info(`Exam ID: ${exam_id}, Submission ID: ${exam_submission_id}`);
-      Logger.info(`Testcase results count: ${testcase_results ? testcase_results.length : 0}`);
+      Logger.info(`Current testcase results count: ${testcase_results ? testcase_results.length : 0}`);
       
       // Get the exam to check its type
       const exam = await this.examRepository.findById(exam_id);
@@ -479,33 +480,62 @@ class ExamSubmissionService {
         throw new ApiError(404, "Exam submission not found", "Exam submission not found");
       }
 
-      Logger.info(`Exam submission found. Current grade: ${examSubmission.grade}`);
+      Logger.info(`Exam submission found. Current grade: ${examSubmission.grade || 0}`);
 
       // Only apply automatic grading for IT students
       if (exam.type_student === ExamTypeForStudent.IT) {
         Logger.info(`Applying automatic grading for IT student.`);
         
-        // Calculate total grade from passing testcases
-        let totalGrade = 0;
+        // Get all exam contents for this exam
+        Logger.info(`Getting all exam contents for exam ${exam_id}`);
+        const allExamContents = await this.examContentRepository.findByExamId(exam_id);
+        Logger.info(`Found ${allExamContents.length} exam contents for exam ${exam_id}`);
+        
+        // Get the current exam_content_id from the testcase results
+        let currentExamContentId = null;
+        try {
+          if (testcase_results && testcase_results.length > 0) {
+            const testcase = await this.testcaseRepository.findById(testcase_results[0].id);
+            if (testcase) {
+              currentExamContentId = testcase.exam_content_id;
+              Logger.info(`Current submission is for exam_content_id: ${currentExamContentId}`);
+            }
+          }
+        } catch (error) {
+          Logger.error(`Error finding testcase: ${(error as Error).message}`);
+        }
+        
+        // Calculate score for current testcase results
+        let currentScore = 0;
         if (testcase_results && testcase_results.length > 0) {
           for (const result of testcase_results) {
             Logger.info(`Testcase ${result.id}: passed=${result.passed}, score=${result.score}`);
             if (result.passed) {
-              totalGrade += result.score;
-              Logger.info(`Adding ${result.score} points. Total now: ${totalGrade}`);
+              // Make sure score is a clean number
+              const cleanScore = Math.round(Number(result.score) * 100) / 100;
+              currentScore += cleanScore;
+              Logger.info(`Adding ${cleanScore} points. Current content score: ${currentScore}`);
             }
           }
-        } else {
-          Logger.info(`No testcase results found`);
         }
         
-        Logger.info(`Final calculated grade: ${totalGrade}`);
+        // If there's no existing grade, initialize to 0
+        let existingGrade = examSubmission.grade ? Number(examSubmission.grade) : 0;
+        // Make sure the existing grade is a clean number
+        existingGrade = Math.round(existingGrade * 100) / 100;
+        Logger.info(`Existing grade before update: ${existingGrade}`);
         
-        // Update the exam submission with the calculated grade
-        examSubmission.grade = totalGrade;
+        // Update the grade by adding the current score
+        let newGrade = existingGrade + currentScore;
+        // Round to 2 decimal places to avoid floating point issues
+        newGrade = Math.round(newGrade * 100) / 100;
+        Logger.info(`New grade after adding current score (${currentScore}): ${newGrade}`);
+        
+        // Update the exam submission with the calculated total grade
+        examSubmission.grade = newGrade;
         examSubmission.updated_at = new Date();
         
-        Logger.info(`Updating grade in database...`);
+        Logger.info(`Updating grade in database to ${newGrade}...`);
         const updatedSubmission = await this.examSubmissionRepository.updateExamSubmission(
           exam_submission_id,
           examSubmission
@@ -590,8 +620,8 @@ class ExamSubmissionService {
       expected_output?: string;
     }> = [];
 
-    // Handle user input if provided
-    if (data.input && data.input !== "") {
+    // Handle user input if provided - make sure we check for empty strings too
+    if (data.input && data.input.trim() !== "") {
       Logger.info(`Running code with user-provided input: ${data.input.substring(0, 50)}...`);
       try {
         const judge0ResponseForInput = await this.submitToJudge0({
@@ -615,7 +645,7 @@ class ExamSubmissionService {
           run_code_result += `Program Output:\n${decodedOutput}\n`;
         }
         
-        // Create user input result object with decoded values
+        // Create user input result object
         user_input_result = {
           status: {
             id: submissionResultForInput.status.id,
@@ -630,26 +660,20 @@ class ExamSubmissionService {
         if (submissionResultForInput.compile_output) {
           const decodedCompileOutput = Buffer.from(submissionResultForInput.compile_output, 'base64').toString();
           run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
-          // Add to error field
-          user_input_result.error = decodedCompileOutput;
         }
         
         if (submissionResultForInput.stderr) {
           const decodedStderr = Buffer.from(submissionResultForInput.stderr, 'base64').toString();
           run_code_result += `Runtime Error:\n${decodedStderr}\n`;
-          // Add to error field if not already set
-          if (!user_input_result.error) {
-            user_input_result.error = decodedStderr;
-          }
         }
       } catch (error) {
         Logger.error(`Error running code with input: ${(error as Error).message}`);
-        throw new ApiError(
-          500,
-          CODE_EXECUTION_FAILED.error.message,
-          CODE_EXECUTION_FAILED.error.details
-        );
+        // Don't throw an error here - we want to continue with testcases even if user input fails
+        run_code_result += `Error processing user input: ${(error as Error).message}\n\n`;
       }
+    } else {
+      // Log that we're skipping user input because none was provided
+      Logger.info('No user input provided, skipping input execution');
     }
 
     // Handle testcases
@@ -662,6 +686,60 @@ class ExamSubmissionService {
       });
       
       Logger.info(`Found ${testcases.length} testcases`);
+
+      // If no testcases found and no user input provided, run the code with empty input
+      if (testcases.length === 0 && (!data.input || data.input.trim() === "")) {
+        Logger.info('No testcases found and no user input. Running code with empty input to check compilation.');
+        try {
+          const judge0Response = await this.submitToJudge0({
+            source_code: data.file_content,
+            language_id: data.language_id,
+            stdin: "",
+          });
+
+          Logger.info(`Judge0 submission for compilation check successful. Token: ${judge0Response.token}`);
+
+          const submissionResult = await this.getJudge0Result(
+            judge0Response.token
+          );
+
+          Logger.info(`Judge0 result for compilation check received. Status: ${JSON.stringify(submissionResult.status)}`);
+
+          // Add the results to run_code_result
+          run_code_result += `Compilation Check Result:\n${submissionResult.status.description}\n`;
+
+          // Create user input result for empty input
+          user_input_result = {
+            status: {
+              id: submissionResult.status.id,
+              description: submissionResult.status.description,
+            },
+            output: submissionResult.stdout,
+            input: "",
+            error: submissionResult.stderr
+          };
+
+          // Add error information if available
+          if (submissionResult.compile_output) {
+            const decodedCompileOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
+            run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
+          }
+          
+          if (submissionResult.stderr) {
+            const decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
+            run_code_result += `Runtime Error:\n${decodedStderr}\n`;
+          }
+
+          // If there's output, add it too
+          if (submissionResult.stdout) {
+            const decodedOutput = Buffer.from(submissionResult.stdout, 'base64').toString();
+            run_code_result += `Program Output:\n${decodedOutput}\n`;
+          }
+        } catch (error) {
+          Logger.error(`Error performing compilation check: ${(error as Error).message}`);
+          run_code_result += `Error during compilation check: ${(error as Error).message}\n\n`;
+        }
+      }
 
       // Run each testcase
       for (const testcase of testcases) {
