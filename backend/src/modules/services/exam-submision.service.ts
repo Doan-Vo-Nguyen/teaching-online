@@ -25,6 +25,9 @@ import axios, { AxiosError } from "axios";
 import { ExamSubmissionContentDetails } from "../entity/ExamSubmissionContentDetails.entity";
 import { IExamSubmissionContentDetailsRepository } from "../interfaces/exam-submisison-content-details.interface";
 import { ExamSubmissionContentDetailsRepository } from "../repositories/exam-submission-content-details.repository";
+import { ExamTypeForStudent } from "../constant/index";
+import { IExamRepository } from "../interfaces/exam.interface";
+import { ExamRepository } from "../repositories/exam.repository";
 
 class ExamSubmissionService {
   private readonly examSubmissionRepository: IExamSubmissionRepository =
@@ -41,6 +44,10 @@ class ExamSubmissionService {
     new TestCaseRepository();
   private readonly examSubmissionContentDetailsRepository: IExamSubmissionContentDetailsRepository =
     new ExamSubmissionContentDetailsRepository();
+  private readonly examContentRepository: IExamContentRepository =
+    new ExamContentRepository();
+  private readonly examRepository: IExamRepository =
+    new ExamRepository();
 
   public async get(options: any): Promise<ExamSubmission[]> {
     return this.examSubmissionRepository.find(options);
@@ -285,6 +292,7 @@ class ExamSubmissionService {
     this.validateExamSubmissionData(data);
 
     try {
+      Logger.info(`Creating exam submission for student ${student_id} in class ${class_id} for exam ${exam_id}`);
       const studentClass = await this.getStudentClass(student_id, class_id);
       // check if the student has already submitted the exam
       const existedExamSubmission =
@@ -298,6 +306,7 @@ class ExamSubmissionService {
       let submissionContent: ExamSubmissionContent;
       
       if (existedExamSubmission) {
+        Logger.info(`Existing submission found (ID: ${existedExamSubmission.exam_submission_id}). Updating...`);
         // Update timestamp in exam submission
         existedExamSubmission.updated_at = new Date();
         
@@ -318,13 +327,23 @@ class ExamSubmissionService {
           }
         );
         
-        // Always process testcase results (even if no results provided, it will create default entries)
+        Logger.info(`New submission content created (ID: ${submissionContent.id})`);
+        
+        // Process and save testcase results from frontend
         await this.processAndSaveTestcaseResults(
           exam_content_id, 
           submissionContent.id, 
           data.detailed_testcase_results
         );
+
+        // Extract testcase results and use them to calculate grade
+        const testcaseResults = this.extractTestcaseResults(data.detailed_testcase_results);
+        Logger.info(`Extracted ${testcaseResults.length} testcase results from frontend data`);
+        
+        // Calculate and update grade for IT students
+        await this.calculateAndUpdateGrade(exam_id, newExamSubmission.exam_submission_id, testcaseResults);
       } else {
+        Logger.info(`No existing submission found. Creating new submission...`);
         // Create new exam submission
         newExamSubmission = await this.createExamSubmissionRecord(
           exam_id,
@@ -334,6 +353,8 @@ class ExamSubmissionService {
             feed_back: data.feed_back,
           }
         );
+        
+        Logger.info(`New submission created (ID: ${newExamSubmission.exam_submission_id})`);
 
         // Then create exam submission content with file_content
         submissionContent = await this.createExamSubmissionContent(
@@ -341,17 +362,167 @@ class ExamSubmissionService {
           data.file_content
         );
         
-        // Always process testcase results (even if no results provided, it will create default entries)
+        Logger.info(`New submission content created (ID: ${submissionContent.id})`);
+        
+        // Process and save testcase results from frontend
         await this.processAndSaveTestcaseResults(
           exam_content_id, 
           submissionContent.id, 
           data.detailed_testcase_results
         );
+
+        // Extract testcase results and use them to calculate grade
+        const testcaseResults = this.extractTestcaseResults(data.detailed_testcase_results);
+        Logger.info(`Extracted ${testcaseResults.length} testcase results from frontend data`);
+        
+        // Calculate and update grade for IT students
+        await this.calculateAndUpdateGrade(exam_id, newExamSubmission.exam_submission_id, testcaseResults);
       }
       
-      return newExamSubmission;
+      // Get the most recent state of the submission with updated grade
+      const updatedSubmission = await this.examSubmissionRepository.findById(
+        newExamSubmission.exam_submission_id
+      );
+      
+      Logger.info(`Returning final submission with grade: ${updatedSubmission.grade}`);
+      return updatedSubmission || newExamSubmission;
     } catch (error) {
-      Logger.error(error);
+      Logger.error(`Error in createExamSubmissionByStudentAndClass: ${(error as Error).message}`);
+      throw new ApiError(
+        500,
+        EXAM_SUBMISSION_ERROR.error.message,
+        EXAM_SUBMISSION_ERROR.error.details
+      );
+    }
+  }
+
+  /**
+   * Extract testcase results from the detailed_testcase_results parameter
+   * This handles different formats that might come from the frontend
+   */
+  private extractTestcaseResults(detailed_testcase_results: any): Array<{
+    id: number;
+    passed: boolean;
+    score: number;
+  }> {
+    if (!detailed_testcase_results) {
+      return [];
+    }
+
+    try {
+      // Parse if it's a string
+      let results = detailed_testcase_results;
+      if (typeof detailed_testcase_results === 'string') {
+        try {
+          results = JSON.parse(detailed_testcase_results);
+          Logger.info('Parsed detailed_testcase_results from string to object');
+        } catch (parseError) {
+          Logger.error(`Error parsing detailed_testcase_results: ${(parseError as Error).message}`);
+          return [];
+        }
+      }
+
+      // Handle array of results
+      if (Array.isArray(results)) {
+        Logger.info(`Processing array of ${results.length} test results`);
+        return results.map(result => ({
+          id: result.testcase_id,
+          passed: result.passed === true || result.status === 'Accepted' || result.status === 'passed',
+          score: typeof result.score === 'number' ? result.score : 0
+        }));
+      }
+      
+      // Handle single result object
+      Logger.info('Processing single test result object');
+      return [{
+        id: results.testcase_id,
+        passed: results.passed === true || results.status === 'Accepted' || results.status === 'passed',
+        score: typeof results.score === 'number' ? results.score : 0
+      }];
+    } catch (error) {
+      Logger.error(`Error extracting testcase results: ${(error as Error).message}`);
+      return [];
+    }
+  }
+
+  /**
+   * Calculates and updates the grade for an exam submission based on passing testcases
+   * This will only apply automatic grading to students with an IT type exam
+   */
+  public async calculateAndUpdateGrade(
+    exam_id: number,
+    exam_submission_id: number,
+    testcase_results: Array<{
+      id: number;
+      passed: boolean;
+      score: number;
+    }>
+  ): Promise<ExamSubmission> {
+    try {
+      Logger.info(`***** CALCULATE AND UPDATE GRADE STARTING *****`);
+      Logger.info(`Exam ID: ${exam_id}, Submission ID: ${exam_submission_id}`);
+      Logger.info(`Testcase results count: ${testcase_results ? testcase_results.length : 0}`);
+      
+      // Get the exam to check its type
+      const exam = await this.examRepository.findById(exam_id);
+      if (!exam) {
+        Logger.error(`Exam ${exam_id} not found`);
+        throw new ApiError(404, "Exam not found", "Exam not found");
+      }
+      
+      Logger.info(`Exam found. Type for student: ${exam.type_student}`);
+      
+      // Get the current exam submission
+      const examSubmission = await this.examSubmissionRepository.findById(exam_submission_id);
+      if (!examSubmission) {
+        Logger.error(`Exam submission ${exam_submission_id} not found`);
+        throw new ApiError(404, "Exam submission not found", "Exam submission not found");
+      }
+
+      Logger.info(`Exam submission found. Current grade: ${examSubmission.grade}`);
+
+      // Only apply automatic grading for IT students
+      if (exam.type_student === ExamTypeForStudent.IT) {
+        Logger.info(`Applying automatic grading for IT student.`);
+        
+        // Calculate total grade from passing testcases
+        let totalGrade = 0;
+        if (testcase_results && testcase_results.length > 0) {
+          for (const result of testcase_results) {
+            Logger.info(`Testcase ${result.id}: passed=${result.passed}, score=${result.score}`);
+            if (result.passed) {
+              totalGrade += result.score;
+              Logger.info(`Adding ${result.score} points. Total now: ${totalGrade}`);
+            }
+          }
+        } else {
+          Logger.info(`No testcase results found`);
+        }
+        
+        Logger.info(`Final calculated grade: ${totalGrade}`);
+        
+        // Update the exam submission with the calculated grade
+        examSubmission.grade = totalGrade;
+        examSubmission.updated_at = new Date();
+        
+        Logger.info(`Updating grade in database...`);
+        const updatedSubmission = await this.examSubmissionRepository.updateExamSubmission(
+          exam_submission_id,
+          examSubmission
+        );
+        
+        Logger.info(`Grade updated successfully. New grade: ${updatedSubmission.grade}`);
+        Logger.info(`***** CALCULATE AND UPDATE GRADE COMPLETED *****`);
+        
+        return updatedSubmission;
+      } else {
+        Logger.info(`Skipping automatic grading for non-IT student. Exam Type: ${exam.type_student}`);
+        Logger.info(`***** CALCULATE AND UPDATE GRADE SKIPPED *****`);
+        return examSubmission;
+      }
+    } catch (error) {
+      Logger.error(`Error calculating and updating grade: ${(error as Error).message}`);
+      Logger.error(`***** CALCULATE AND UPDATE GRADE FAILED *****`);
       throw new ApiError(
         500,
         EXAM_SUBMISSION_ERROR.error.message,
@@ -437,13 +608,14 @@ class ExamSubmissionService {
         
         Logger.info(`Judge0 result received. Status: ${JSON.stringify(submissionResultForInput.status)}`);
         
-        // Add the results to run_code_result without decoding
+        // Add the results to run_code_result with decoded error messages
         run_code_result += `User Input Result:\n${submissionResultForInput.status.description}\n`;
         if (submissionResultForInput.stdout) {
-          run_code_result += `Program Output (Base64):\n${submissionResultForInput.stdout}\n`;
+          const decodedOutput = Buffer.from(submissionResultForInput.stdout, 'base64').toString();
+          run_code_result += `Program Output:\n${decodedOutput}\n`;
         }
         
-        // Create user input result object
+        // Create user input result object with decoded values
         user_input_result = {
           status: {
             id: submissionResultForInput.status.id,
@@ -454,13 +626,21 @@ class ExamSubmissionService {
           error: submissionResultForInput.stderr
         };
         
-        // Add error information
+        // Add error information with decoded values
         if (submissionResultForInput.compile_output) {
-          run_code_result += `Compilation Output (Base64):\n${submissionResultForInput.compile_output}\n`;
+          const decodedCompileOutput = Buffer.from(submissionResultForInput.compile_output, 'base64').toString();
+          run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
+          // Add to error field
+          user_input_result.error = decodedCompileOutput;
         }
         
         if (submissionResultForInput.stderr) {
-          run_code_result += `Standard Error (Base64):\n${submissionResultForInput.stderr}\n`;
+          const decodedStderr = Buffer.from(submissionResultForInput.stderr, 'base64').toString();
+          run_code_result += `Runtime Error:\n${decodedStderr}\n`;
+          // Add to error field if not already set
+          if (!user_input_result.error) {
+            user_input_result.error = decodedStderr;
+          }
         }
       } catch (error) {
         Logger.error(`Error running code with input: ${(error as Error).message}`);
@@ -521,24 +701,36 @@ class ExamSubmissionService {
           totalGrade += testcase.score;
           run_code_result += `Testcase ${testcase.id}: Passed (+${testcase.score} points)\n`;
           if (testcaseResult.output) {
-            run_code_result += `Program Output (Base64):\n${testcaseResult.output}\n`;
+            const decodedOutput = Buffer.from(testcaseResult.output, 'base64').toString();
+            run_code_result += `Program Output:\n${decodedOutput}\n`;
           }
           Logger.info(`Testcase ${testcase.id} passed. Score: ${testcase.score}`);
         } else {
           run_code_result += `Testcase ${testcase.id}: Failed (${submissionResult.status.description})\n`;
           
-          // Include Base64 outputs
+          // Include decoded outputs
           if (submissionResult.compile_output) {
-            run_code_result += `Compilation Output (Base64):\n${submissionResult.compile_output}\n`;
+            const decodedCompileOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
+            run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
+            // Update testcaseResult with decoded error
+            testcaseResult.error = decodedCompileOutput;
           }
           
           if (submissionResult.stderr) {
-            run_code_result += `Standard Error (Base64):\n${submissionResult.stderr}\n`;
+            const decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
+            run_code_result += `Runtime Error:\n${decodedStderr}\n`;
+            // Update testcaseResult with decoded error if not already set
+            if (!testcaseResult.error) {
+              testcaseResult.error = decodedStderr;
+            }
           }
           
           // Add program output if it exists
           if (testcaseResult.output) {
-            run_code_result += `Program Output (Base64):\n${testcaseResult.output}\n`;
+            const decodedOutput = Buffer.from(testcaseResult.output, 'base64').toString();
+            run_code_result += `Program Output:\n${decodedOutput}\n`;
+            // Also update the testcaseResult with decoded output
+            testcaseResult.output = decodedOutput;
           }
           
           Logger.info(`Testcase ${testcase.id} failed. Status: ${submissionResult.status.description}`);
