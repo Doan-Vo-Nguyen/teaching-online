@@ -25,11 +25,11 @@ export class Notification {
     @CreateDateColumn()
     updated_at: Date
 
-    @ManyToOne(() => Users, users => users.notifications, {onDelete: 'NO ACTION'})
+    @ManyToOne(() => Users, users => users.notifications, {onDelete: 'CASCADE'})
     @JoinColumn({name: "teacher_id"})
     teacher?: Relation<Users>
     
-    @ManyToOne(() => Classes, classes => classes.notifications, {onDelete: 'NO ACTION'})
+    @ManyToOne(() => Classes, classes => classes.notifications, {onDelete: 'CASCADE'})
     @JoinColumn({name: "class_id"})
     class?: Relation<Classes>
 }

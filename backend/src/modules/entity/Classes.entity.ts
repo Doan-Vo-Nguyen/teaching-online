@@ -28,7 +28,7 @@ export class Classes {
     @CreateDateColumn()
     updated_at: Date
 
-    @ManyToOne(() => Users, user => user.teachingClasses, { onDelete: 'NO ACTION' }) // Relation with Users n-1
+    @ManyToOne(() => Users, user => user.teachingClasses, { onDelete: 'CASCADE' }) // Relation with Users n-1
     @JoinColumn({name: "teacher_id"}) // Column name in the database
     teacher: Relation<Users>
 

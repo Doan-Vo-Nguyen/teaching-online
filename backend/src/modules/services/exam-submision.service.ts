@@ -741,80 +741,120 @@ class ExamSubmissionService {
         }
       }
 
-      // Run each testcase
-      for (const testcase of testcases) {
-        Logger.info(`Running testcase ${testcase.id} with input: ${testcase.input.substring(0, 50)}...`);
+      // Process testcases in batches to improve performance
+      const BATCH_SIZE = 3; // Process 3 testcases at a time
+      
+      // Split testcases into batches
+      const testcaseBatches = [];
+      for (let i = 0; i < testcases.length; i += BATCH_SIZE) {
+        testcaseBatches.push(testcases.slice(i, i + BATCH_SIZE));
+      }
+      
+      Logger.info(`Processing testcases in ${testcaseBatches.length} batches of ${BATCH_SIZE}`);
+      
+      // Process each batch in sequence
+      for (let batchIndex = 0; batchIndex < testcaseBatches.length; batchIndex++) {
+        const batch = testcaseBatches[batchIndex];
+        Logger.info(`Processing batch ${batchIndex + 1}/${testcaseBatches.length} with ${batch.length} testcases`);
         
-        const judge0Response = await this.submitToJudge0({
-          source_code: data.file_content,
-          language_id: data.language_id,
-          stdin: testcase.input,
-          expected_output: testcase.expected_output,
-        });
-
-        Logger.info(`Judge0 submission for testcase ${testcase.id} successful. Token: ${judge0Response.token}`);
-
-        const submissionResult = await this.getJudge0Result(
-          judge0Response.token
+        // Submit all testcases in the batch in parallel
+        const batchSubmissions = await Promise.all(
+          batch.map(async (testcase) => {
+            Logger.info(`Submitting testcase ${testcase.id} with input: ${testcase.input.substring(0, 50)}...`);
+            const judge0Response = await this.submitToJudge0({
+              source_code: data.file_content,
+              language_id: data.language_id,
+              stdin: testcase.input,
+              expected_output: testcase.expected_output,
+            });
+            
+            Logger.info(`Judge0 submission for testcase ${testcase.id} successful. Token: ${judge0Response.token}`);
+            
+            return {
+              testcase,
+              token: judge0Response.token
+            };
+          })
         );
+        
+        // Wait for all results in the batch in parallel
+        const batchResults = await Promise.all(
+          batchSubmissions.map(async ({ testcase, token }) => {
+            Logger.info(`Getting results for testcase ${testcase.id} with token: ${token}`);
+            const submissionResult = await this.getJudge0Result(token);
+            
+            Logger.info(`Judge0 result for testcase ${testcase.id} received. Status: ${JSON.stringify(submissionResult.status)}`);
+            
+            return {
+              testcase,
+              submissionResult
+            };
+          })
+        );
+        
+        // Process all results in the batch
+        for (const { testcase, submissionResult } of batchResults) {
+          const testcaseResult = {
+            id: testcase.id,
+            passed: submissionResult.status.id === 3,
+            score: testcase.score,
+            status: {
+              id: submissionResult.status.id,
+              description: submissionResult.status.description,
+            },
+            input: testcase.input,
+            expected_output: testcase.expected_output,
+            output: submissionResult.stdout,
+            error: submissionResult.stderr,
+          };
 
-        Logger.info(`Judge0 result for testcase ${testcase.id} received. Status: ${JSON.stringify(submissionResult.status)}`);
-
-        const testcaseResult = {
-          id: testcase.id,
-          passed: submissionResult.status.id === 3,
-          score: testcase.score,
-          status: {
-            id: submissionResult.status.id,
-            description: submissionResult.status.description,
-          },
-          input: testcase.input,
-          expected_output: testcase.expected_output,
-          output: submissionResult.stdout,
-          error: submissionResult.stderr,
-        };
-
-        // If testcase passed (status.id === 3 means Accepted)
-        if (submissionResult.status.id === 3) {
-          totalGrade += testcase.score;
-          run_code_result += `Testcase ${testcase.id}: Passed (+${testcase.score} points)\n`;
-          if (testcaseResult.output) {
-            const decodedOutput = Buffer.from(testcaseResult.output, 'base64').toString();
-            run_code_result += `Program Output:\n${decodedOutput}\n`;
-          }
-          Logger.info(`Testcase ${testcase.id} passed. Score: ${testcase.score}`);
-        } else {
-          run_code_result += `Testcase ${testcase.id}: Failed (${submissionResult.status.description})\n`;
-          
-          // Include decoded outputs
-          if (submissionResult.compile_output) {
-            const decodedCompileOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
-            run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
-            // Update testcaseResult with decoded error
-            testcaseResult.error = decodedCompileOutput;
-          }
-          
-          if (submissionResult.stderr) {
-            const decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
-            run_code_result += `Runtime Error:\n${decodedStderr}\n`;
-            // Update testcaseResult with decoded error if not already set
-            if (!testcaseResult.error) {
-              testcaseResult.error = decodedStderr;
+          // If testcase passed (status.id === 3 means Accepted)
+          if (submissionResult.status.id === 3) {
+            totalGrade += testcase.score;
+            run_code_result += `Testcase ${testcase.id}: Passed (+${testcase.score} points)\n`;
+            if (testcaseResult.output) {
+              const decodedOutput = Buffer.from(testcaseResult.output, 'base64').toString();
+              run_code_result += `Program Output:\n${decodedOutput}\n`;
             }
+            Logger.info(`Testcase ${testcase.id} passed. Score: ${testcase.score}`);
+          } else {
+            run_code_result += `Testcase ${testcase.id}: Failed (${submissionResult.status.description})\n`;
+            
+            // Include decoded outputs
+            if (submissionResult.compile_output) {
+              const decodedCompileOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
+              run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
+              // Update testcaseResult with decoded error
+              testcaseResult.error = decodedCompileOutput;
+            }
+            
+            if (submissionResult.stderr) {
+              const decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
+              run_code_result += `Runtime Error:\n${decodedStderr}\n`;
+              // Update testcaseResult with decoded error if not already set
+              if (!testcaseResult.error) {
+                testcaseResult.error = decodedStderr;
+              }
+            }
+            
+            // Add program output if it exists
+            if (testcaseResult.output) {
+              const decodedOutput = Buffer.from(testcaseResult.output, 'base64').toString();
+              run_code_result += `Program Output:\n${decodedOutput}\n`;
+              // Also update the testcaseResult with decoded output
+              testcaseResult.output = decodedOutput;
+            }
+            
+            Logger.info(`Testcase ${testcase.id} failed. Status: ${submissionResult.status.description}`);
           }
           
-          // Add program output if it exists
-          if (testcaseResult.output) {
-            const decodedOutput = Buffer.from(testcaseResult.output, 'base64').toString();
-            run_code_result += `Program Output:\n${decodedOutput}\n`;
-            // Also update the testcaseResult with decoded output
-            testcaseResult.output = decodedOutput;
-          }
-          
-          Logger.info(`Testcase ${testcase.id} failed. Status: ${submissionResult.status.description}`);
+          testcase_results.push(testcaseResult);
         }
         
-        testcase_results.push(testcaseResult);
+        // Add a small delay between batches to avoid API rate limits
+        if (batchIndex < testcaseBatches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
 
       Logger.info(`All testcases completed. Total grade: ${totalGrade}`);
@@ -1049,7 +1089,7 @@ class ExamSubmissionService {
   private async getJudge0Result(token: string) {
     Logger.info(`Getting Judge0 result for token: ${token}`);
     
-    const maxAttempts = 10;
+    const maxAttempts = 15;
     const pollingInterval = 1000; // 1 second
     
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -1070,6 +1110,7 @@ class ExamSubmissionService {
         
         const response = await axios.get(options.url, {
           headers: options.headers,
+          timeout: 15000, // Increase axios timeout to 15 seconds
         });
 
         Logger.info(`Judge0 result received. Status ID: ${response.data.status?.id}, Description: ${response.data.status?.description}`);
