@@ -27,6 +27,7 @@ npm run dev
 
 ## Folder Structure
 
+```
 backend/
 ├── src/
 │   ├── database/
@@ -53,6 +54,7 @@ backend/
 ├── .gitignore
 ├── tsconfig.json
 └── build/
+```
 
 ## Deploy
 
