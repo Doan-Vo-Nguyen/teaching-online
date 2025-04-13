@@ -16,7 +16,7 @@ export class Meet {
     @Column({type: "varchar", length: 255})
     room_url: string
 
-    @ManyToOne(() => Classes, cls => cls.meets, { onDelete: 'NO ACTION' }) // Relation with Classes n-1
+    @ManyToOne(() => Classes, cls => cls.meets, { onDelete: 'CASCADE' }) // Relation with Classes n-1
     @JoinColumn({name: "class_id"})
     class: Relation<Classes>
 }
