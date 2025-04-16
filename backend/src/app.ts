@@ -22,9 +22,12 @@ import { NotificationController } from "./modules/controller/notification.contro
 import { MeetController } from "./modules/controller/meet.controller";
 import { ExamSubmissionController } from "./modules/controller/exam-submission.controller";
 import { TestcaseController } from "./modules/controller/testcase.controller";
+import { logPageView } from "./modules/middleware/audit-log.middleware";
+import { IRequest } from "./modules/types/IRequest";
 
 export class Application {
   private _app: Express | undefined;
+  // private tokenCleanupInterval: NodeJS.Timer | null = null;
 
   get app(): Express {
     if (!this._app) {
@@ -38,9 +41,13 @@ export class Application {
     this.initMiddleware();
     this.initControllers();
     this.initSwagger();
+    this.initMetricsEndpoint();
+    // this.initTokenBlacklistCleanup();
   }
 
   private initMiddleware() {
+    this._app?.use(Logger.requestLogger());
+    
     this._app?.use(express.json());
     this._app?.use(express.urlencoded({ extended: true }));
     this._app?.use(
@@ -53,7 +60,7 @@ export class Application {
           "https://edu-space-dkn7.vercel.app",
           "https://ghienphim.fun",
         ],
-        
+                
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
         allowedHeaders: ["Content-Type", "Authorization"],
         credentials: true,
@@ -84,6 +91,15 @@ export class Application {
 
     // Middleware for authentication
     this._app?.use("/app", authentication);
+    
+    // Middleware for audit logging page views (after authentication)
+    this._app?.use("/app", (req, res, next) => {
+      // Skip API endpoints that don't represent page views
+      if (req.method === 'GET' && !req.path.includes('/api/')) {
+        return logPageView(req as IRequest, res, next);
+      }
+      return next();
+    });
 
     // Protected routes
     const protectedControllers = [
@@ -113,15 +129,36 @@ export class Application {
     this.app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
   }
 
+  private initMetricsEndpoint() {
+    this.app.get("/metrics", (req: Request, res: Response) => {
+      res.setHeader("Content-Type", "text/plain");
+      res.send(Logger.getMetricsForPrometheus());
+    });
+  }
+
+  /* 
+  private initTokenBlacklistCleanup() {
+    // Run token blacklist cleanup every hour (3600000 ms)
+    this.tokenCleanupInterval = setInterval(() => {
+      try {
+        Logger.debug('Running token blacklist cleanup');
+        cleanupBlacklist();
+      } catch (error: any) {
+        Logger.error('Error during token blacklist cleanup', undefined, { error });
+      }
+    }, 3600000);
+  }
+  */
+
   public async start() {
-    const port = process.env.PORT || 10000;
+    const port = parseInt(process.env.PORT || "10000", 10);
     const name = process.env.APP_SERVER || "Teaching_Online_Server";
     try {
       await AppDataSource.initialize();
       await AppDataSource2.initialize();
       Logger.info("MySQL Data Source has been initialized!");
       Logger.info("MongoDB Data Source has been initialized!");
-      this.app.listen(port, () => {
+      this.app.listen(port, "0.0.0.0", () => {
         Logger.info(`Server ${name} is running at port ${port}`);
       });
     } catch (error) {

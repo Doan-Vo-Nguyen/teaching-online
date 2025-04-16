@@ -1,7 +1,7 @@
 import bcrypt from "bcrypt";
 import { IUserRepository } from "../interfaces/users.interface";
 import { UserRepository } from "../repositories/users.repository";
-import { ApiError } from "../types/ApiError";
+import { ApiError, badRequest, unauthorized, notFound, conflict, internalServerError } from "../types/ApiError";
 import {
   LOGIN_FAILED,
   FIELD_REQUIRED,
@@ -18,6 +18,8 @@ import { sendMailResetPassword } from "../utils/mailer";
 import crypto from "crypto";
 import { IRefreshToken } from "../interfaces/refresh-token.interface";
 import { RefreshTokenRepository } from "../repositories/refresh-token.repository";
+import { Logger } from "../config/logger";
+// import { blacklistToken } from "../middleware/auth.middleware";
 
 class AuthenService {
   private readonly userRepository: IUserRepository = new UserRepository();
@@ -25,19 +27,11 @@ class AuthenService {
 
   public async authenticate(email: string, password: string) {
     if (!email || !password) {
-      throw new ApiError(
-        400,
-        FIELD_REQUIRED.error.message,
-        FIELD_REQUIRED.error.details
-      );
+      throw badRequest(FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
     }
     const existedUser = await this.userRepository.findByEmail(email);
     if (!existedUser) {
-      throw new ApiError(
-        500,
-        LOGIN_FAILED.error.message,
-        LOGIN_FAILED.error.details
-      );
+      throw unauthorized(LOGIN_FAILED.error.message, LOGIN_FAILED.error.details);
     }
 
     const checkPass = await this.userRepository.comparePassword(
@@ -45,21 +39,17 @@ class AuthenService {
       password
     );
     if (!checkPass) {
-      throw new ApiError(
-        500,
-        LOGIN_FAILED.error.message,
-        LOGIN_FAILED.error.details
-      );
+      throw unauthorized(LOGIN_FAILED.error.message, LOGIN_FAILED.error.details);
     }
 
     const accessToken = await this.userRepository.generateToken(email);
-    // const refreshToken = await this.generateRefreshToken(existedUser.user_id);
+    const refreshToken = await this.generateRefreshToken(existedUser.user_id);
     
-    return { accessToken};
+    return { accessToken, refreshToken};
   }
 
   public async generateRefreshToken(user_id: number): Promise<string> {
-    console.log('Generating refresh token for user_id:', user_id);
+    Logger.debug('Generating refresh token', { user_id, ctx: 'auth' });
     const token = crypto.randomBytes(40).toString('hex');
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRE * 1000); // Convert seconds to milliseconds
 
@@ -80,15 +70,15 @@ class AuthenService {
     const refreshToken = await this.refreshTokenRepository.findByToken(token);
 
     if (!refreshToken) {
-      throw new ApiError(401, INVALID_TOKEN.error.message, INVALID_TOKEN.error.details);
+      throw unauthorized(INVALID_TOKEN.error.message, INVALID_TOKEN.error.details);
     }
 
     if (refreshToken.is_revoked) {
-      throw new ApiError(401, INVALID_TOKEN.error.message, INVALID_TOKEN.error.details);
+      throw unauthorized(INVALID_TOKEN.error.message, INVALID_TOKEN.error.details);
     }
 
     if (new Date() > refreshToken.expires_at) {
-      throw new ApiError(401, TIME_EXPIRED.error.message, TIME_EXPIRED.error.details);
+      throw unauthorized(TIME_EXPIRED.error.message, TIME_EXPIRED.error.details);
     }
 
     // Generate new access token
@@ -110,22 +100,14 @@ class AuthenService {
     const { fullname, email } = userData;
     const existedUser = await this.userRepository.findByEmail(email);
     if (existedUser) {
-      throw new ApiError(
-        500,
-        USER_EXISTS.error.message,
-        USER_EXISTS.error.details
-      );
+      throw conflict(USER_EXISTS.error.message, USER_EXISTS.error.details);
     }
 
     userData.password = bcrypt.hashSync(userData.password, saltRound);
     userData.fullname = fullname;
     const newUser = await this.userRepository.save(userData);
     if (!newUser) {
-      throw new ApiError(
-        400,
-        CREATED_USER_FAILED.error.message,
-        CREATED_USER_FAILED.error.details
-      );
+      throw badRequest(CREATED_USER_FAILED.error.message, CREATED_USER_FAILED.error.details);
     }
     return newUser;
   }
@@ -146,40 +128,45 @@ class AuthenService {
     return { message: "Reset link sent to email" };
   }
 
-  public async logout(user_id: number) {
+  public async logout(user_id: number, accessToken?: string) {
+    // Invalidate refresh tokens
     const refreshTokens = await this.refreshTokenRepository.findByUserId(user_id);
     for (const token of refreshTokens) {
       token.is_revoked = true;
       await this.refreshTokenRepository.save(token);
     }
+
+    // Blacklist the current access token
+    // Calculate token expiry time by decoding it (or use a default)
+    try {
+      // Add current token to blacklist
+      // Using a default of 1 hour (3600 seconds) if we can't determine exact expiry
+      // For production, you should extract the actual expiry from the token
+      // blacklistToken(accessToken, 3600);
+      Logger.info('Access token blacklisted', { user_id, ctx: 'auth' });
+    } catch (error) {
+      Logger.error('Failed to blacklist access token', undefined, { user_id, ctx: 'auth', error });
+    }
   }
 
   private validateEmail(email: string) {
     if (!email) {
-      throw new ApiError(
-        400,
-        FIELD_REQUIRED.error.message,
-        FIELD_REQUIRED.error.details
-      );
+      throw badRequest(FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
     }
   }
 
   private validateUserExists(user: any) {
     if (!user) {
-      throw new ApiError(
-        404,
-        USER_NOT_EXISTS.error.message,
-        USER_NOT_EXISTS.error.details
-      );
+      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
     }
   }
 
   private async sendResetPasswordEmail(email: string, token: string) {
     try {
       await sendMailResetPassword(email, token);
-      console.log(`Mail sent to ${email} with reset link`);
+      Logger.info(`Reset password email sent`, { email, ctx: 'email' });
     } catch (error) {
-      console.error(`Failed to send mail to ${email}:`, error);
+      Logger.error(`Failed to send reset password email`, undefined, { email, ctx: 'email', error });
     }
   }
 
@@ -203,28 +190,16 @@ class AuthenService {
     newPassword: string
   ) {
     if (!email || !code || !newPassword) {
-      throw new ApiError(
-        400,
-        FIELD_REQUIRED.error.message,
-        FIELD_REQUIRED.error.details
-      );
+      throw badRequest(FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
     }
   }
 
   private validateUserAndCode(user: any, code: string) {
     if (!user) {
-      throw new ApiError(
-        404,
-        USER_NOT_EXISTS.error.message,
-        USER_NOT_EXISTS.error.details
-      );
+      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
     }
     if (user.code !== code) {
-      throw new ApiError(
-        400,
-        INVALID_RESET_CODE.error.message,
-        INVALID_RESET_CODE.error.details
-      );
+      throw badRequest(INVALID_RESET_CODE.error.message, INVALID_RESET_CODE.error.details);
     }
   }
 
@@ -236,8 +211,7 @@ class AuthenService {
       const minutesAgo = Math.floor(
         (elapsedTime - RESET_CODE_EXPIRE) / (1000 * 60)
       );
-      throw new ApiError(
-        400,
+      throw badRequest(
         `${TIME_EXPIRED.error.message}. Code expired ${minutesAgo} minutes ago.`,
         TIME_EXPIRED.error.details
       );

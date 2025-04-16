@@ -4,46 +4,57 @@ import BaseController from "../abstracts/base-controller";
 import ExamSubmissionService from "../services/exam-submision.service";
 import { Request, Response, NextFunction } from "express";
 import { Logger } from '../config/logger';
+import { trackApiAction, trackControllerAction } from '../middleware/api-tracking.middleware';
+import { logExamStart } from '../middleware/audit-log.middleware';
+import { IRequest } from '../types/IRequest';
 
 export class ExamSubmissionController extends BaseController {
     private readonly examSubmissionService: ExamSubmissionService;
+    private track: (actionName: string) => ReturnType<typeof trackApiAction>;
 
     constructor(path: string) {
         super(path);
         this.examSubmissionService = new ExamSubmissionService();
+        // Create a tracker specific to this controller
+        this.track = trackControllerAction('ExamSubmissionController');
         this.initRoutes();
     }
 
     public initRoutes(): void {
         // Resource: exam submissions collection
-        this.router.get("/", authentication, this.getAllExamSubmissions);
-        this.router.post("/", authentication, this.createExamSubmission);
+        this.router.get("/", authentication, this.track('getAllExamSubmissions'), this.getAllExamSubmissions);
+        this.router.post("/", authentication, this.track('createExamSubmission'), this.createExamSubmission);
         
         // Resource: single exam submission
-        this.router.get("/:id", authentication, this.getExamSubmissionById);
-        this.router.put("/:id", authentication, this.updateExamSubmission);
-        this.router.delete("/:id", authentication, this.deleteExamSubmission);
+        this.router.get("/:id", authentication, this.track('getExamSubmissionById'), this.getExamSubmissionById);
+        this.router.put("/:id", authentication, this.track('updateExamSubmission'), this.updateExamSubmission);
+        this.router.delete("/:id", authentication, this.track('deleteExamSubmission'), this.deleteExamSubmission);
 
         // Resource: delete submission for a student in a class
-        this.router.delete("/submissions/:submissionId/content/:id", authentication, this.deleteExamSubmissionContent);
+        this.router.delete("/submissions/:submissionId/content/:id", authentication, this.track('deleteExamSubmissionContent'), this.deleteExamSubmissionContent);
         
         // Resource: exam submissions for a specific exam
-        this.router.get("/exams/:examId/submissions", authentication, this.getExamSubmissionsByExamId);
+        this.router.get("/exams/:examId/submissions", authentication, this.track('getExamSubmissionsByExamId'), this.getExamSubmissionsByExamId);
         
         // Resource: exam submissions for a specific student
-        this.router.get("/exams/:examId/students/:studentId/classes/:classId/submissions", authentication, this.getExamSubmissionsByOneStudent);
+        this.router.get("/exams/:examId/students/:studentId/classes/:classId/submissions", authentication, this.track('getExamSubmissionsByOneStudent'), this.getExamSubmissionsByOneStudent);
         
         // Resource: exam submission status for a student in a class
-        this.router.get("/exams/:examId/classes/:classId/status", authentication, this.getExamSubmissionStatus);
+        this.router.get("/exams/:examId/classes/:classId/status", authentication, this.track('getExamSubmissionStatus'), this.getExamSubmissionStatus);
         
-        // Resource: create submission for a student in a class
-        this.router.post("/exams/:examId/students/:studentId/classes/:classId/exam-contents/:examContentId/submissions", authentication, this.createExamSubmissionByStudentAndClass);
+        // Resource: create submission for a student in a class - Add audit logging
+        this.router.post("/exams/:examId/students/:studentId/classes/:classId/exam-contents/:examContentId/submissions", 
+            authentication, 
+            this.track('createExamSubmissionByStudentAndClass'), 
+            logExamStart,
+            this.createExamSubmissionByStudentAndClass
+        );
 
         // Resource: run code
-        this.router.post("/exams/:examContentId/run", authentication, this.runCode);
+        this.router.post("/exams/:examContentId/run", authentication, this.track('runCode'), this.runCode);
 
         // Resource: get details exam submission
-        this.router.get("/:id/details", authentication, this.getDetailsExamSubmission);
+        this.router.get("/:id/details", authentication, this.track('getDetailsExamSubmission'), this.getDetailsExamSubmission);
     }
 
     private readonly getAllExamSubmissions = async (
@@ -56,6 +67,7 @@ export class ExamSubmissionController extends BaseController {
             const examSubmissions = await this.examSubmissionService.get(req.query);
             return sendResponse(res, true, 200, "Fetched all exam submissions successfully", examSubmissions);
         } catch (error) {
+            Logger.error(error, undefined, { traceId: (req as any).traceId });
             next(error);
         }
     };
@@ -131,15 +143,30 @@ export class ExamSubmissionController extends BaseController {
     ) => {
         try {
             const examSubmission = req.body;
+            
+            // Log start of operation with trace ID
+            Logger.info("Starting exam submission creation", {
+                traceId: (req as any).traceId,
+                examId: examSubmission.examId,
+                studentId: examSubmission.student_id,
+                classId: examSubmission.class_id
+            });
+            
             const createdExamSubmission = await this.examSubmissionService.createExamSubmission(
                 examSubmission.examId,
                 examSubmission.student_id,
                 examSubmission.class_id,
                 examSubmission
             );
+            
             return sendResponse(res, true, 201, "Created exam submission successfully", createdExamSubmission);
         } catch (error) {
-            Logger.error(error);
+            // Log error with trace ID
+            Logger.error(error, undefined, { 
+                traceId: (req as any).traceId,
+                operation: 'createExamSubmission'
+            });
+            
             next(error);
         }
     };

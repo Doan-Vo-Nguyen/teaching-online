@@ -4,6 +4,7 @@ import ExamService from "../services/exam.service";
 import { sendResponse } from "../../common/interfaces/base-response";
 import { validParam } from "../middleware/validate/field.validate";
 import { authentication } from "../middleware/auth.middleware";
+import { HTTP_OK, HTTP_CREATED, HTTP_NO_CONTENT } from "../constant/http-status";
 
 export class ExamController extends BaseController {
     private readonly examService: ExamService;
@@ -36,7 +37,7 @@ export class ExamController extends BaseController {
     ) => {
         try {
             const exams = await this.examService.getAllExams();
-            return sendResponse(res, true, 200, "Get all exams successfully", exams);
+            return sendResponse(res, true, HTTP_OK, "Get all exams successfully", exams);
         } catch (error) {
             next(error);
         }
@@ -50,7 +51,7 @@ export class ExamController extends BaseController {
         try {
             const examId = parseInt(req.params.id, 10);
             const exam = await this.examService.getExamById(examId);
-            return sendResponse(res, true, 200, "Get exam by id successfully", exam);
+            return sendResponse(res, true, HTTP_OK, "Get exam by id successfully", exam);
         } catch (error) {
             next(error);
         }
@@ -64,7 +65,7 @@ export class ExamController extends BaseController {
         try {
             const exam = req.body;
             const newExam = await this.examService.createExam(exam);
-            return sendResponse(res, true, 200, "Create exam successfully", newExam);
+            return sendResponse(res, true, HTTP_CREATED, "Create exam successfully", newExam);
         } catch (error) {
             next(error);
         }
@@ -79,7 +80,7 @@ export class ExamController extends BaseController {
             const examId = parseInt(req.params.id, 10);
             const exam = req.body;
             const updatedExam = await this.examService.updateExam(examId, exam);
-            return sendResponse(res, true, 200, "Update exam successfully", updatedExam);
+            return sendResponse(res, true, HTTP_OK, "Update exam successfully", updatedExam);
         } catch (error) {
             next(error);
         }
@@ -93,7 +94,7 @@ export class ExamController extends BaseController {
         try {
             const examId = parseInt(req.params.id, 10);
             await this.examService.deleteExam(examId);
-            return sendResponse(res, true, 200, "Delete exam successfully");
+            return sendResponse(res, true, HTTP_NO_CONTENT, "Delete exam successfully");
         } catch (error) {
             next(error);
         }
@@ -107,7 +108,7 @@ export class ExamController extends BaseController {
         try {
             const examId = parseInt(req.params.id, 10);
             const examContent = await this.examService.getExamContentById(examId);
-            return sendResponse(res, true, 200, "Get exam content by id successfully", examContent);
+            return sendResponse(res, true, HTTP_OK, "Get exam content by id successfully", examContent);
         } catch (error) {
             next(error);
         }
@@ -122,7 +123,7 @@ export class ExamController extends BaseController {
             const { classId, teacherId } = req.params;
             const exam = req.body;
             const newExam = await this.examService.createExamByClassAndTeacher(parseInt(classId, 10), parseInt(teacherId, 10), exam);
-            return sendResponse(res, true, 200, "Create exam successfully", newExam);
+            return sendResponse(res, true, HTTP_CREATED, "Create exam successfully", newExam);
         } catch (error) {
             next(error);
         }
@@ -137,7 +138,7 @@ export class ExamController extends BaseController {
             const examId = parseInt(req.params.id, 10);
             const examContent = req.body;
             const newExamContent = await this.examService.createExamContentByExamId(examId, examContent);
-            return sendResponse(res, true, 200, "Create exam content successfully", newExamContent);
+            return sendResponse(res, true, HTTP_CREATED, "Create exam content successfully", newExamContent);
         } catch (error) {
             next(error);
         }
@@ -151,7 +152,7 @@ export class ExamController extends BaseController {
         try {
             const examContentId = parseInt(req.params.id, 10);
             await this.examService.deleteExamContent(examContentId);
-            return sendResponse(res, true, 200, "Delete exam content successfully");
+            return sendResponse(res, true, HTTP_NO_CONTENT, "Delete exam content successfully");
         } catch (error) {
             next(error);
         }
@@ -166,7 +167,7 @@ export class ExamController extends BaseController {
             const examContentId = parseInt(req.params.id, 10);
             const examContent = req.body;
             const updatedExamContent = await this.examService.updateExamContent(examContentId, examContent);
-            return sendResponse(res, true, 200, "Update exam content successfully", updatedExamContent);
+            return sendResponse(res, true, HTTP_OK, "Update exam content successfully", updatedExamContent);
         } catch (error) {
             next(error);
         }
@@ -180,7 +181,7 @@ export class ExamController extends BaseController {
         try {
             const examContentId = parseInt(req.params.id, 10);
             await this.examService.deleteExamContent(examContentId);
-            return sendResponse(res, true, 200, "Delete exam content successfully");
+            return sendResponse(res, true, HTTP_NO_CONTENT, "Delete exam content successfully");
         } catch (error) {
             next(error);
         }
@@ -195,7 +196,7 @@ export class ExamController extends BaseController {
             const examId = parseInt(req.params.id, 10);
             const examContentId = parseInt(req.params.exam_content_id, 10);
             const exam = await this.examService.getDetailExam(examId, examContentId);
-            return sendResponse(res, true, 200, "Get detail exam successfully", exam);
+            return sendResponse(res, true, HTTP_OK, "Get detail exam successfully", exam);
         } catch (error) {
             next(error);
         }

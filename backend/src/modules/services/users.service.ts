@@ -4,7 +4,7 @@ import { UserRepository } from "../repositories/users.repository";
 import { ClassesRepository } from "../repositories/classes.repository";
 import { StudentClassesRepository } from "../repositories/student-classes.repository";
 import { generateRandomCode } from "../utils/GenerateCode";
-import { ApiError } from "../types/ApiError";
+import { ApiError, badRequest, notFound, conflict, forbidden } from "../types/ApiError";
 import { Role } from "../constant/index";
 import {
   USER_NOT_EXISTS,
@@ -63,11 +63,7 @@ class UserService {
     this.validateField(userId, FIELD_REQUIRED);
     const user = await this.userRepository.findById(userId);
     if (!user)
-      throw new ApiError(
-        404,
-        USER_NOT_EXISTS.error.message,
-        USER_NOT_EXISTS.error.details
-      );
+      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
     return user;
   }
 
@@ -75,11 +71,7 @@ class UserService {
     this.validateField(fullname, FIELD_REQUIRED);
     const user = await this.userRepository.findByName(fullname);
     if (!user)
-      throw new ApiError(
-        404,
-        USER_NOT_EXISTS.error.message,
-        USER_NOT_EXISTS.error.details
-      );
+      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
     return user;
   }
 
@@ -92,7 +84,7 @@ class UserService {
     if (existedUser) this.handleExistingUser(existedUser, username, email);
     userData.password = bcrypt.hashSync(password, saltRound);
     const newUser = await this.userRepository.save(userData);
-    if (!newUser) throw new ApiError(400, CREATED_USER_FAILED.error.message);
+    if (!newUser) throw badRequest(CREATED_USER_FAILED.error.message);
     return newUser;
   }
 
@@ -100,11 +92,7 @@ class UserService {
     this.validateField(id, FIELD_REQUIRED);
     const user = await this.userRepository.findById(id);
     if (!user)
-      throw new ApiError(
-        404,
-        USER_NOT_EXISTS.error.message,
-        USER_NOT_EXISTS.error.details
-      );
+      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
     if (userData.password)
       userData.password = bcrypt.hashSync(userData.password, saltRound);
     else delete userData.password;
@@ -119,11 +107,7 @@ class UserService {
     this.validateField(role, FIELD_REQUIRED);
     const user = await this.userRepository.findById(userId);
     if (!user)
-      throw new ApiError(
-        404,
-        USER_NOT_EXISTS.error.message,
-        USER_NOT_EXISTS.error.details
-      );
+      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
     return await this.userRepository.update(userId, {
       role,
       updated_at: new Date(),
@@ -134,11 +118,7 @@ class UserService {
     this.validateField(userId, FIELD_REQUIRED);
     const user = await this.userRepository.findById(userId);
     if (!user)
-      throw new ApiError(
-        404,
-        USER_NOT_EXISTS.error.message,
-        USER_NOT_EXISTS.error.details
-      );
+      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
     return await this.userRepository.delete(userId);
   }
 
@@ -188,24 +168,17 @@ class UserService {
     this.validateField(newPassword, FIELD_REQUIRED);
     const user = await this.userRepository.findById(id);
     if (!user)
-      throw new ApiError(
-        404,
-        USER_NOT_EXISTS.error.message,
-        USER_NOT_EXISTS.error.details
-      );
+      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
     if (!bcrypt.compareSync(oldPassword, user.password))
-      throw new ApiError(
-        400,
-        WRONG_OLD_PASSWORD.error.message,
-        WRONG_OLD_PASSWORD.error.details
-      );
-    const hashedPassword = bcrypt.hashSync(newPassword, saltRound);
-    return await this.userRepository.changePassword(id, hashedPassword);
+      throw badRequest(WRONG_OLD_PASSWORD.error.message, WRONG_OLD_PASSWORD.error.details);
+    user.password = bcrypt.hashSync(newPassword, saltRound);
+    user.updated_at = new Date();
+    await this.userRepository.update(id, user);
+    return { success: true };
   }
 
   private validateField(field: any, error: any) {
-    if (!field)
-      throw new ApiError(400, error.error.message, error.error.details);
+    if (!field) throw badRequest(error.error.message, error.error.details);
   }
 
   private handleExistingUser(
@@ -214,70 +187,50 @@ class UserService {
     email: string
   ) {
     if (existedUser.username === username)
-      throw new ApiError(409, USERNAME_EXISTS.error.message);
+      throw conflict(USERNAME_EXISTS.error.message, USERNAME_EXISTS.error.details);
     if (existedUser.email === email)
-      throw new ApiError(409, EMAIL_EXISTS.error.message);
-    throw new ApiError(409, USER_EXISTS.error.message);
+      throw conflict(EMAIL_EXISTS.error.message, EMAIL_EXISTS.error.details);
+    throw conflict(USER_EXISTS.error.message, USER_EXISTS.error.details);
   }
 
   private validateUserForClassJoin(user: any) {
     if (!user)
-      throw new ApiError(
-        404,
-        USER_NOT_EXISTS.error.message,
-        USER_NOT_EXISTS.error.details
-      );
+      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
     if (user.role !== Role.STUDENT)
-      throw new ApiError(
-        400,
-        NOT_STUDENT.error.message,
-        NOT_STUDENT.error.details
-      );
+      throw forbidden(NOT_STUDENT.error.message, NOT_STUDENT.error.details);
   }
 
   private validateClassData(classData: any) {
     if (!classData)
-      throw new ApiError(
-        404,
-        CLASS_NOT_FOUND.error.message,
-        CLASS_NOT_FOUND.error.details
-      );
+      throw notFound(CLASS_NOT_FOUND.error.message, CLASS_NOT_FOUND.error.details);
   }
 
   private async checkExistingEnrollment(userId: number, classId: number) {
-    const existingEnrollment =
+    const enrollment =
       await this.studentClassesRepository.findByUserIdAndClassId(
         userId,
         classId
       );
-    if (existingEnrollment)
-      throw new ApiError(
-        400,
-        ALREADY_ENROLL.error.message,
-        ALREADY_ENROLL.error.details
-      );
+    if (enrollment)
+      throw conflict(ALREADY_ENROLL.error.message, ALREADY_ENROLL.error.details);
   }
 
   private async validateClassExists(classData: any) {
     const existingClass = await this.classesRepository.findByClassName(
       classData.class_name
     );
-    console.log(existingClass);
     if (existingClass)
-      throw new ApiError(
-        409,
+      throw conflict(
         CLASS_ALREADY_EXISTS.error.message,
         CLASS_ALREADY_EXISTS.error.details
       );
   }
 
   private validateCreatorForClassAdd(user: any) {
-    if (!user || (user.role !== Role.TEACHER && user.role !== Role.ADMIN))
-      throw new ApiError(
-        400,
-        NOT_TEACHER.error.message,
-        NOT_TEACHER.error.details
-      );
+    if (!user)
+      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
+    if (user.role !== Role.TEACHER && user.role !== Role.ADMIN)
+      throw forbidden(NOT_TEACHER.error.message, NOT_TEACHER.error.details);
   }
 
   public getUserByRole(role: Role) {

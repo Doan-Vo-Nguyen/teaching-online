@@ -8,4 +8,5 @@ export interface IRequest extends Request {
         email: string;
         role: Array<string>;
     }
+    auditLogId?: string;
 }

@@ -17,6 +17,7 @@ import { StudentClasses } from "../entity/Student_classes.entity";
 import { StudentClassesRepository } from "../repositories/student-classes.repository";
 import { UserRepository } from "../repositories/users.repository";
 import { sendLectureMailToClass } from "../utils/mailer";
+import { Logger } from "../config/logger";
 
 class LecturesService {
   private readonly lecturesRepository: ILecturesRepository =
@@ -262,7 +263,12 @@ class LecturesService {
         updated_at: new Date(),
       });
     } catch (error) {
-      console.error("Failed to send lecture notifications:", error);
+      Logger.error("Failed to send lecture notifications", undefined, {
+        class_id,
+        lecture_id: newLecture.lecture_id,
+        ctx: 'notification',
+        error
+      });
     }
     return newLecture;
   }
@@ -419,8 +425,18 @@ class LecturesService {
     // Send email notification to all students
     try {
       await sendLectureMailToClass(emails, title, description);
+      Logger.info(`Lecture notification email sent`, {
+        recipientCount: emails.length,
+        title,
+        ctx: 'email'
+      });
     } catch (error) {
-      console.error("Failed to send lecture notifications:", error);
+      Logger.error("Failed to send lecture notification email", undefined, {
+        recipientCount: emails.length,
+        title,
+        ctx: 'email',
+        error
+      });
     }
   }
 }

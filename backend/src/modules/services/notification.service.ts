@@ -6,6 +6,7 @@ import { StudentClassesRepository } from "../repositories/student-classes.reposi
 import { UserRepository } from "../repositories/users.repository";
 import { ApiError } from "../types/ApiError";
 import { sendPersonalNotificationMail } from "../utils/mailer";
+import { Logger } from "../config/logger";
 
 class NotificationService {
     private readonly notificationRepository: NotificationRepository = new NotificationRepository();
@@ -77,7 +78,12 @@ class NotificationService {
             await this.sendMailToStudents(emails, newNotification.title, newNotification.content);
             return newNotification;
         } catch (error) {
-            console.error("Notification creation error:", error);
+            Logger.error("Notification creation error", undefined, {
+                teacherId,
+                classId,
+                ctx: 'notification',
+                error
+            });
         }
     }
 
@@ -139,8 +145,18 @@ class NotificationService {
     private async sendMailToStudents(emails: string[], title: string, content: string) {
        try {
         await sendPersonalNotificationMail(emails, title, content);
+        Logger.info("Notification email sent to students", {
+            recipientCount: emails.length,
+            title,
+            ctx: 'email'
+        });
        } catch (error) {
-        console.error("Failed to send mail to students:", error);
+        Logger.error("Failed to send notification email", undefined, {
+            recipientCount: emails.length,
+            title,
+            ctx: 'email',
+            error
+        });
        }
     }
 

@@ -12,6 +12,11 @@ import {
 import { validParam } from "../middleware/validate/field.validate";
 import { sendResponse } from "../../common/interfaces/base-response";
 import { Role } from "../constant/index";
+import { 
+  HTTP_OK, 
+  HTTP_CREATED, 
+  HTTP_NO_CONTENT 
+} from "../constant/http-status";
 
 export class UserController extends BaseController {
   private readonly userService: UserService;
@@ -58,7 +63,7 @@ export class UserController extends BaseController {
   ) => {
     try {
       const users = await this.userService.getAllUsers();
-      return sendResponse(res, true, 200, "Get all users successfully", users);
+      return sendResponse(res, true, HTTP_OK, "Get all users successfully", users);
     } catch (error) {
       next(error);
     }
@@ -72,7 +77,7 @@ export class UserController extends BaseController {
     try {
       const userId = parseInt(req.params.id, 10);
       const user = await this.userService.getUserById(userId);
-      return sendResponse(res, true, 200, "Get user by id successfully", user);
+      return sendResponse(res, true, HTTP_OK, "Get user by id successfully", user);
     } catch (error) {
       next(error);
     }
@@ -89,7 +94,7 @@ export class UserController extends BaseController {
       return sendResponse(
         res,
         true,
-        200,
+        HTTP_OK,
         "Get user by name successfully",
         user
       );
@@ -105,7 +110,7 @@ export class UserController extends BaseController {
   ) => {
     try {
       const newUser = await this.userService.createUser(req.body);
-      return sendResponse(res, true, 201, "Create user successfully", newUser);
+      return sendResponse(res, true, HTTP_CREATED, "Create user successfully", newUser);
     } catch (error) {
       next(error);
     }
@@ -122,7 +127,7 @@ export class UserController extends BaseController {
       return sendResponse(
         res,
         true,
-        200,
+        HTTP_OK,
         "Update user successfully",
         updatedUser
       );
@@ -143,7 +148,7 @@ export class UserController extends BaseController {
       return sendResponse(
         res,
         true,
-        200,
+        HTTP_OK,
         "Update user role successfully",
         updatedUser
       );
@@ -160,7 +165,7 @@ export class UserController extends BaseController {
     try {
       const userId = parseInt(req.params.id, 10);
       this.userService.deleteUser(userId);
-      return sendResponse(res, true, 200, "Delete user successfully");
+      return sendResponse(res, true, HTTP_NO_CONTENT, "Delete user successfully");
     } catch (error) {
       next(error);
     }
@@ -183,7 +188,7 @@ export class UserController extends BaseController {
       return sendResponse(
         res,
         true,
-        200,
+        HTTP_OK,
         "Change password successfully",
         result
       );
@@ -201,7 +206,7 @@ export class UserController extends BaseController {
       const { id, class_join_code } = req.params;
       const userId = parseInt(id, 10);
       await this.userService.joinClass(userId, class_join_code);
-      return sendResponse(res, true, 200, "Join class successfully");
+      return sendResponse(res, true, HTTP_OK, "Join class successfully");
     } catch (error) {
       next(error);
     }
@@ -217,7 +222,7 @@ export class UserController extends BaseController {
       const teacherId = parseInt(id, 10);
       const classData = req.body;
       await this.userService.addClass(teacherId, classData);
-      return sendResponse(res, true, 200, "Add class successfully");
+      return sendResponse(res, true, HTTP_CREATED, "Add class successfully");
     } catch (error) {
       next(error);
     }
@@ -233,7 +238,7 @@ export class UserController extends BaseController {
       const userId = parseInt(id, 10);
       const classId = parseInt(class_id, 10);
       await this.userService.leaveClass(userId, classId);
-      return sendResponse(res, true, 200, "Leave class successfully");
+      return sendResponse(res, true, HTTP_OK, "Leave class successfully");
     } catch (error) {
       next(error);
     }
@@ -250,7 +255,7 @@ export class UserController extends BaseController {
       return sendResponse(
         res,
         true,
-        200,
+        HTTP_OK,
         "Get user by role successfully",
         users
       );

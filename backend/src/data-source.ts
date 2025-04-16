@@ -21,11 +21,9 @@ export const AppDataSource = new DataSource({
 export const AppDataSource2 = new DataSource({
     type: "mongodb",
     url: process.env.MONGO_HOST,
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
     synchronize: true,
     logging: true,
-    entities: ['src/**/entity/Comment.mongo.ts'],
+    entities: ['src/**/entity/*.mongo.ts'],
     migrations: [],
     subscribers: [],
 });

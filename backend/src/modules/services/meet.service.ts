@@ -6,6 +6,7 @@ import { IMeetRepository } from "../interfaces/meet.interface";
 import { ClassesRepository } from "../repositories/classes.repository";
 import { MeetRepository } from "../repositories/meet.repository";
 import { ApiError } from "../types/ApiError";
+import { Logger } from "../config/logger";
 
 class MeetService {
     private readonly meetRepository: IMeetRepository = new MeetRepository();
@@ -27,7 +28,10 @@ class MeetService {
         try {
             const existedClass = await this.classRepository.findById(classId);
             if(!existedClass) {
-                console.error(`Class with ID ${classId} not found`);
+                Logger.error(`Class not found for meeting creation`, undefined, {
+                    classId,
+                    ctx: 'meeting'
+                });
                 throw new ApiError(400, MEET_NOT_FOUND.error.message, MEET_NOT_FOUND.error.details);
             }
             
