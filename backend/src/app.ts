@@ -59,8 +59,9 @@ export class Application {
           "http://localhost:5173",
           "https://edu-space-dkn7.vercel.app",
           "https://ghienphim.fun",
-          "https://edu-space-i5ks914ll-nguyen-doan-vos-projects.vercel.app",
           "https://api-service-9cy27.ondigitalocean.app",
+          "https://edu-space-psi.vercel.app/",
+          "https://api-service-9cy27.ondigitalocean.app/api-docs"
         ],
                 
         methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
