@@ -60,7 +60,7 @@ export class Application {
           "https://edu-space-dkn7.vercel.app",
           "https://ghienphim.fun",
           "https://api-service-9cy27.ondigitalocean.app",
-          "https://edu-space-psi.vercel.app/",
+          "https://edu-space-psi.vercel.app",
           "https://api-service-9cy27.ondigitalocean.app/api-docs"
         ],
                 
