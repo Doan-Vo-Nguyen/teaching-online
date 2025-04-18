@@ -98,13 +98,13 @@ export class AuthenController extends BaseController {
 
     private readonly logout = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { user_id } = req.body;
+            const { userId } = req.body;
             
             // Extract the access token from the Authorization header
             // const accessToken = getTokenFromHeader(req.headers.authorization) || '';
             
             // For audit logging
-            const user = await this._userRepository.findById(user_id);
+            const user = await this._userRepository.findById(userId);
             if (user) {
                 (req as IRequest).user = {
                     id: user.user_id,
@@ -118,13 +118,13 @@ export class AuthenController extends BaseController {
                 return logLogout(req as IRequest, res, async () => {
                     // Pass the access token to the logout service
                     // await this._authenService.logout(user_id, accessToken);
-                    await this._authenService.logout(user_id);
+                    await this._authenService.logout(userId);
                     return sendResponse(res, true, HTTP_OK, "Logout successfully");
                 });
             } else {
                 // Pass the access token to the logout service
                 // await this._authenService.logout(user_id, accessToken);
-                await this._authenService.logout(user_id);
+                await this._authenService.logout(userId);
                 return sendResponse(res, true, HTTP_OK, "Logout successfully");
             }
         } catch (error) {

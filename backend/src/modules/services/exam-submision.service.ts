@@ -189,75 +189,76 @@ class ExamSubmissionService {
     class_id: number,
     data: { file_content: string; grade?: number; feed_back?: string }
   ): Promise<ExamSubmission> {
-    if (!data) {
+    try {
+      if (!data) {
+        throw new ApiError(
+          400,
+          EXAM_SUBMISSION_FIELD_REQUIRED.error.message,
+          EXAM_SUBMISSION_FIELD_REQUIRED.error.details
+        );
+      }
+      const studentClass = await this.getStudentClass(student_id, class_id);
+      const existedUser = studentClass?.student_id;
+      const existedClass = studentClass?.class_id;
+      if (!studentClass) {
+        throw new ApiError(
+          404,
+          "Student class not found",
+          "Student class not found"
+        );
+      }
+      if (!existedUser) {
+        throw new ApiError(404, "User not found", "User not found");
+      }
+      if (!existedClass) {
+        throw new ApiError(404, "Class not found", "Class not found");
+      }
+      const existedUserAndClass =
+        await this.studentClassRepository.findByUserIdAndClassId(
+          existedUser,
+          existedClass
+        );
+      if (!existedUserAndClass) {
+        throw new ApiError(404, "User not in class", "User not in class");
+      }
+      // check if the student has already submitted the exam
+      const existedExamSubmission =
+        await this.examSubmissionRepository.findByExamIdAndStudentClassId(
+          exam_id,
+          studentClass.student_class_id
+        );
+      // if not will create a new exam submission record, else just create a new content of submission
+      let newExamSubmission: ExamSubmission;
+      if (existedExamSubmission) {
+        await this.examSubmissionContentRepository.createExamSubmissionContentByExamSubmissionId(
+          existedExamSubmission.exam_submission_id,
+          {
+            file_content: data.file_content,
+            exam_submission_id: existedExamSubmission.exam_submission_id,
+            id: 0,
+            created_at: new Date(),
+          }
+        );
+        newExamSubmission = existedExamSubmission;
+      } else {
+        newExamSubmission = await this.createExamSubmissionRecord(
+          exam_id,
+          studentClass.student_class_id,
+          {
+            grade: data.grade,
+            feed_back: data.feed_back,
+          }
+        );
+      }
+      return newExamSubmission;
+    } catch (error) {
+      Logger.error(error);
       throw new ApiError(
-        400,
-        EXAM_SUBMISSION_FIELD_REQUIRED.error.message,
-        EXAM_SUBMISSION_FIELD_REQUIRED.error.details
+        500,
+        CODE_EXECUTION_FAILED.error.message,
+        CODE_EXECUTION_FAILED.error.details
       );
     }
-    const studentClass = await this.getStudentClass(student_id, class_id);
-    const existedUser = studentClass?.student_id;
-    const existedClass = studentClass?.class_id;
-    if (!studentClass) {
-      throw new ApiError(
-        404,
-        "Student class not found",
-        "Student class not found"
-      );
-    }
-    if (!existedUser) {
-      throw new ApiError(404, "User not found", "User not found");
-    }
-    if (!existedClass) {
-      throw new ApiError(404, "Class not found", "Class not found");
-    }
-    const existedUserAndClass =
-      await this.studentClassRepository.findByUserIdAndClassId(
-        existedUser,
-        existedClass
-      );
-    if (!existedUserAndClass) {
-      throw new ApiError(404, "User not in class", "User not in class");
-    }
-    // check if the student has already submitted the exam
-    const existedExamSubmission =
-      await this.examSubmissionRepository.findByExamIdAndStudentClassId(
-        exam_id,
-        studentClass.student_class_id
-      );
-    // if not will create a new exam submission record, else just create a new content of submission
-    let newExamSubmission: ExamSubmission;
-    if (existedExamSubmission) {
-      await this.examSubmissionContentRepository.createExamSubmissionContentByExamSubmissionId(
-        existedExamSubmission.exam_submission_id,
-        {
-          file_content: data.file_content,
-          exam_submission_id: existedExamSubmission.exam_submission_id,
-          id: 0,
-          created_at: new Date(),
-        }
-      );
-      newExamSubmission = existedExamSubmission;
-    } else {
-      newExamSubmission = await this.createExamSubmissionRecord(
-        exam_id,
-        studentClass.student_class_id,
-        {
-          grade: data.grade,
-          feed_back: data.feed_back,
-        }
-      );
-    }
-    return newExamSubmission;
-  }
-  catch(error) {
-    Logger.error(error);
-    throw new ApiError(
-      500,
-      CODE_EXECUTION_FAILED.error.message,
-      CODE_EXECUTION_FAILED.error.details
-    );
   }
 
   public async createExamSubmissionByStudentAndClass(
@@ -569,7 +570,8 @@ class ExamSubmissionService {
       input?: string;
     }
   ): Promise<{ 
-    grade?: number; 
+    grade?: number;
+    error?: string;
     run_code_result?: string;
     testcase_results?: Array<{
       id: number;
@@ -595,9 +597,10 @@ class ExamSubmissionService {
   }> {
     Logger.info(`Starting runCode for exam_content_id: ${exam_content_id}, language_id: ${data.language_id}`);
     this.validateExamSubmissionData(data);
-
+  
     let run_code_result = "";
     let totalGrade = 0;
+    let error = "";
     let user_input_result: {
       status: {
         id: number;
@@ -620,14 +623,18 @@ class ExamSubmissionService {
       expected_output?: string;
     }> = [];
 
+    // Encode file_content and stdin for Judge0
+    const encodedFileContent = Buffer.from(data.file_content).toString('base64');
+    const encodedStdin = data.input ? Buffer.from(data.input).toString('base64') : '';
+
     // Handle user input if provided - make sure we check for empty strings too
     if (data.input && data.input.trim() !== "") {
       Logger.info(`Running code with user-provided input: ${data.input.substring(0, 50)}...`);
       try {
         const judge0ResponseForInput = await this.submitToJudge0({
-          source_code: data.file_content,
+          source_code: encodedFileContent,
           language_id: data.language_id,
-          stdin: data.input,
+          stdin: encodedStdin,
         });
         
         Logger.info(`Judge0 submission successful. Token: ${judge0ResponseForInput.token}`);
@@ -640,32 +647,40 @@ class ExamSubmissionService {
         
         // Add the results to run_code_result with decoded error messages
         run_code_result += `User Input Result:\n${submissionResultForInput.status.description}\n`;
+        
+        // Process program output
+        let decodedOutput = "";
         if (submissionResultForInput.stdout) {
-          const decodedOutput = Buffer.from(submissionResultForInput.stdout, 'base64').toString();
+          decodedOutput = Buffer.from(submissionResultForInput.stdout, 'base64').toString();
           run_code_result += `Program Output:\n${decodedOutput}\n`;
         }
+
+        // Process runtime errors
+        let decodedStderr = "";
+        if (submissionResultForInput.stderr) {
+          decodedStderr = Buffer.from(submissionResultForInput.stderr, 'base64').toString();
+          run_code_result += `Runtime Error:\n${decodedStderr}\n`;
+          error += decodedStderr;
+        }
         
-        // Create user input result object
+        // Process compilation errors
+        let decodedCompileOutput = "";
+        if (submissionResultForInput.compile_output) {
+          decodedCompileOutput = Buffer.from(submissionResultForInput.compile_output, 'base64').toString();
+          run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
+          error += decodedCompileOutput;
+        }
+        
+        // Create user input result object with decoded values
         user_input_result = {
           status: {
             id: submissionResultForInput.status.id,
             description: submissionResultForInput.status.description,
           },
-          output: submissionResultForInput.stdout,
+          output: decodedOutput || undefined,
           input: data.input,
-          error: submissionResultForInput.stderr
+          error: decodedStderr || decodedCompileOutput || undefined
         };
-        
-        // Add error information with decoded values
-        if (submissionResultForInput.compile_output) {
-          const decodedCompileOutput = Buffer.from(submissionResultForInput.compile_output, 'base64').toString();
-          run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
-        }
-        
-        if (submissionResultForInput.stderr) {
-          const decodedStderr = Buffer.from(submissionResultForInput.stderr, 'base64').toString();
-          run_code_result += `Runtime Error:\n${decodedStderr}\n`;
-        }
       } catch (error) {
         Logger.error(`Error running code with input: ${(error as Error).message}`);
         // Don't throw an error here - we want to continue with testcases even if user input fails
@@ -692,7 +707,7 @@ class ExamSubmissionService {
         Logger.info('No testcases found and no user input. Running code with empty input to check compilation.');
         try {
           const judge0Response = await this.submitToJudge0({
-            source_code: data.file_content,
+            source_code: encodedFileContent,
             language_id: data.language_id,
             stdin: "",
           });
@@ -708,33 +723,41 @@ class ExamSubmissionService {
           // Add the results to run_code_result
           run_code_result += `Compilation Check Result:\n${submissionResult.status.description}\n`;
 
+          // Process all outputs and errors
+          let decodedOutput = "";
+          let decodedStderr = "";
+          let decodedCompileOutput = "";
+
+          // Process stdout
+          if (submissionResult.stdout) {
+            decodedOutput = Buffer.from(submissionResult.stdout, 'base64').toString();
+            run_code_result += `Program Output:\n${decodedOutput}\n`;
+          }
+          
+          // Process stderr (runtime errors)
+          if (submissionResult.stderr) {
+            decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
+            run_code_result += `Runtime Error:\n${decodedStderr}\n`;
+            error += decodedStderr;
+          }
+          
+          // Process compile_output (compilation errors)
+          if (submissionResult.compile_output) {
+            decodedCompileOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
+            run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
+            error += decodedCompileOutput;
+          }
+
           // Create user input result for empty input
           user_input_result = {
             status: {
               id: submissionResult.status.id,
               description: submissionResult.status.description,
             },
-            output: submissionResult.stdout,
+            output: decodedOutput || undefined,
             input: "",
-            error: submissionResult.stderr
+            error: decodedStderr || decodedCompileOutput || undefined
           };
-
-          // Add error information if available
-          if (submissionResult.compile_output) {
-            const decodedCompileOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
-            run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
-          }
-          
-          if (submissionResult.stderr) {
-            const decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
-            run_code_result += `Runtime Error:\n${decodedStderr}\n`;
-          }
-
-          // If there's output, add it too
-          if (submissionResult.stdout) {
-            const decodedOutput = Buffer.from(submissionResult.stdout, 'base64').toString();
-            run_code_result += `Program Output:\n${decodedOutput}\n`;
-          }
         } catch (error) {
           Logger.error(`Error performing compilation check: ${(error as Error).message}`);
           run_code_result += `Error during compilation check: ${(error as Error).message}\n\n`;
@@ -761,11 +784,18 @@ class ExamSubmissionService {
         const batchSubmissions = await Promise.all(
           batch.map(async (testcase) => {
             Logger.info(`Submitting testcase ${testcase.id} with input: ${testcase.input.substring(0, 50)}...`);
+            
+            // Encode testcase input
+            const encodedTestInput = Buffer.from(testcase.input).toString('base64');
+            const encodedExpectedOutput = testcase.expected_output 
+              ? Buffer.from(testcase.expected_output).toString('base64')
+              : undefined;
+              
             const judge0Response = await this.submitToJudge0({
-              source_code: data.file_content,
+              source_code: encodedFileContent,
               language_id: data.language_id,
-              stdin: testcase.input,
-              expected_output: testcase.expected_output,
+              stdin: encodedTestInput,
+              expected_output: encodedExpectedOutput,
             });
             
             Logger.info(`Judge0 submission for testcase ${testcase.id} successful. Token: ${judge0Response.token}`);
@@ -794,6 +824,26 @@ class ExamSubmissionService {
         
         // Process all results in the batch
         for (const { testcase, submissionResult } of batchResults) {
+          // Decode all outputs and errors
+          let decodedOutput = "";
+          let decodedStderr = "";
+          let decodedCompileOutput = "";
+          
+          if (submissionResult.stdout) {
+            decodedOutput = Buffer.from(submissionResult.stdout, 'base64').toString();
+          }
+          
+          if (submissionResult.stderr) {
+            decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
+          }
+          
+          if (submissionResult.compile_output) {
+            decodedCompileOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
+          }
+          
+          // Combine error information
+          const errorInfo = decodedStderr || decodedCompileOutput || "";
+          
           const testcaseResult = {
             id: testcase.id,
             passed: submissionResult.status.id === 3,
@@ -804,45 +854,33 @@ class ExamSubmissionService {
             },
             input: testcase.input,
             expected_output: testcase.expected_output,
-            output: submissionResult.stdout,
-            error: submissionResult.stderr,
+            output: decodedOutput || undefined,
+            error: errorInfo || undefined,
           };
 
           // If testcase passed (status.id === 3 means Accepted)
           if (submissionResult.status.id === 3) {
             totalGrade += testcase.score;
             run_code_result += `Testcase ${testcase.id}: Passed (+${testcase.score} points)\n`;
-            if (testcaseResult.output) {
-              const decodedOutput = Buffer.from(testcaseResult.output, 'base64').toString();
+            if (decodedOutput) {
               run_code_result += `Program Output:\n${decodedOutput}\n`;
             }
             Logger.info(`Testcase ${testcase.id} passed. Score: ${testcase.score}`);
           } else {
             run_code_result += `Testcase ${testcase.id}: Failed (${submissionResult.status.description})\n`;
             
-            // Include decoded outputs
-            if (submissionResult.compile_output) {
-              const decodedCompileOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
+            // Include decoded outputs and errors
+            if (decodedCompileOutput) {
               run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
-              // Update testcaseResult with decoded error
-              testcaseResult.error = decodedCompileOutput;
             }
             
-            if (submissionResult.stderr) {
-              const decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
+            if (decodedStderr) {
               run_code_result += `Runtime Error:\n${decodedStderr}\n`;
-              // Update testcaseResult with decoded error if not already set
-              if (!testcaseResult.error) {
-                testcaseResult.error = decodedStderr;
-              }
             }
             
             // Add program output if it exists
-            if (testcaseResult.output) {
-              const decodedOutput = Buffer.from(testcaseResult.output, 'base64').toString();
+            if (decodedOutput) {
               run_code_result += `Program Output:\n${decodedOutput}\n`;
-              // Also update the testcaseResult with decoded output
-              testcaseResult.output = decodedOutput;
             }
             
             Logger.info(`Testcase ${testcase.id} failed. Status: ${submissionResult.status.description}`);
@@ -858,7 +896,7 @@ class ExamSubmissionService {
       }
 
       Logger.info(`All testcases completed. Total grade: ${totalGrade}`);
-      return { grade: totalGrade, run_code_result, testcase_results, user_input_result };
+      return { grade: totalGrade, run_code_result, testcase_results, user_input_result, error};
     } catch (error) {
       Logger.error(`Error in runCode: ${(error as Error).message}`);
       throw new ApiError(
@@ -867,6 +905,110 @@ class ExamSubmissionService {
         CODE_EXECUTION_FAILED.error.details
       );
     }
+  }
+
+  private async submitToJudge0(submission: {
+    source_code: string;
+    language_id: number;
+    stdin?: string;
+    expected_output?: string;
+  }) {
+    Logger.info(`Submitting code to Judge0. Language ID: ${submission.language_id}`);
+    
+    try {
+      Logger.info(`Judge0 API Key present: ${!!process.env.JUDGE0_API_KEY}`);
+      const options = {
+        method: "POST",
+        url: "https://judge0-ce.p.rapidapi.com/submissions",
+        params: {
+          base64_encoded: "true",
+          fields: "*",
+        },
+        headers: {
+          "content-type": "application/json",
+          "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
+          "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+        },
+        data: submission,
+      }
+      
+      Logger.info(`Making request to: ${options.url}`);
+      
+      const response = await axios.request(options);
+
+      Logger.info(`Judge0 submission successful. Token: ${response.data.token}`);
+      return response.data;
+    } catch (error) {
+      Logger.error(`Error in submitToJudge0: ${(error as Error).message}`);
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        if (axiosError.response) {
+          Logger.error(`Judge0 API error: ${axiosError.response.status} ${axiosError.response.statusText}`);
+          Logger.error(`Response data: ${JSON.stringify(axiosError.response.data)}`);
+        }
+      }
+      throw error;
+    }
+  }
+
+  private async getJudge0Result(token: string) {
+    Logger.info(`Getting Judge0 result for token: ${token}`);
+    
+    const maxAttempts = 5;
+    const pollingInterval = 1000; // 1 second
+    
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const options = {
+          method: "GET",
+          url: `https://judge0-ce.p.rapidapi.com/submissions/${token}`,
+          params: {
+            base64_encoded: "true",
+            fields: "*",
+          },
+          headers: {
+            "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
+            "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+          },
+        }
+        Logger.info(`Polling attempt ${attempt}/${maxAttempts} - Making request to: ${options.url}`);
+        
+        const response = await axios.request(options);
+
+        Logger.info(`Judge0 result received. Status ID: ${response.data.status?.id}, Description: ${response.data.status?.description}`);
+        
+        // If status is not "Processing" (id=2), we can return the result
+        if (response.data.status?.id !== 2) {
+          return response.data;
+        }
+        
+        // If we're still processing and haven't reached max attempts, wait before trying again
+        if (attempt < maxAttempts) {
+          Logger.info(`Code still processing. Waiting ${pollingInterval}ms before next attempt...`);
+          await new Promise(resolve => setTimeout(resolve, pollingInterval));
+        } else {
+          Logger.info(`Maximum polling attempts (${maxAttempts}) reached. Last status was "Processing".`);
+          return response.data; // Return the last result even if it's still processing
+        }
+      } catch (error) {
+        Logger.error(`Error in getJudge0Result attempt ${attempt}: ${(error as Error).message}`);
+        if (axios.isAxiosError(error)) {
+          const axiosError = error as AxiosError;
+          if (axiosError.response) {
+            Logger.error(`Judge0 API error: ${axiosError.response.status} ${axiosError.response.statusText}`);
+            Logger.error(`Response data: ${JSON.stringify(axiosError.response.data)}`);
+          }
+        }
+        if (attempt === maxAttempts) {
+          throw error;
+        }
+        // Wait before retrying after an error
+        await new Promise(resolve => setTimeout(resolve, pollingInterval));
+      }
+    }
+    
+    // This should not be reached due to the return in the loop, but TypeScript might expect a return
+    throw new Error("Failed to get Judge0 result after maximum attempts");
   }
 
   public async updateExamSubmissionWithGrade(
@@ -1040,113 +1182,6 @@ class ExamSubmissionService {
         id
       );
     return deletedContent;
-  }
-
-  private async submitToJudge0(submission: {
-    source_code: string;
-    language_id: number;
-    stdin?: string;
-    expected_output?: string;
-  }) {
-    Logger.info(`Submitting code to Judge0. Language ID: ${submission.language_id}`);
-    
-    try {
-      Logger.info(`Judge0 API Key present: ${!!process.env.JUDGE0_API_KEY}`);
-      const options = {
-        method: "POST",
-        url: "https://judge0-ce.p.rapidapi.com/submissions",
-        params: {
-          base64_encoded: "true",
-          fields: "*",
-        },
-        headers: {
-          "content-type": "application/json",
-          "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
-          "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
-        },
-      }
-      Logger.info(`Making request to: ${options.url}`);
-      
-      const response = await axios.post(options.url, submission, {
-        headers: options.headers,
-      });
-
-      Logger.info(`Judge0 submission successful. Token: ${response.data.token}`);
-      return response.data;
-    } catch (error) {
-      Logger.error(`Error in submitToJudge0: ${(error as Error).message}`);
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError;
-        if (axiosError.response) {
-          Logger.error(`Judge0 API error: ${axiosError.response.status} ${axiosError.response.statusText}`);
-          Logger.error(`Response data: ${JSON.stringify(axiosError.response.data)}`);
-        }
-      }
-      throw error;
-    }
-  }
-
-  private async getJudge0Result(token: string) {
-    Logger.info(`Getting Judge0 result for token: ${token}`);
-    
-    const maxAttempts = 15;
-    const pollingInterval = 1000; // 1 second
-    
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const options = {
-          method: "GET",
-          url: `https://judge0-ce.p.rapidapi.com/submissions/${token}`,
-          params: {
-            base64_encoded: "true",
-            fields: "*",
-          },
-          headers: {
-            "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
-            "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
-          },
-        }
-        Logger.info(`Polling attempt ${attempt}/${maxAttempts} - Making request to: ${options.url}`);
-        
-        const response = await axios.get(options.url, {
-          headers: options.headers,
-          timeout: 15000, // Increase axios timeout to 15 seconds
-        });
-
-        Logger.info(`Judge0 result received. Status ID: ${response.data.status?.id}, Description: ${response.data.status?.description}`);
-        
-        // If status is not "Processing" (id=2), we can return the result
-        if (response.data.status?.id !== 2) {
-          return response.data;
-        }
-        
-        // If we're still processing and haven't reached max attempts, wait before trying again
-        if (attempt < maxAttempts) {
-          Logger.info(`Code still processing. Waiting ${pollingInterval}ms before next attempt...`);
-          await new Promise(resolve => setTimeout(resolve, pollingInterval));
-        } else {
-          Logger.info(`Maximum polling attempts (${maxAttempts}) reached. Last status was "Processing".`);
-          return response.data; // Return the last result even if it's still processing
-        }
-      } catch (error) {
-        Logger.error(`Error in getJudge0Result attempt ${attempt}: ${(error as Error).message}`);
-        if (axios.isAxiosError(error)) {
-          const axiosError = error as AxiosError;
-          if (axiosError.response) {
-            Logger.error(`Judge0 API error: ${axiosError.response.status} ${axiosError.response.statusText}`);
-            Logger.error(`Response data: ${JSON.stringify(axiosError.response.data)}`);
-          }
-        }
-        if (attempt === maxAttempts) {
-          throw error;
-        }
-        // Wait before retrying after an error
-        await new Promise(resolve => setTimeout(resolve, pollingInterval));
-      }
-    }
-    
-    // This should not be reached due to the return in the loop, but TypeScript might expect a return
-    throw new Error("Failed to get Judge0 result after maximum attempts");
   }
 
   /**

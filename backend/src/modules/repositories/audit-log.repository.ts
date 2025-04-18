@@ -61,7 +61,6 @@ export class AuditLogRepository implements IAuditLogRepository {
             const auditLog = await this.repository.findOneBy({ id: id as any });
             
             if (!auditLog) {
-                console.warn(`Audit log with id ${id} not found.`);
                 return null;
             }
             
@@ -83,7 +82,6 @@ export class AuditLogRepository implements IAuditLogRepository {
         try {
             const auditLog = await this.repository.findOneBy({ id: id.toString() as any });
             if (!auditLog) {
-                console.warn(`Audit log with id ${id} not found.`);
                 return null;
             }
             await this.repository.remove(auditLog);
