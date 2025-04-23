@@ -571,6 +571,7 @@ class ExamSubmissionService {
   ): Promise<{ 
     grade?: number; 
     run_code_result?: string;
+    error?: string;
     testcase_results?: Array<{
       id: number;
       passed: boolean;
@@ -598,6 +599,7 @@ class ExamSubmissionService {
 
     let run_code_result = "";
     let totalGrade = 0;
+    let error = null;
     let user_input_result: {
       status: {
         id: number;
@@ -619,15 +621,18 @@ class ExamSubmissionService {
       error?: string;
       expected_output?: string;
     }> = [];
-
+    console.log(data.file_content);
+    const encodedSourceCode = Buffer.from(data.file_content).toString('base64');
+    const encodedInput = Buffer.from(data.input).toString('base64');
+    console.log(encodedSourceCode);
     // Handle user input if provided - make sure we check for empty strings too
     if (data.input && data.input.trim() !== "") {
       Logger.info(`Running code with user-provided input: ${data.input.substring(0, 50)}...`);
       try {
         const judge0ResponseForInput = await this.submitToJudge0({
-          source_code: data.file_content,
+          source_code: encodedSourceCode,
           language_id: data.language_id,
-          stdin: data.input,
+          stdin: encodedInput,
         });
         
         Logger.info(`Judge0 submission successful. Token: ${judge0ResponseForInput.token}`);
@@ -660,16 +665,30 @@ class ExamSubmissionService {
         if (submissionResultForInput.compile_output) {
           const decodedCompileOutput = Buffer.from(submissionResultForInput.compile_output, 'base64').toString();
           run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
+          
+          // Set error for compilation errors
+          error = decodedCompileOutput;
         }
         
         if (submissionResultForInput.stderr) {
           const decodedStderr = Buffer.from(submissionResultForInput.stderr, 'base64').toString();
           run_code_result += `Runtime Error:\n${decodedStderr}\n`;
+          
+          // Only set error if not already set by compile_output
+          if (!error) {
+            error = decodedStderr;
+          }
+        }
+        
+        // If we have an error status but no error message yet, use the status description
+        if (!error && submissionResultForInput.status.id !== 3) {
+          error = submissionResultForInput.status.description;
         }
       } catch (error) {
         Logger.error(`Error running code with input: ${(error as Error).message}`);
         // Don't throw an error here - we want to continue with testcases even if user input fails
         run_code_result += `Error processing user input: ${(error as Error).message}\n\n`;
+        error = (error as Error).message;
       }
     } else {
       // Log that we're skipping user input because none was provided
@@ -824,17 +843,34 @@ class ExamSubmissionService {
             if (submissionResult.compile_output) {
               const decodedCompileOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
               run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
-              // Update testcaseResult with decoded error
+              
+              // Set error for compilation errors
               testcaseResult.error = decodedCompileOutput;
+              
+              // Update global error if not set yet
+              if (!error) {
+                error = decodedCompileOutput;
+              }
             }
             
             if (submissionResult.stderr) {
               const decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
               run_code_result += `Runtime Error:\n${decodedStderr}\n`;
+              
               // Update testcaseResult with decoded error if not already set
               if (!testcaseResult.error) {
                 testcaseResult.error = decodedStderr;
               }
+              
+              // Update global error if not set yet
+              if (!error) {
+                error = decodedStderr;
+              }
+            }
+            
+            // If we have an error status but no error message yet, use the status description
+            if (!testcaseResult.error && submissionResult.status.id !== 3) {
+              testcaseResult.error = submissionResult.status.description;
             }
             
             // Add program output if it exists
@@ -858,7 +894,7 @@ class ExamSubmissionService {
       }
 
       Logger.info(`All testcases completed. Total grade: ${totalGrade}`);
-      return { grade: totalGrade, run_code_result, testcase_results, user_input_result };
+      return { grade: totalGrade, run_code_result, testcase_results, user_input_result, error};
     } catch (error) {
       Logger.error(`Error in runCode: ${(error as Error).message}`);
       throw new ApiError(
@@ -1064,12 +1100,11 @@ class ExamSubmissionService {
           "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
           "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
         },
+        data: submission
       }
       Logger.info(`Making request to: ${options.url}`);
       
-      const response = await axios.post(options.url, submission, {
-        headers: options.headers,
-      });
+      const response = await axios.request(options);
 
       Logger.info(`Judge0 submission successful. Token: ${response.data.token}`);
       return response.data;
@@ -1108,10 +1143,7 @@ class ExamSubmissionService {
         }
         Logger.info(`Polling attempt ${attempt}/${maxAttempts} - Making request to: ${options.url}`);
         
-        const response = await axios.get(options.url, {
-          headers: options.headers,
-          timeout: 15000, // Increase axios timeout to 15 seconds
-        });
+        const response = await axios.request(options);
 
         Logger.info(`Judge0 result received. Status ID: ${response.data.status?.id}, Description: ${response.data.status?.description}`);
         

@@ -19,7 +19,7 @@ export class TestCase {
     @Column({type: "float", nullable: true})
     score: number;
     
-    @ManyToOne(() => ExamContent, examContent => examContent.testcases, { onDelete: 'NO ACTION' })
+    @ManyToOne(() => ExamContent, examContent => examContent.testcases, { onDelete: 'CASCADE' })
     @JoinColumn({name: "exam_content_id"})
     examContent?: Relation<ExamContent>
 

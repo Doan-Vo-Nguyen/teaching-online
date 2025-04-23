@@ -19,7 +19,7 @@ export class ExamContent {
     @CreateDateColumn()
     created_at: Date
 
-    @ManyToOne(() => Exam, exam => exam.examContents, { onDelete: 'NO ACTION' }) // Relation with Exam n-1
+    @ManyToOne(() => Exam, exam => exam.examContents, { onDelete: 'CASCADE' }) // Relation with Exam n-1
     @JoinColumn({name: "exam_id"}) // Column name in the database
     exam: Relation<Exam>
 

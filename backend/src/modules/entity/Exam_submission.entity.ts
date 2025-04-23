@@ -32,11 +32,11 @@ export class ExamSubmission {
     @OneToMany(() => ExamSubmissionContent, examSubmissionContent => examSubmissionContent.examSubmission) // Relation with ExamSubmissionContent 1-n
     examSubmissionContents?: ExamSubmissionContent[]
 
-    @ManyToOne(() => Exam, exam => exam.examSubmissions, { onDelete: 'NO ACTION' }) // Relation with Users n-1
+    @ManyToOne(() => Exam, exam => exam.examSubmissions, { onDelete: 'CASCADE' }) // Relation with Users n-1
     @JoinColumn({name: "exam_id"}) // Column name in the database
     exam?: Relation<Exam>
 
-    @ManyToOne(() => StudentClasses, studentClasses => studentClasses.examSubmissions, { onDelete: 'NO ACTION' }) // Relation with Users n-1
+    @ManyToOne(() => StudentClasses, studentClasses => studentClasses.examSubmissions, { onDelete: 'CASCADE' }) // Relation with Users n-1
     @JoinColumn({name: "student_class_id"}) // Column name in the database
     studentClass?: Relation<StudentClasses>
     student_id?: number
