@@ -622,8 +622,10 @@ class ExamSubmissionService {
       expected_output?: string;
     }> = [];
     console.log(data.file_content);
-    const encodedSourceCode = Buffer.from(data.file_content).toString('base64');
-    const encodedInput = Buffer.from(data.input).toString('base64');
+    const encoded = (str) => str ? Buffer.from(str, "binary").toString("base64") : "";
+    const decoded = (str) => str ? Buffer.from(str, "base64").toString() : "";
+    const encodedSourceCode = encoded(data.file_content);
+    const encodedInput = encoded(data.input);
     console.log(encodedSourceCode);
     // Handle user input if provided - make sure we check for empty strings too
     if (data.input && data.input.trim() !== "") {
@@ -646,7 +648,7 @@ class ExamSubmissionService {
         // Add the results to run_code_result with decoded error messages
         run_code_result += `User Input Result:\n${submissionResultForInput.status.description}\n`;
         if (submissionResultForInput.stdout) {
-          const decodedOutput = Buffer.from(submissionResultForInput.stdout, 'base64').toString();
+          const decodedOutput = decoded(submissionResultForInput.stdout);
           run_code_result += `Program Output:\n${decodedOutput}\n`;
         }
         
@@ -656,14 +658,14 @@ class ExamSubmissionService {
             id: submissionResultForInput.status.id,
             description: submissionResultForInput.status.description,
           },
-          output: submissionResultForInput.stdout,
+          output: decoded(submissionResultForInput.stdout),
           input: data.input,
-          error: submissionResultForInput.stderr
+          error: decoded(submissionResultForInput.stderr)
         };
         
         // Add error information with decoded values
         if (submissionResultForInput.compile_output) {
-          const decodedCompileOutput = Buffer.from(submissionResultForInput.compile_output, 'base64').toString();
+          const decodedCompileOutput = decoded(submissionResultForInput.compile_output);
           run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
           
           // Set error for compilation errors
@@ -671,7 +673,7 @@ class ExamSubmissionService {
         }
         
         if (submissionResultForInput.stderr) {
-          const decodedStderr = Buffer.from(submissionResultForInput.stderr, 'base64').toString();
+          const decodedStderr = decoded(submissionResultForInput.stderr);
           run_code_result += `Runtime Error:\n${decodedStderr}\n`;
           
           // Only set error if not already set by compile_output
@@ -688,11 +690,35 @@ class ExamSubmissionService {
         Logger.error(`Error running code with input: ${(error as Error).message}`);
         // Don't throw an error here - we want to continue with testcases even if user input fails
         run_code_result += `Error processing user input: ${(error as Error).message}\n\n`;
+        
+        // Set error variable
         error = (error as Error).message;
+        
+        // Initialize user_input_result with error details
+        user_input_result = {
+          status: {
+            id: -1,
+            description: "Error processing input"
+          },
+          output: "",
+          input: data.input || "",
+          error: (error as Error).message
+        };
       }
     } else {
       // Log that we're skipping user input because none was provided
       Logger.info('No user input provided, skipping input execution');
+      
+      // Initialize user_input_result with default values when no input provided
+      user_input_result = {
+        status: {
+          id: 0,
+          description: "No input provided"
+        },
+        output: "",
+        input: "",
+        error: ""
+      };
     }
 
     // Handle testcases
@@ -711,9 +737,9 @@ class ExamSubmissionService {
         Logger.info('No testcases found and no user input. Running code with empty input to check compilation.');
         try {
           const judge0Response = await this.submitToJudge0({
-            source_code: data.file_content,
+            source_code: encoded(data.file_content),
             language_id: data.language_id,
-            stdin: "",
+            stdin: encoded(""),
           });
 
           Logger.info(`Judge0 submission for compilation check successful. Token: ${judge0Response.token}`);
@@ -733,30 +759,43 @@ class ExamSubmissionService {
               id: submissionResult.status.id,
               description: submissionResult.status.description,
             },
-            output: submissionResult.stdout,
+            output: decoded(submissionResult.stdout),
             input: "",
-            error: submissionResult.stderr
+            error: decoded(submissionResult.stderr)
           };
 
           // Add error information if available
           if (submissionResult.compile_output) {
-            const decodedCompileOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
+            const decodedCompileOutput = decoded(submissionResult.compile_output);
             run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
           }
           
           if (submissionResult.stderr) {
-            const decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
+            const decodedStderr = decoded(submissionResult.stderr);
             run_code_result += `Runtime Error:\n${decodedStderr}\n`;
           }
 
           // If there's output, add it too
           if (submissionResult.stdout) {
-            const decodedOutput = Buffer.from(submissionResult.stdout, 'base64').toString();
+            const decodedOutput = decoded(submissionResult.stdout);
             run_code_result += `Program Output:\n${decodedOutput}\n`;
           }
         } catch (error) {
           Logger.error(`Error performing compilation check: ${(error as Error).message}`);
           run_code_result += `Error during compilation check: ${(error as Error).message}\n\n`;
+          
+          // Initialize user_input_result with error details if not already defined
+          if (!user_input_result) {
+            user_input_result = {
+              status: {
+                id: -1,
+                description: "Error during compilation check"
+              },
+              output: "",
+              input: "",
+              error: (error as Error).message
+            };
+          }
         }
       }
 
@@ -781,10 +820,10 @@ class ExamSubmissionService {
           batch.map(async (testcase) => {
             Logger.info(`Submitting testcase ${testcase.id} with input: ${testcase.input.substring(0, 50)}...`);
             const judge0Response = await this.submitToJudge0({
-              source_code: data.file_content,
+              source_code: encoded(data.file_content),
               language_id: data.language_id,
-              stdin: testcase.input,
-              expected_output: testcase.expected_output,
+              stdin: encoded(testcase.input),
+              expected_output: testcase.expected_output ? encoded(testcase.expected_output) : undefined,
             });
             
             Logger.info(`Judge0 submission for testcase ${testcase.id} successful. Token: ${judge0Response.token}`);
@@ -823,8 +862,8 @@ class ExamSubmissionService {
             },
             input: testcase.input,
             expected_output: testcase.expected_output,
-            output: submissionResult.stdout,
-            error: submissionResult.stderr,
+            output: submissionResult.stdout ? decoded(submissionResult.stdout) : '',
+            error: submissionResult.stderr ? decoded(submissionResult.stderr) : '',
           };
 
           // If testcase passed (status.id === 3 means Accepted)
@@ -832,7 +871,7 @@ class ExamSubmissionService {
             totalGrade += testcase.score;
             run_code_result += `Testcase ${testcase.id}: Passed (+${testcase.score} points)\n`;
             if (testcaseResult.output) {
-              const decodedOutput = Buffer.from(testcaseResult.output, 'base64').toString();
+              const decodedOutput = decoded(testcaseResult.output);
               run_code_result += `Program Output:\n${decodedOutput}\n`;
             }
             Logger.info(`Testcase ${testcase.id} passed. Score: ${testcase.score}`);
@@ -841,7 +880,7 @@ class ExamSubmissionService {
             
             // Include decoded outputs
             if (submissionResult.compile_output) {
-              const decodedCompileOutput = Buffer.from(submissionResult.compile_output, 'base64').toString();
+              const decodedCompileOutput = decoded(submissionResult.compile_output);
               run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
               
               // Set error for compilation errors
@@ -854,7 +893,7 @@ class ExamSubmissionService {
             }
             
             if (submissionResult.stderr) {
-              const decodedStderr = Buffer.from(submissionResult.stderr, 'base64').toString();
+              const decodedStderr = decoded(submissionResult.stderr);
               run_code_result += `Runtime Error:\n${decodedStderr}\n`;
               
               // Update testcaseResult with decoded error if not already set
@@ -875,7 +914,7 @@ class ExamSubmissionService {
             
             // Add program output if it exists
             if (testcaseResult.output) {
-              const decodedOutput = Buffer.from(testcaseResult.output, 'base64').toString();
+              const decodedOutput = decoded(testcaseResult.output);
               run_code_result += `Program Output:\n${decodedOutput}\n`;
               // Also update the testcaseResult with decoded output
               testcaseResult.output = decodedOutput;
