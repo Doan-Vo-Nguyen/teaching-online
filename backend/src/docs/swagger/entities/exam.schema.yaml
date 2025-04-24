@@ -199,7 +199,7 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        "200":
           description: Exam deleted successfully
         '401':
           description: Unauthorized
@@ -299,7 +299,7 @@ paths:
           schema:
             type: string
       responses:
-        "204":
+        "200":
           description: Exam content deleted successfully
         '401':
           description: Unauthorized

@@ -94,7 +94,7 @@ export class ExamController extends BaseController {
         try {
             const examId = parseInt(req.params.id, 10);
             await this.examService.deleteExam(examId);
-            return sendResponse(res, true, HTTP_NO_CONTENT, "Delete exam successfully");
+            return sendResponse(res, true, HTTP_OK, "Delete exam successfully");
         } catch (error) {
             next(error);
         }
@@ -152,7 +152,7 @@ export class ExamController extends BaseController {
         try {
             const examContentId = parseInt(req.params.id, 10);
             await this.examService.deleteExamContent(examContentId);
-            return sendResponse(res, true, HTTP_NO_CONTENT, "Delete exam content successfully");
+            return sendResponse(res, true, HTTP_OK, "Delete exam content successfully");
         } catch (error) {
             next(error);
         }
@@ -181,7 +181,7 @@ export class ExamController extends BaseController {
         try {
             const examContentId = parseInt(req.params.id, 10);
             await this.examService.deleteExamContent(examContentId);
-            return sendResponse(res, true, HTTP_NO_CONTENT, "Delete exam content successfully");
+            return sendResponse(res, true, HTTP_OK, "Delete exam content successfully");
         } catch (error) {
             next(error);
         }
