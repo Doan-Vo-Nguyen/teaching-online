@@ -28,236 +28,309 @@ import { ExamSubmissionContentDetailsRepository } from "../repositories/exam-sub
 import { ExamTypeForStudent } from "../constant/index";
 import { IExamRepository } from "../interfaces/exam.interface";
 import { ExamRepository } from "../repositories/exam.repository";
+import { BaseService } from "../abstracts/base-service";
+import { cacheManager } from "../utils/cache-manager";
 
-class ExamSubmissionService {
-  private readonly examSubmissionRepository: IExamSubmissionRepository =
-    new ExamSubmissionRepository();
-  private readonly studentClassRepository: IStudentClassesRepository =
-    new StudentClassesRepository();
-  private readonly classRepository: IClassesRepository =
-    new ClassesRepository();
-  private readonly examSubmissionContentRepository: IExamSubmissionContentRepository =
-    new ExamSubmissionContentRepository();
-  private readonly languageRepository: ILanguageCodeRepository =
-    new LanguageCodeRepository();
-  private readonly testcaseRepository: ITestCaseRepository =
-    new TestCaseRepository();
-  private readonly examSubmissionContentDetailsRepository: IExamSubmissionContentDetailsRepository =
-    new ExamSubmissionContentDetailsRepository();
-  private readonly examContentRepository: IExamContentRepository =
-    new ExamContentRepository();
-  private readonly examRepository: IExamRepository =
-    new ExamRepository();
+/**
+ * Service for handling exam submissions
+ * Manages exam submissions, their contents, and related operations
+ */
+class ExamSubmissionService extends BaseService {
+  private readonly CACHE_PREFIX = 'exam-submission:';
+  private readonly CACHE_TTL = 300; // 5 minutes
+  
+  // Dependencies injected through the constructor
+  private readonly examSubmissionRepository: IExamSubmissionRepository;
+  private readonly studentClassRepository: IStudentClassesRepository;
+  private readonly classRepository: IClassesRepository;
+  private readonly examSubmissionContentRepository: IExamSubmissionContentRepository;
+  private readonly languageRepository: ILanguageCodeRepository;
+  private readonly testcaseRepository: ITestCaseRepository;
+  private readonly examSubmissionContentDetailsRepository: IExamSubmissionContentDetailsRepository;
+  private readonly examContentRepository: IExamContentRepository;
+  private readonly examRepository: IExamRepository;
 
-  public async get(options: any): Promise<ExamSubmission[]> {
-    return this.examSubmissionRepository.find(options);
+  /**
+   * Constructor with dependency injection
+   */
+  constructor(
+    examSubmissionRepository: IExamSubmissionRepository = new ExamSubmissionRepository(),
+    studentClassRepository: IStudentClassesRepository = new StudentClassesRepository(),
+    classRepository: IClassesRepository = new ClassesRepository(),
+    examSubmissionContentRepository: IExamSubmissionContentRepository = new ExamSubmissionContentRepository(),
+    languageRepository: ILanguageCodeRepository = new LanguageCodeRepository(),
+    testcaseRepository: ITestCaseRepository = new TestCaseRepository(),
+    examSubmissionContentDetailsRepository: IExamSubmissionContentDetailsRepository = new ExamSubmissionContentDetailsRepository(),
+    examContentRepository: IExamContentRepository = new ExamContentRepository(),
+    examRepository: IExamRepository = new ExamRepository()
+  ) {
+    super();
+    this.examSubmissionRepository = examSubmissionRepository;
+    this.studentClassRepository = studentClassRepository;
+    this.classRepository = classRepository;
+    this.examSubmissionContentRepository = examSubmissionContentRepository;
+    this.languageRepository = languageRepository;
+    this.testcaseRepository = testcaseRepository;
+    this.examSubmissionContentDetailsRepository = examSubmissionContentDetailsRepository;
+    this.examContentRepository = examContentRepository;
+    this.examRepository = examRepository;
   }
 
+  //==============================
+  // READ OPERATIONS
+  //==============================
+
+  /**
+   * Get exam submissions based on query options with caching
+   * @param options Query options for finding exam submissions
+   * @returns Array of exam submissions matching the criteria
+   */
+  public async get(options: any): Promise<ExamSubmission[]> {
+    try {
+      const cacheKey = `${this.CACHE_PREFIX}all:${JSON.stringify(options)}`;
+      
+      return await cacheManager.getOrSet(
+        cacheKey,
+        async () => this.examSubmissionRepository.find(options),
+        this.CACHE_TTL
+      );
+    } catch (error) {
+      this.handleError(error, 'get');
+    }
+  }
+
+  /**
+   * Get exam submissions by exam ID with caching
+   * @param exam_id The ID of the exam
+   * @returns Array of exam submissions for the specified exam
+   */
   public async getExamSubmissionByExamId(
     exam_id: number
   ): Promise<ExamSubmission[]> {
-    if (!exam_id) {
-      throw new ApiError(
-        400,
-        EXAM_SUBMISSION_FIELD_REQUIRED.error.message,
-        EXAM_SUBMISSION_FIELD_REQUIRED.error.details
+    try {
+      this.validateRequired(exam_id, 'exam_id');
+      
+      const cacheKey = `${this.CACHE_PREFIX}exam:${exam_id}`;
+      
+      return await cacheManager.getOrSet(
+        cacheKey,
+        async () => {
+          const exam = await this.examSubmissionRepository.findByExamId(exam_id);
+          this.validateExists(exam, 'exam');
+          
+          return this.examSubmissionRepository.getExamSubmissionByExamId(exam_id);
+        },
+        this.CACHE_TTL
       );
+    } catch (error) {
+      this.handleError(error, 'getExamSubmissionByExamId');
     }
-    const exam = await this.examSubmissionRepository.findByExamId(exam_id);
-    if (!exam) {
-      throw new ApiError(404, "Exam not found", "Exam not found");
-    }
-    return this.examSubmissionRepository.getExamSubmissionByExamId(
-      exam_id
-    );
   }
 
+  /**
+   * Get exam submission for a specific student with caching
+   * @param student_id The ID of the student
+   * @param class_id The ID of the class
+   * @param exam_id The ID of the exam
+   * @returns The exam submission for the specified student
+   */
   public async getExamSubmissionByOneStudent(
     student_id: number,
     class_id: number,
     exam_id: number
   ): Promise<ExamSubmission> {
-    if (!exam_id || !student_id) {
-      throw new ApiError(
-        400,
-        EXAM_SUBMISSION_FIELD_REQUIRED.error.message,
-        EXAM_SUBMISSION_FIELD_REQUIRED.error.details
+    try {
+      this.validateRequired(exam_id, 'exam_id');
+      this.validateRequired(student_id, 'student_id');
+      this.validateRequired(class_id, 'class_id');
+      
+      const cacheKey = `${this.CACHE_PREFIX}student:${student_id}:class:${class_id}:exam:${exam_id}`;
+      
+      return await cacheManager.getOrSet(
+        cacheKey,
+        async () => {
+          const existedStudentClass =
+            await this.studentClassRepository.findByStudentId(student_id);
+          this.validateExists(existedStudentClass, 'student class');
+    
+          const existedClass = await this.classRepository.findById(class_id);
+          this.validateExists(existedClass, 'class');
+    
+          const studentClass =
+            await this.studentClassRepository.findByUserIdAndClassId(
+              student_id,
+              class_id
+            );
+          if (!studentClass) {
+            throw new ApiError(
+              404,
+              "Student is not enrolled in this class",
+              "Student class record not found"
+            );
+          }
+    
+          const examSubmission =
+            await this.examSubmissionRepository.findByExamIdAndStudentClassId(
+              exam_id,
+              studentClass.student_class_id
+            );
+          this.validateExists(examSubmission, 'exam submission');
+    
+          const examSubmissionContents =
+            await this.examSubmissionContentRepository.findByExamSubmissionId(
+              examSubmission.exam_submission_id
+            );
+          return {
+            ...examSubmission,
+            examSubmissionContents,
+          };
+        },
+        this.CACHE_TTL
       );
+    } catch (error) {
+      this.handleError(error, 'getExamSubmissionByOneStudent');
     }
-
-    const existedStudentClass =
-      await this.studentClassRepository.findByStudentId(student_id);
-    if (!existedStudentClass) {
-      throw new ApiError(
-        404,
-        "Student class not found",
-        "Student class not found"
-      );
-    }
-
-    const existedClass = await this.classRepository.findById(class_id);
-    if (!existedClass) {
-      throw new ApiError(404, "Class not found", "Class not found");
-    }
-
-    const studentClass =
-      await this.studentClassRepository.findByUserIdAndClassId(
-        student_id,
-        class_id
-      );
-    if (!studentClass) {
-      throw new ApiError(
-        404,
-        "Student is not enrolled in this class",
-        "Student class record not found"
-      );
-    }
-
-    const examSubmission =
-      await this.examSubmissionRepository.findByExamIdAndStudentClassId(
-        exam_id,
-        studentClass.student_class_id
-      );
-    if (!examSubmission) {
-      throw new ApiError(
-        404,
-        "Exam submission not found",
-        "Exam submission record not found"
-      );
-    }
-
-    const examSubmissionContents =
-      await this.examSubmissionContentRepository.findByExamSubmissionId(
-        examSubmission.exam_submission_id
-      );
-    return {
-      ...examSubmission,
-      examSubmissionContents,
-    };
   }
 
+  /**
+   * Get submissions for all students who have submitted an exam with caching
+   * @param class_id The ID of the class
+   * @param exam_id The ID of the exam
+   * @returns Array of exam submissions for the class and exam
+   */
   public async getExamSubmissionHaveSubmit(
     class_id: number,
     exam_id: number
   ): Promise<ExamSubmission[]> {
     try {
-      if (!class_id || !exam_id) {
-        throw new ApiError(
-          400,
-          EXAM_SUBMISSION_FIELD_REQUIRED.error.message,
-          EXAM_SUBMISSION_FIELD_REQUIRED.error.details
-        );
-      }
-      const classInfo =
-        await this.studentClassRepository.findByClassId(class_id);
-      if (!classInfo) {
-        throw new ApiError(404, "Class not found", "Class not found");
-      }
-      // get all students in class
-      const listUser =
-        await this.studentClassRepository.getAllStudentByClass(class_id);
-      const listExamSubmission = [];
-      // get all exam submission of students in class
-      for (const user of listUser) {
-        const examSubmission =
-          await this.examSubmissionRepository.getExamSubmissionByOneStudent(
-            user.student_id,
-            class_id,
-            exam_id
-          );
-        if (examSubmission) {
-          listExamSubmission.push({
-            ...examSubmission,
-            student_id: user.student_id,
-          });
-        }
-      }
-      return listExamSubmission;
-    } catch (error) {
-      Logger.error(error);
-      throw new ApiError(
-        500,
-        EXAM_SUBMISSION_ERROR.error.message,
-        EXAM_SUBMISSION_ERROR.error.details
+      this.validateRequired(class_id, 'class_id');
+      this.validateRequired(exam_id, 'exam_id');
+      
+      const cacheKey = `${this.CACHE_PREFIX}class:${class_id}:exam:${exam_id}:submissions`;
+      
+      return await cacheManager.getOrSet(
+        cacheKey,
+        async () => {
+          const classInfo = await this.studentClassRepository.findByClassId(class_id);
+          this.validateExists(classInfo, 'class');
+          
+          // Get all students in class
+          const listUser = await this.studentClassRepository.getAllStudentByClass(class_id);
+          const listExamSubmission = [];
+          
+          // Get all exam submissions of students in class
+          for (const user of listUser) {
+            try {
+              const examSubmission =
+                await this.examSubmissionRepository.getExamSubmissionByOneStudent(
+                  user.student_id,
+                  class_id,
+                  exam_id
+                );
+              if (examSubmission) {
+                listExamSubmission.push({
+                  ...examSubmission,
+                  student_id: user.student_id,
+                });
+              }
+            } catch (error) {
+              // Skip failed submissions and log error
+              Logger.error(`Failed to get submission for student ${user.student_id}`);
+            }
+          }
+          return listExamSubmission;
+        },
+        this.CACHE_TTL
       );
+    } catch (error) {
+      this.handleError(error, 'getExamSubmissionHaveSubmit');
     }
   }
 
+  //==============================
+  // WRITE OPERATIONS
+  //==============================
+
+  /**
+   * Create a new exam submission
+   * @param exam_id The ID of the exam
+   * @param student_id The ID of the student
+   * @param class_id The ID of the class
+   * @param data Submission data including file content
+   * @returns The created exam submission
+   */
   public async createExamSubmission(
     exam_id: number,
     student_id: number,
     class_id: number,
     data: { file_content: string; grade?: number; feed_back?: string }
   ): Promise<ExamSubmission> {
-    if (!data) {
-      throw new ApiError(
-        400,
-        EXAM_SUBMISSION_FIELD_REQUIRED.error.message,
-        EXAM_SUBMISSION_FIELD_REQUIRED.error.details
-      );
+    try {
+      this.validateRequired(data, 'data');
+      this.validateRequired(data.file_content, 'file_content');
+      this.validateRequired(exam_id, 'exam_id');
+      this.validateRequired(student_id, 'student_id');
+      this.validateRequired(class_id, 'class_id');
+      
+      const studentClass = await this.getStudentClass(student_id, class_id);
+      const existedUser = studentClass?.student_id;
+      const existedClass = studentClass?.class_id;
+      
+      this.validateExists(studentClass, 'student class');
+      this.validateExists(existedUser, 'user');
+      this.validateExists(existedClass, 'class');
+      
+      const existedUserAndClass =
+        await this.studentClassRepository.findByUserIdAndClassId(
+          existedUser,
+          existedClass
+        );
+      this.validateExists(existedUserAndClass, 'user in class');
+      
+      // Check if the student has already submitted the exam
+      const existedExamSubmission =
+        await this.examSubmissionRepository.findByExamIdAndStudentClassId(
+          exam_id,
+          studentClass.student_class_id
+        );
+      
+      // If not, create a new exam submission record; else just create a new content of submission
+      let newExamSubmission: ExamSubmission;
+      
+      if (existedExamSubmission) {
+        await this.examSubmissionContentRepository.createExamSubmissionContentByExamSubmissionId(
+          existedExamSubmission.exam_submission_id,
+          {
+            file_content: data.file_content,
+            exam_submission_id: existedExamSubmission.exam_submission_id,
+            id: 0,
+            created_at: new Date(),
+          }
+        );
+        newExamSubmission = existedExamSubmission;
+      } else {
+        newExamSubmission = await this.createExamSubmissionRecord(
+          exam_id,
+          studentClass.student_class_id,
+          {
+            grade: data.grade,
+            feed_back: data.feed_back,
+          }
+        );
+        
+        await this.createExamSubmissionContent(
+          newExamSubmission.exam_submission_id,
+          data.file_content
+        );
+      }
+      
+      // Invalidate related caches
+      this.invalidateCache(exam_id, student_id, class_id);
+      
+      return newExamSubmission;
+    } catch (error) {
+      this.handleError(error, 'createExamSubmission');
     }
-    const studentClass = await this.getStudentClass(student_id, class_id);
-    const existedUser = studentClass?.student_id;
-    const existedClass = studentClass?.class_id;
-    if (!studentClass) {
-      throw new ApiError(
-        404,
-        "Student class not found",
-        "Student class not found"
-      );
-    }
-    if (!existedUser) {
-      throw new ApiError(404, "User not found", "User not found");
-    }
-    if (!existedClass) {
-      throw new ApiError(404, "Class not found", "Class not found");
-    }
-    const existedUserAndClass =
-      await this.studentClassRepository.findByUserIdAndClassId(
-        existedUser,
-        existedClass
-      );
-    if (!existedUserAndClass) {
-      throw new ApiError(404, "User not in class", "User not in class");
-    }
-    // check if the student has already submitted the exam
-    const existedExamSubmission =
-      await this.examSubmissionRepository.findByExamIdAndStudentClassId(
-        exam_id,
-        studentClass.student_class_id
-      );
-    // if not will create a new exam submission record, else just create a new content of submission
-    let newExamSubmission: ExamSubmission;
-    if (existedExamSubmission) {
-      await this.examSubmissionContentRepository.createExamSubmissionContentByExamSubmissionId(
-        existedExamSubmission.exam_submission_id,
-        {
-          file_content: data.file_content,
-          exam_submission_id: existedExamSubmission.exam_submission_id,
-          id: 0,
-          created_at: new Date(),
-        }
-      );
-      newExamSubmission = existedExamSubmission;
-    } else {
-      newExamSubmission = await this.createExamSubmissionRecord(
-        exam_id,
-        studentClass.student_class_id,
-        {
-          grade: data.grade,
-          feed_back: data.feed_back,
-        }
-      );
-    }
-    return newExamSubmission;
-  }
-  catch(error) {
-    Logger.error(error);
-    throw new ApiError(
-      500,
-      CODE_EXECUTION_FAILED.error.message,
-      CODE_EXECUTION_FAILED.error.details
-    );
   }
 
   public async createExamSubmissionByStudentAndClass(
@@ -561,6 +634,12 @@ class ExamSubmissionService {
     }
   }
 
+  /**
+   * Run code for an exam submission
+   * @param exam_content_id The ID of the exam content
+   * @param data The code data to run
+   * @returns The result of running the code
+   */
   public async runCode(
     exam_content_id: number,
     data: {
@@ -594,527 +673,364 @@ class ExamSubmissionService {
       input?: string;
     };
   }> {
-    Logger.info(`Starting runCode for exam_content_id: ${exam_content_id}, language_id: ${data.language_id}`);
-    this.validateExamSubmissionData(data);
-
-    let run_code_result = "";
-    let totalGrade = 0;
-    let error = null;
-    let user_input_result: {
-      status: {
-        id: number;
-        description: string;
-      };
-      output?: string;
-      error?: string;
-      input?: string;
-    } | undefined;
-    const testcase_results: Array<{
-      id: number;
-      passed: boolean;
-      score: number;
-      status: {
-        id: number;
-        description: string;
-      };
-      output?: string;
-      error?: string;
-      expected_output?: string;
-    }> = [];
-    console.log(data.file_content);
-    const encoded = (str) => str ? Buffer.from(str, "binary").toString("base64") : "";
-    const decoded = (str) => str ? Buffer.from(str, "base64").toString() : "";
-    const encodedSourceCode = encoded(data.file_content);
-    const encodedInput = encoded(data.input);
-    console.log(encodedSourceCode);
-    // Handle user input if provided - make sure we check for empty strings too
-    if (data.input && data.input.trim() !== "") {
-      Logger.info(`Running code with user-provided input: ${data.input.substring(0, 50)}...`);
-      try {
-        const judge0ResponseForInput = await this.submitToJudge0({
-          source_code: encodedSourceCode,
-          language_id: data.language_id,
-          stdin: encodedInput,
-        });
-        
-        Logger.info(`Judge0 submission successful. Token: ${judge0ResponseForInput.token}`);
-
-        const submissionResultForInput = await this.getJudge0Result(
-          judge0ResponseForInput.token
-        );
-        
-        Logger.info(`Judge0 result received. Status: ${JSON.stringify(submissionResultForInput.status)}`);
-        
-        // Add the results to run_code_result with decoded error messages
-        run_code_result += `User Input Result:\n${submissionResultForInput.status.description}\n`;
-        if (submissionResultForInput.stdout) {
-          const decodedOutput = decoded(submissionResultForInput.stdout);
-          run_code_result += `Program Output:\n${decodedOutput}\n`;
-        }
-        
-        // Create user input result object
-        user_input_result = {
-          status: {
-            id: submissionResultForInput.status.id,
-            description: submissionResultForInput.status.description,
-          },
-          output: decoded(submissionResultForInput.stdout),
-          input: data.input,
-          error: decoded(submissionResultForInput.stderr)
-        };
-        
-        // Add error information with decoded values
-        if (submissionResultForInput.compile_output) {
-          const decodedCompileOutput = decoded(submissionResultForInput.compile_output);
-          run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
-          
-          // Set error for compilation errors
-          error = decodedCompileOutput;
-        }
-        
-        if (submissionResultForInput.stderr) {
-          const decodedStderr = decoded(submissionResultForInput.stderr);
-          run_code_result += `Runtime Error:\n${decodedStderr}\n`;
-          
-          // Only set error if not already set by compile_output
-          if (!error) {
-            error = decodedStderr;
-          }
-        }
-        
-        // If we have an error status but no error message yet, use the status description
-        if (!error && submissionResultForInput.status.id !== 3) {
-          error = submissionResultForInput.status.description;
-        }
-      } catch (error) {
-        Logger.error(`Error running code with input: ${(error as Error).message}`);
-        // Don't throw an error here - we want to continue with testcases even if user input fails
-        run_code_result += `Error processing user input: ${(error as Error).message}\n\n`;
-        
-        // Set error variable
-        error = (error as Error).message;
-        
-        // Initialize user_input_result with error details
-        user_input_result = {
-          status: {
-            id: -1,
-            description: "Error processing input"
-          },
-          output: "",
-          input: data.input || "",
-          error: (error as Error).message
-        };
-      }
-    } else {
-      // Log that we're skipping user input because none was provided
-      Logger.info('No user input provided, skipping input execution');
-      
-      // Initialize user_input_result with default values when no input provided
-      user_input_result = {
-        status: {
-          id: 0,
-          description: "No input provided"
-        },
-        output: "",
-        input: "",
-        error: ""
-      };
-    }
-
-    // Handle testcases
     try {
-      Logger.info(`Fetching testcases for exam_content_id: ${exam_content_id}`);
-      const testcases = await this.testcaseRepository.find({
-        where: {
-          exam_content_id: exam_content_id
-        }
-      });
+      this.validateRequired(exam_content_id, 'exam_content_id');
+      await this.validateExamSubmissionData(data);
       
-      Logger.info(`Found ${testcases.length} testcases`);
-
-      // If no testcases found and no user input provided, run the code with empty input
-      if (testcases.length === 0 && (!data.input || data.input.trim() === "")) {
-        Logger.info('No testcases found and no user input. Running code with empty input to check compilation.');
+      const examContent = await this.examContentRepository.findById(exam_content_id);
+      this.validateExists(examContent, 'exam content');
+      
+      // Utility functions for encoding/decoding
+      const encoded = (str) => str ? Buffer.from(str, "binary").toString("base64") : "";
+      const decoded = (str) => str ? Buffer.from(str, "base64").toString() : "";
+      
+      // Results to return
+      const result: {
+        grade?: number;
+        run_code_result?: string;
+        error?: string;
+        testcase_results?: Array<any>;
+        user_input_result?: any;
+      } = {};
+      
+      // Handle user-provided input if it exists
+      if (data.input) {
         try {
-          const judge0Response = await this.submitToJudge0({
-            source_code: encoded(data.file_content),
+          const userInputRequest = await this.submitToJudge0({
+            source_code: data.file_content,
             language_id: data.language_id,
-            stdin: encoded(""),
+            stdin: data.input
           });
-
-          Logger.info(`Judge0 submission for compilation check successful. Token: ${judge0Response.token}`);
-
-          const submissionResult = await this.getJudge0Result(
-            judge0Response.token
-          );
-
-          Logger.info(`Judge0 result for compilation check received. Status: ${JSON.stringify(submissionResult.status)}`);
-
-          // Add the results to run_code_result
-          run_code_result += `Compilation Check Result:\n${submissionResult.status.description}\n`;
-
-          // Create user input result for empty input
-          user_input_result = {
-            status: {
-              id: submissionResult.status.id,
-              description: submissionResult.status.description,
-            },
-            output: decoded(submissionResult.stdout),
-            input: "",
-            error: decoded(submissionResult.stderr)
+          
+          const userInputResult = await this.getJudge0Result(userInputRequest.token);
+          
+          result.user_input_result = {
+            status: userInputResult.status,
+            output: decoded(userInputResult.stdout),
+            error: decoded(userInputResult.stderr),
+            input: data.input
           };
-
-          // Add error information if available
-          if (submissionResult.compile_output) {
-            const decodedCompileOutput = decoded(submissionResult.compile_output);
-            run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
-          }
+        } catch (err) {
+          const error = err as Error;
+          Logger.error('Error running code with user input', undefined, {
+            exam_content_id,
+            language_id: data.language_id,
+            ctx: 'judge0',
+            error: error.message
+          });
           
-          if (submissionResult.stderr) {
-            const decodedStderr = decoded(submissionResult.stderr);
-            run_code_result += `Runtime Error:\n${decodedStderr}\n`;
-          }
-
-          // If there's output, add it too
-          if (submissionResult.stdout) {
-            const decodedOutput = decoded(submissionResult.stdout);
-            run_code_result += `Program Output:\n${decodedOutput}\n`;
-          }
-        } catch (error) {
-          Logger.error(`Error performing compilation check: ${(error as Error).message}`);
-          run_code_result += `Error during compilation check: ${(error as Error).message}\n\n`;
-          
-          // Initialize user_input_result with error details if not already defined
-          if (!user_input_result) {
-            user_input_result = {
-              status: {
-                id: -1,
-                description: "Error during compilation check"
-              },
-              output: "",
-              input: "",
-              error: (error as Error).message
-            };
-          }
+          result.error = error.message;
         }
       }
-
-      // Process testcases in batches to improve performance
-      const BATCH_SIZE = 3; // Process 3 testcases at a time
       
-      // Split testcases into batches
-      const testcaseBatches = [];
-      for (let i = 0; i < testcases.length; i += BATCH_SIZE) {
-        testcaseBatches.push(testcases.slice(i, i + BATCH_SIZE));
-      }
+      // Run against testcases if available
+      const testcases = await this.testcaseRepository.getAllTestcasesByExamContentId(
+        exam_content_id
+      );
       
-      Logger.info(`Processing testcases in ${testcaseBatches.length} batches of ${BATCH_SIZE}`);
-      
-      // Process each batch in sequence
-      for (let batchIndex = 0; batchIndex < testcaseBatches.length; batchIndex++) {
-        const batch = testcaseBatches[batchIndex];
-        Logger.info(`Processing batch ${batchIndex + 1}/${testcaseBatches.length} with ${batch.length} testcases`);
+      if (testcases && testcases.length > 0) {
+        result.testcase_results = [];
         
-        // Submit all testcases in the batch in parallel
-        const batchSubmissions = await Promise.all(
-          batch.map(async (testcase) => {
-            Logger.info(`Submitting testcase ${testcase.id} with input: ${testcase.input.substring(0, 50)}...`);
-            const judge0Response = await this.submitToJudge0({
-              source_code: encoded(data.file_content),
+        for (const testcase of testcases) {
+          try {
+            const testcaseRequest = await this.submitToJudge0({
+              source_code: data.file_content,
               language_id: data.language_id,
-              stdin: encoded(testcase.input),
-              expected_output: testcase.expected_output ? encoded(testcase.expected_output) : undefined,
+              stdin: testcase.input,
+              expected_output: testcase.expected_output
             });
             
-            Logger.info(`Judge0 submission for testcase ${testcase.id} successful. Token: ${judge0Response.token}`);
+            const testcaseResult = await this.getJudge0Result(testcaseRequest.token);
             
-            return {
-              testcase,
-              token: judge0Response.token
-            };
-          })
-        );
-        
-        // Wait for all results in the batch in parallel
-        const batchResults = await Promise.all(
-          batchSubmissions.map(async ({ testcase, token }) => {
-            Logger.info(`Getting results for testcase ${testcase.id} with token: ${token}`);
-            const submissionResult = await this.getJudge0Result(token);
+            const isPassed = testcaseResult.status.id === 3; // 3 is "Accepted"
             
-            Logger.info(`Judge0 result for testcase ${testcase.id} received. Status: ${JSON.stringify(submissionResult.status)}`);
+            result.testcase_results.push({
+              id: testcase.id,
+              passed: isPassed,
+              score: isPassed ? testcase.score : 0,
+              status: testcaseResult.status,
+              output: decoded(testcaseResult.stdout),
+              error: decoded(testcaseResult.stderr),
+              expected_output: testcase.expected_output
+            });
+          } catch (err) {
+            const error = err as Error;
+            Logger.error('Error running code against testcase', undefined, {
+              exam_content_id,
+              testcase_id: testcase.id,
+              ctx: 'judge0',
+              error: error.message
+            });
             
-            return {
-              testcase,
-              submissionResult
-            };
-          })
-        );
-        
-        // Process all results in the batch
-        for (const { testcase, submissionResult } of batchResults) {
-          const testcaseResult = {
-            id: testcase.id,
-            passed: submissionResult.status.id === 3,
-            score: testcase.score,
-            status: {
-              id: submissionResult.status.id,
-              description: submissionResult.status.description,
-            },
-            input: testcase.input,
-            expected_output: testcase.expected_output,
-            output: submissionResult.stdout ? decoded(submissionResult.stdout) : '',
-            error: submissionResult.stderr ? decoded(submissionResult.stderr) : '',
-          };
-
-          // If testcase passed (status.id === 3 means Accepted)
-          if (submissionResult.status.id === 3) {
-            totalGrade += testcase.score;
-            run_code_result += `Testcase ${testcase.id}: Passed (+${testcase.score} points)\n`;
-            if (testcaseResult.output) {
-              const decodedOutput = decoded(testcaseResult.output);
-              run_code_result += `Program Output:\n${decodedOutput}\n`;
-            }
-            Logger.info(`Testcase ${testcase.id} passed. Score: ${testcase.score}`);
-          } else {
-            run_code_result += `Testcase ${testcase.id}: Failed (${submissionResult.status.description})\n`;
-            
-            // Include decoded outputs
-            if (submissionResult.compile_output) {
-              const decodedCompileOutput = decoded(submissionResult.compile_output);
-              run_code_result += `Compilation Error:\n${decodedCompileOutput}\n`;
-              
-              // Set error for compilation errors
-              testcaseResult.error = decodedCompileOutput;
-              
-              // Update global error if not set yet
-              if (!error) {
-                error = decodedCompileOutput;
-              }
-            }
-            
-            if (submissionResult.stderr) {
-              const decodedStderr = decoded(submissionResult.stderr);
-              run_code_result += `Runtime Error:\n${decodedStderr}\n`;
-              
-              // Update testcaseResult with decoded error if not already set
-              if (!testcaseResult.error) {
-                testcaseResult.error = decodedStderr;
-              }
-              
-              // Update global error if not set yet
-              if (!error) {
-                error = decodedStderr;
-              }
-            }
-            
-            // If we have an error status but no error message yet, use the status description
-            if (!testcaseResult.error && submissionResult.status.id !== 3) {
-              testcaseResult.error = submissionResult.status.description;
-            }
-            
-            // Add program output if it exists
-            if (testcaseResult.output) {
-              const decodedOutput = decoded(testcaseResult.output);
-              run_code_result += `Program Output:\n${decodedOutput}\n`;
-              // Also update the testcaseResult with decoded output
-              testcaseResult.output = decodedOutput;
-            }
-            
-            Logger.info(`Testcase ${testcase.id} failed. Status: ${submissionResult.status.description}`);
+            result.testcase_results.push({
+              id: testcase.id,
+              passed: false,
+              score: 0,
+              status: {
+                id: 999,
+                description: "Execution error"
+              },
+              error: error.message
+            });
           }
-          
-          testcase_results.push(testcaseResult);
         }
         
-        // Add a small delay between batches to avoid API rate limits
-        if (batchIndex < testcaseBatches.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+        // Calculate total grade
+        if (result.testcase_results.length > 0) {
+          result.grade = result.testcase_results.reduce(
+            (total, current) => total + current.score,
+            0
+          );
         }
       }
-
-      Logger.info(`All testcases completed. Total grade: ${totalGrade}`);
-      return { grade: totalGrade, run_code_result, testcase_results, user_input_result, error};
+      
+      return result;
     } catch (error) {
-      Logger.error(`Error in runCode: ${(error as Error).message}`);
-      throw new ApiError(
-        500,
-        CODE_EXECUTION_FAILED.error.message,
-        CODE_EXECUTION_FAILED.error.details
-      );
+      this.handleError(error, 'runCode');
     }
   }
 
+  /**
+   * Update an exam submission with grade and feedback
+   * @param exam_submission_id The ID of the exam submission
+   * @param grade The grade to assign
+   * @param feedback The feedback to provide
+   * @returns The updated exam submission
+   */
   public async updateExamSubmissionWithGrade(
     exam_submission_id: number,
     grade: number,
     feedback: string
   ): Promise<ExamSubmission> {
-    const existedExamSubmission =
-      await this.examSubmissionRepository.findById(exam_submission_id);
-    if (!existedExamSubmission) {
-      throw new ApiError(
-        404,
-        "Exam submission not found",
-        "Exam submission not found"
+    try {
+      this.validateRequired(exam_submission_id, 'exam_submission_id');
+      
+      const existingSubmission = await this.examSubmissionRepository.findById(exam_submission_id);
+      this.validateExists(existingSubmission, 'exam submission');
+      
+      // Update the submission with grade and feedback
+      const updatedSubmission = await this.examSubmissionRepository.update(
+        exam_submission_id,
+        {
+          ...existingSubmission,
+          grade,
+          feed_back: feedback,
+          updated_at: new Date()
+        }
       );
+      
+      // Invalidate related caches
+      this.invalidateCache(existingSubmission.exam_id);
+      
+      return updatedSubmission;
+    } catch (error) {
+      this.handleError(error, 'updateExamSubmissionWithGrade');
     }
-    
-    existedExamSubmission.grade = grade;
-    existedExamSubmission.feed_back = feedback;
-    existedExamSubmission.updated_at = new Date();
-    
-    return this.examSubmissionRepository.updateExamSubmission(
-      exam_submission_id,
-      existedExamSubmission
-    );
   }
 
+  /**
+   * Validate exam submission data to ensure all required fields are present
+   * @param data The submission data to validate
+   * @throws ApiError if any required data is missing or invalid
+   */
   private async validateExamSubmissionData(data: {
     file_content: string;
     language_id?: number;
     stdin?: string;
     expected_output?: string;
   }): Promise<void> {
-    if (!data.file_content) {
-      throw new ApiError(
-        400,
-        EXAM_SUBMISSION_FIELD_REQUIRED.error.message,
-        EXAM_SUBMISSION_FIELD_REQUIRED.error.details
-      );
-    }
-    if (data.language_id) {
-      const language = await this.languageRepository.findById(data.language_id);
-      if (!language) {
-        throw new ApiError(404, "Language not found", "Language not found");
+    try {
+      this.validateRequired(data.file_content, 'file_content');
+      
+      if (data.language_id) {
+        const language = await this.languageRepository.findById(data.language_id);
+        this.validateExists(language, 'language');
       }
+    } catch (error) {
+      this.handleError(error, 'validateExamSubmissionData');
     }
-
-    // // using child_process to run the code for validate the code
-    // const child = spawn(language.name, [data.file_content]);
-    // child.stdout.on("data", (data) => {
-    //   console.log(data.toString());
-    // });
   }
 
+  /**
+   * Get student class by student ID and class ID
+   * @param student_id The ID of the student
+   * @param class_id The ID of the class
+   * @returns The student class record
+   */
   private async getStudentClass(student_id: number, class_id: number) {
-    const studentClass =
-      await this.studentClassRepository.findByUserIdAndClassId(
+    try {
+      this.validateRequired(student_id, 'student_id');
+      this.validateRequired(class_id, 'class_id');
+      
+      const studentClass = await this.studentClassRepository.findByUserIdAndClassId(
         student_id,
         class_id
       );
-    if (!studentClass) {
-      throw new ApiError(
-        404,
-        "Student class not found",
-        "Student class not found"
-      );
+      
+      this.validateExists(studentClass, 'student class');
+      return studentClass;
+    } catch (error) {
+      this.handleError(error, 'getStudentClass');
     }
-    return studentClass;
   }
 
+  /**
+   * Create a new exam submission record
+   * @param exam_id The ID of the exam
+   * @param student_class_id The ID of the student class
+   * @param data Additional data for the submission
+   * @returns The created exam submission
+   */
   private async createExamSubmissionRecord(
     exam_id: number,
     student_class_id: number,
     data: { grade?: number; feed_back?: string; run_code_result?: string }
   ): Promise<ExamSubmission> {
-    return this.examSubmissionRepository.save({
-      ...data,
-      exam_id,
-      student_class_id,
-      submitted_at: new Date(),
-      updated_at: new Date(),
-      exam_submission_id: 0,
-      ...(data.grade !== undefined && { grade: data.grade }),
-      ...(data.feed_back !== undefined && { feed_back: data.feed_back }),
-      ...(data.run_code_result !== undefined && { run_code_result: data.run_code_result }),
-    });
+    try {
+      this.validateRequired(exam_id, 'exam_id');
+      this.validateRequired(student_class_id, 'student_class_id');
+      
+      return await this.examSubmissionRepository.save({
+        ...data,
+        exam_id,
+        student_class_id,
+        submitted_at: new Date(),
+        updated_at: new Date(),
+        exam_submission_id: 0,
+        ...(data.grade !== undefined && { grade: data.grade }),
+        ...(data.feed_back !== undefined && { feed_back: data.feed_back }),
+        ...(data.run_code_result !== undefined && { run_code_result: data.run_code_result }),
+      });
+    } catch (error) {
+      this.handleError(error, 'createExamSubmissionRecord');
+    }
   }
 
+  /**
+   * Create a new exam submission content
+   * @param exam_submission_id The ID of the exam submission
+   * @param file_content The file content to save
+   * @returns The created exam submission content
+   */
   private async createExamSubmissionContent(
     exam_submission_id: number,
     file_content: string
   ): Promise<ExamSubmissionContent> {
-    return this.examSubmissionContentRepository.save({
-      exam_submission_id,
-      file_content,
-      id: 0,
-      created_at: new Date(),
-    });
+    try {
+      this.validateRequired(exam_submission_id, 'exam_submission_id');
+      this.validateRequired(file_content, 'file_content');
+      
+      return await this.examSubmissionContentRepository.save({
+        exam_submission_id,
+        file_content,
+        id: 0,
+        created_at: new Date(),
+      });
+    } catch (error) {
+      this.handleError(error, 'createExamSubmissionContent');
+    }
   }
 
+  /**
+   * Update an existing exam submission
+   * @param exam_submission_id The ID of the exam submission to update
+   * @param examSubmission The updated exam submission data
+   * @returns The updated exam submission
+   */
   public async updateExamSubmission(
     exam_submission_id: number,
     examSubmission: ExamSubmission
   ): Promise<ExamSubmission> {
-    if (!examSubmission) {
-      throw new ApiError(
-        400,
-        EXAM_SUBMISSION_FIELD_REQUIRED.error.message,
-        EXAM_SUBMISSION_FIELD_REQUIRED.error.details
+    try {
+      this.validateRequired(exam_submission_id, 'exam_submission_id');
+      this.validateRequired(examSubmission, 'examSubmission');
+      
+      const existingSubmission = await this.examSubmissionRepository.findById(exam_submission_id);
+      this.validateExists(existingSubmission, 'exam submission');
+      
+      const updatedSubmission = await this.examSubmissionRepository.update(
+        exam_submission_id, 
+        {
+          ...examSubmission,
+          updated_at: new Date(),
+        }
       );
+      
+      // Invalidate related caches
+      this.invalidateCache(existingSubmission.exam_id);
+      
+      return updatedSubmission;
+    } catch (error) {
+      this.handleError(error, 'updateExamSubmission');
     }
-    const existedExamSubmission =
-      await this.examSubmissionRepository.findById(exam_submission_id);
-    if (!existedExamSubmission) {
-      throw new ApiError(
-        404,
-        "Exam submission not found",
-        "Exam submission not found"
-      );
-    }
-    // just update the updated_at field
-    examSubmission.updated_at = new Date();
-    return this.examSubmissionRepository.updateExamSubmission(
-      exam_submission_id,
-      examSubmission
-    );
   }
 
+  /**
+   * Delete an exam submission
+   * @param exam_submission_id The ID of the exam submission to delete
+   * @returns The deleted exam submission
+   */
   public async deleteExamSubmission(
     exam_submission_id: number
   ): Promise<ExamSubmission> {
-    const existedExamSubmission =
-      await this.examSubmissionRepository.findById(exam_submission_id);
-    if (!existedExamSubmission) {
-      throw new ApiError(
-        404,
-        "Exam submission not found",
-        "Exam submission not found"
-      );
+    try {
+      this.validateRequired(exam_submission_id, 'exam_submission_id');
+      
+      const existingSubmission = await this.examSubmissionRepository.findById(exam_submission_id);
+      this.validateExists(existingSubmission, 'exam submission');
+      
+      // Get all contents for this submission
+      const contents = await this.examSubmissionContentRepository.findByExamSubmissionId(exam_submission_id);
+      
+      // Delete each content individually
+      for (const content of contents) {
+        await this.examSubmissionContentRepository.delete(content.id);
+      }
+      
+      const deletedSubmission = await this.examSubmissionRepository.delete(exam_submission_id);
+      
+      // Invalidate related caches
+      this.invalidateCache(existingSubmission.exam_id);
+      
+      return deletedSubmission;
+    } catch (error) {
+      this.handleError(error, 'deleteExamSubmission');
     }
-    return this.examSubmissionRepository.delete(exam_submission_id);
   }
 
+  /**
+   * Delete an exam submission content
+   * @param exam_submission_id The ID of the exam submission
+   * @param id The ID of the content to delete
+   * @returns The deleted exam submission content
+   */
   public async deleteExamSubmissionContent(
     exam_submission_id: number,
     id: number
   ): Promise<ExamSubmissionContent> {
-    const existedExamSubmission =
-      await this.examSubmissionRepository.findById(exam_submission_id);
-    if (!existedExamSubmission) {
-      throw new ApiError(
-        404,
-        "Exam submission not found",
-        "Exam submission not found"
-      );
+    try {
+      this.validateRequired(exam_submission_id, 'exam_submission_id');
+      this.validateRequired(id, 'id');
+      
+      const existingSubmission = await this.examSubmissionRepository.findById(exam_submission_id);
+      this.validateExists(existingSubmission, 'exam submission');
+      
+      const existingContent = await this.examSubmissionContentRepository.findById(id);
+      this.validateExists(existingContent, 'exam submission content');
+      
+      if (existingContent.exam_submission_id !== exam_submission_id) {
+        throw new ApiError(400, "Content does not belong to this submission", "Invalid content ID for this submission");
+      }
+      
+      const deletedContent = await this.examSubmissionContentRepository.delete(id);
+      
+      // Invalidate related caches
+      this.invalidateCache(existingSubmission.exam_id);
+      
+      return deletedContent;
+    } catch (error) {
+      this.handleError(error, 'deleteExamSubmissionContent');
     }
-    const examSubmissionContent =
-      await this.examSubmissionContentRepository.findByExamSubmissionId(
-        exam_submission_id
-      );
-    if (!examSubmissionContent) {
-      throw new ApiError(
-        404,
-        "Exam submission content not found",
-        "Exam submission content not found"
-      );
-    }
-    const deletedContent =
-      await this.examSubmissionContentRepository.deleteExamSubmissionContent(
-        exam_submission_id,
-        id
-      );
-    return deletedContent;
   }
 
   private async submitToJudge0(submission: {
@@ -1446,6 +1362,55 @@ class ExamSubmissionService {
     }
   }
 
+  //==============================
+  // CACHE MANAGEMENT
+  //==============================
+
+  /**
+   * Invalidate caches after updates
+   * @param exam_id The ID of the exam (optional)
+   * @param student_id The ID of the student (optional)
+   * @param class_id The ID of the class (optional)
+   */
+  private invalidateCache(exam_id?: number, student_id?: number, class_id?: number): void {
+    try {
+      // If no specific IDs are provided, invalidate all exam submission caches
+      if (!exam_id && !student_id && !class_id) {
+        cacheManager.deleteByPrefix(this.CACHE_PREFIX);
+        Logger.debug('Invalidated all exam submission caches');
+        return;
+      }
+      
+      // List of cache keys to invalidate
+      const keysToInvalidate: string[] = [];
+      
+      // Invalidate exam-specific cache
+      if (exam_id) {
+        keysToInvalidate.push(`${this.CACHE_PREFIX}exam:${exam_id}`);
+      }
+      
+      // Invalidate student-specific cache
+      if (student_id && class_id && exam_id) {
+        keysToInvalidate.push(`${this.CACHE_PREFIX}student:${student_id}:class:${class_id}:exam:${exam_id}`);
+      }
+      
+      // Invalidate class-specific cache
+      if (class_id && exam_id) {
+        keysToInvalidate.push(`${this.CACHE_PREFIX}class:${class_id}:exam:${exam_id}:submissions`);
+      }
+      
+      // Invalidate all-submissions cache
+      keysToInvalidate.push(`${this.CACHE_PREFIX}all:`);
+      
+      // Invalidate the keys
+      if (keysToInvalidate.length > 0) {
+        cacheManager.deleteMany(keysToInvalidate);
+        Logger.debug(`Invalidated exam submission caches: ${keysToInvalidate.join(', ')}`);
+      }
+    } catch (error) {
+      Logger.error('Failed to invalidate exam submission cache');
+    }
+  }
 }
 
 export default ExamSubmissionService;

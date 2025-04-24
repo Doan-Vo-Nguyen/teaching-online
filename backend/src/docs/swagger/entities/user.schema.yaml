@@ -368,7 +368,7 @@ paths:
             type: integer
           description: User ID
       responses:
-        "200":
+        "204":
           description: User deleted successfully
           content:
             application/json:
@@ -376,7 +376,7 @@ paths:
                 $ref: "#/components/schemas/Success"
               example:
                 success: true
-                message: "User deleted successfully"
+                message: "Delete user successfully"
         "401":
           description: Unauthorized
           content:
@@ -389,6 +389,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ForbiddenError"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
   
   /app/users/{id}/password/:
     put:

@@ -76,9 +76,38 @@ paths:
               schema:
                 type: object
                 properties:
-                  token:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
                     type: string
-                    example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+                    example: "Login successfully"
+                  data:
+                    type: object
+                    properties:
+                      token:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+                      refreshToken:
+                        type: string
+                        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+                      user:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            example: 1
+                          username:
+                            type: string
+                            example: "JohnDoe"
+                          fullname:
+                            type: string
+                            example: "John Doe"
+                          role:
+                            type: array
+                            items:
+                              type: string
+                              example: "student"
         '400':
           description: Invalid input
           content:
@@ -127,9 +156,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Success'
-            example:
-              success: true
-              message: "User registered successfully"
+              example:
+                success: true
+                message: "Register successfully"
+                data:
+                  id: 1
+                  username: "johndoe"
+                  fullname: "John Doe"
+                  email: "user@example.com"
+                  role: ["student"]
         '400':
           description: Invalid input
           content:
@@ -163,14 +198,16 @@ paths:
             example: user@example.com
       responses:
         '200':
-          description: Password reset email sent
+          description: Reset code sent successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Success'
               example:
                 success: true
-                message: "Password reset email sent"
+                message: "Reset code sent successfully"
+                data:
+                  redirect: "/reset-password"
         '400':
           description: Invalid input
           content:
@@ -191,7 +228,7 @@ paths:
                 message: "User not found"
 
   /auth/reset-password:
-    patch:
+    put:
       tags:
         - Auth
       summary: Reset password
@@ -219,14 +256,16 @@ paths:
                   example: newpassword123
       responses:
         '200':
-          description: Password reset successfully
+          description: Reset password successfully
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Success'
               example:
                 success: true
-                message: "Password reset successfully"
+                message: "Reset password successfully"
+                data:
+                  redirect: "/login"
         '400':
           description: Invalid input
           content:
@@ -250,7 +289,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UnauthorizedError'
+                $ref: '#/components/schemas/Error'
               example:
                 success: false
                 message: "Invalid or expired code"

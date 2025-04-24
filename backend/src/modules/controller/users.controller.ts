@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import BaseController from "../abstracts/base-controller";
-import UserService from "../services/users.service";
+import UserService  from "../services/users.service";
 import {
   authentication,
   authorAdOrTeacher,

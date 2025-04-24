@@ -1,10 +1,4 @@
 import { Response } from "express";
-import { 
-  HTTP_OK,
-  HTTP_CREATED, 
-  HTTP_ACCEPTED, 
-  HTTP_NO_CONTENT
-} from "../../modules/constant/http-status";
 
 interface IBaseResponse {
     success: boolean;

@@ -4,7 +4,6 @@ import BaseController from "../abstracts/base-controller";
 import MeetService from "../services/meet.service";
 import { Request, Response, NextFunction } from "express";
 import { logMeetingJoin, logMeetingLeave } from '../middleware/audit-log.middleware';
-import { IRequest } from '../types/IRequest';
 
 export class MeetController extends BaseController {
     private readonly meetService: MeetService;

@@ -1,0 +1,278 @@
+components:
+  schemas:
+    AuditLog:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The auto-generated id of the audit log
+        user_id:
+          type: integer
+          description: The ID of the user who performed the action
+        username:
+          type: string
+          description: The username of the user
+          example: "john_doe"
+        fullname:
+          type: string
+          description: The full name of the user
+          example: "John Doe"
+        action:
+          type: string
+          enum: [login, logout, view_page, submit_assignment, take_exam, join_meeting, leave_meeting, comment, other]
+          description: The type of action performed
+          example: "login"
+        target_id:
+          type: integer
+          nullable: true
+          description: The ID of the target object (if applicable)
+        target_type:
+          type: string
+          nullable: true
+          description: The type of the target object
+          example: "lecture"
+        ip_address:
+          type: string
+          nullable: true
+          description: The IP address of the user
+          example: "192.168.1.1"
+        user_agent:
+          type: string
+          nullable: true
+          description: The user agent of the user's browser
+          example: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+        page_url:
+          type: string
+          nullable: true
+          description: The URL of the page where the action occurred
+          example: "/app/lectures/123"
+        details:
+          type: string
+          nullable: true
+          description: Additional details about the action
+        start_time:
+          type: string
+          format: date-time
+          description: The time when the action started
+          example: "2023-09-15T10:30:00.000Z"
+        end_time:
+          type: string
+          format: date-time
+          nullable: true
+          description: The time when the action ended (if applicable)
+          example: "2023-09-15T10:35:00.000Z"
+        duration_seconds:
+          type: integer
+          description: The duration of the action in seconds
+          example: 300
+
+paths:
+  /app/audit-logs:
+    get:
+      tags:
+        - Audit Logs
+      summary: Get all audit logs with optional filtering
+      description: Returns a list of all audit logs. Admin access required.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Filter by user ID
+        - name: action
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [login, logout, view_page, submit_assignment, take_exam, join_meeting, leave_meeting, comment, other]
+          description: Filter by action type
+        - name: start_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Filter by start date (inclusive)
+        - name: end_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+          description: Filter by end date (inclusive)
+      responses:
+        "200":
+          description: A list of audit logs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Get all audit logs successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        "403":
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+  
+  /app/audit-logs/{id}:
+    get:
+      tags:
+        - Audit Logs
+      summary: Get an audit log by ID
+      description: Returns a specific audit log by its ID. Admin access required.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the audit log
+      responses:
+        "200":
+          description: Audit log details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Get audit log by id successfully"
+                  data:
+                    $ref: '#/components/schemas/AuditLog'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        "403":
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        "404":
+          description: Audit log not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  
+  /app/audit-logs/user/{userId}:
+    get:
+      tags:
+        - Audit Logs
+      summary: Get audit logs by user ID
+      description: Returns all audit logs for a specific user. Admin access required.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: ID of the user
+      responses:
+        "200":
+          description: A list of audit logs for the specified user
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Get audit logs by user id successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        "403":
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+  
+  /app/audit-logs/action/{action}:
+    get:
+      tags:
+        - Audit Logs
+      summary: Get audit logs by action type
+      description: Returns all audit logs for a specific action type. Admin access required.
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: action
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [login, logout, view_page, submit_assignment, take_exam, join_meeting, leave_meeting, comment, other]
+          description: Type of action
+      responses:
+        "200":
+          description: A list of audit logs for the specified action type
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Get audit logs by action successfully"
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AuditLog'
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        "403":
+          description: Forbidden - Admin access required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError' 

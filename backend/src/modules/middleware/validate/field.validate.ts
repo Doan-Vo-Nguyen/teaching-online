@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import {
-  FIELD_REQUIRED,
   INVALID_REQUEST,
   INVALID_VALUE,
 } from "../../DTO/resDto/BaseErrorDto";

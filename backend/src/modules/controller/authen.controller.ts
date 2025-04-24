@@ -1,14 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import BaseController from "../abstracts/base-controller";
 import { validate } from "../middleware/validate/field.validate";
-import AuthenService from "../services/authen.service";
+import { AuthenService } from "../services/authen.service";
 import { sendResponse } from "../../common/interfaces/base-response";
 import { HTTP_OK, HTTP_CREATED } from "../constant/http-status";
 import { logLogin, logLogout } from "../middleware/audit-log.middleware";
 import { IRequest } from "../types/IRequest";
 import { UserRepository } from "../repositories/users.repository";
-import { getTokenFromHeader } from "../middleware/auth.middleware";
-
 export class AuthenController extends BaseController {
     private readonly _authenService: AuthenService;
     private readonly _userRepository: UserRepository;

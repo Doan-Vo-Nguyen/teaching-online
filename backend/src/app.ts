@@ -1,8 +1,8 @@
 import "reflect-metadata";
-import express, { Express, Request, Response } from "express";
+import express, { Express, Request, Response, NextFunction } from "express";
 import "dotenv/config";
 import { sendResponse } from "./common/interfaces/base-response";
-import { AppDataSource, AppDataSource2 } from "./data-source";
+import { initializeDataSources, closeDataSources } from "./data-source";
 import { CommentController } from "./modules/controller/comment.controller";
 import { UserController } from "./modules/controller/users.controller";
 import { ClassesController } from "./modules/controller/classes.controller";
@@ -24,11 +24,38 @@ import { ExamSubmissionController } from "./modules/controller/exam-submission.c
 import { TestcaseController } from "./modules/controller/testcase.controller";
 import { logPageView } from "./modules/middleware/audit-log.middleware";
 import { IRequest } from "./modules/types/IRequest";
+import { AuditLogController } from "./modules/controller/audit-log.controller";
 
+/**
+ * Main application class that handles the Express server setup and configuration
+ * This class follows the Singleton pattern to ensure only one instance exists
+ */
 export class Application {
+  private static instance: Application;
   private _app: Express | undefined;
-  // private tokenCleanupInterval: NodeJS.Timer | null = null;
+  private readonly DEFAULT_PORT = 10000;
+  private readonly DEFAULT_SERVER_NAME = "Teaching_Online_Server";
+  private isInitialized = false;
 
+  /**
+   * Private constructor to enforce singleton pattern
+   */
+  private constructor() {}
+
+  /**
+   * Get the singleton instance of Application
+   */
+  public static getInstance(): Application {
+    if (!Application.instance) {
+      Application.instance = new Application();
+    }
+    return Application.instance;
+  }
+
+  /**
+   * Get the Express application instance
+   * @throws Error if app is not initialized
+   */
   get app(): Express {
     if (!this._app) {
       throw new Error("App not initialized");
@@ -36,75 +63,132 @@ export class Application {
     return this._app;
   }
 
-  public init() {
-    this._app = express();
-    this.initMiddleware();
-    this.initControllers();
-    this.initSwagger();
-    this.initMetricsEndpoint();
-    // this.initTokenBlacklistCleanup();
+  /**
+   * Initialize the application with all necessary middleware, controllers, and configurations
+   * @throws Error if initialization fails
+   */
+  public init(): void {
+    if (this.isInitialized) {
+      throw new Error("Application already initialized");
+    }
+
+    try {
+      this._app = express();
+      this.initMiddleware();
+      this.initControllers();
+      this.initSwagger();
+      this.initMetricsEndpoint();
+      this.isInitialized = true;
+    } catch (error: any) {
+      Logger.error("Failed to initialize application:", error);
+      throw new Error("Application initialization failed");
+    }
   }
 
-  private initMiddleware() {
-    this._app?.use(Logger.requestLogger());
+  /**
+   * Initialize all middleware for the application
+   * Includes logging, body parsing, CORS, security headers, etc.
+   */
+  private initMiddleware(): void {
+    if (!this._app) return;
+
+    // Request logging
+    this._app.use(Logger.requestLogger());
     
-    this._app?.use(express.json());
-    this._app?.use(express.urlencoded({ extended: true }));
-    this._app?.use(
-      cors({
-        origin: [
-          "http://localhost:3000",
-          "https://teaching-online-server.onrender.com",
-          "http://localhost:10000",
-          "http://localhost:5173",
-          "https://edu-space-dkn7.vercel.app",
-          "https://ghienphim.fun",
-          "https://api-service-9cy27.ondigitalocean.app",
-          "https://edu-space-psi.vercel.app",
-          "https://api-service-9cy27.ondigitalocean.app/api-docs"
-        ],
-                
-        methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization"],
-        credentials: true,
-      })
-    );
-    this.app?.use(helmet());
-    this.app?.use(
-      helmet.contentSecurityPolicy({
-        directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-          styleSrc: ["'self'", "'unsafe-inline'"],
-          imgSrc: ["'self'", "data:"],
-        },
-      })
-    );
+    // Body parsing
+    this._app.use(express.json());
+    this._app.use(express.urlencoded({ extended: true }));
+    
+    // CORS configuration
+    this._app.use(this.getCorsConfig());
+    
+    // Security headers
+    this._app.use(helmet());
+    this._app.use(this.getSecurityPolicy());
   }
 
-  private initControllers() {
+  /**
+   * Get CORS configuration
+   */
+  private getCorsConfig() {
+    return cors({
+      origin: [
+        "http://localhost:3000",
+        "https://teaching-online-server.onrender.com",
+        "http://localhost:10000",
+        "http://localhost:5173",
+        "https://edu-space-dkn7.vercel.app",
+        "https://ghienphim.fun",
+        "https://api-service-9cy27.ondigitalocean.app",
+        "https://edu-space-psi.vercel.app",
+        "https://api-service-9cy27.ondigitalocean.app/api-docs"
+      ],
+      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+      credentials: true,
+    });
+  }
+
+  /**
+   * Get security policy configuration
+   */
+  private getSecurityPolicy() {
+    return helmet.contentSecurityPolicy({
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        styleSrc: ["'self'", "'unsafe-inline'"],
+        imgSrc: ["'self'", "data:"],
+      },
+    });
+  }
+
+  /**
+   * Initialize all controllers and routes
+   */
+  private initControllers(): void {
+    if (!this._app) return;
+
     // Public routes
-    this._app?.get("/", (req: Request, res: Response) => {
+    this._app.get("/", (req: Request, res: Response) => {
       return sendResponse(res, true, 200, "Hello World!");
     });
 
     // Authentication routes (public)
     const authenController = new AuthenController("/auth");
-    this._app?.use(authenController.path, authenController.router);
+    this._app.use(authenController.path, authenController.router);
 
     // Middleware for authentication
-    this._app?.use("/app", authentication);
+    this._app.use("/app", authentication);
     
-    // Middleware for audit logging page views (after authentication)
-    this._app?.use("/app", (req, res, next) => {
-      // Skip API endpoints that don't represent page views
+    // Middleware for audit logging page views
+    this._app.use("/app", this.getAuditLogMiddleware());
+
+    // Initialize protected routes
+    this.initProtectedRoutes();
+
+    // Error handling
+    this._app.use(errorHandler);
+  }
+
+  /**
+   * Get audit log middleware configuration
+   */
+  private getAuditLogMiddleware() {
+    return (req: Request, res: Response, next: express.NextFunction) => {
       if (req.method === 'GET' && !req.path.includes('/api/')) {
         return logPageView(req as IRequest, res, next);
       }
       return next();
-    });
+    };
+  }
 
-    // Protected routes
+  /**
+   * Initialize all protected routes with authentication
+   */
+  private initProtectedRoutes(): void {
+    if (!this._app) return;
+
     const protectedControllers = [
       new CommentController("/app/comment"),
       new UserController("/app/users"),
@@ -117,55 +201,92 @@ export class Application {
       new MeetController("/app/meetings"),
       new ExamSubmissionController("/app/exam-submissions"),
       new TestcaseController("/app/testcases"),
+      new AuditLogController("/app/audit-logs"),
     ];
 
-    // Apply authentication middleware to all protected routes
     protectedControllers.forEach((controller) => {
       this._app?.use(controller.path, authentication, controller.router);
     });
-
-    this._app?.use(errorHandler);
   }
 
-  private initSwagger() {
+  /**
+   * Initialize Swagger documentation
+   */
+  private initSwagger(): void {
+    if (!this._app) return;
     const specs = swaggerJsDocs(options);
-    this.app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
+    this._app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(specs));
   }
 
-  private initMetricsEndpoint() {
-    this.app.get("/metrics", (req: Request, res: Response) => {
+  /**
+   * Initialize metrics endpoint for monitoring
+   */
+  private initMetricsEndpoint(): void {
+    if (!this._app) return;
+    this._app.get("/metrics", (req: Request, res: Response) => {
       res.setHeader("Content-Type", "text/plain");
       res.send(Logger.getMetricsForPrometheus());
     });
   }
 
-  /* 
-  private initTokenBlacklistCleanup() {
-    // Run token blacklist cleanup every hour (3600000 ms)
-    this.tokenCleanupInterval = setInterval(() => {
-      try {
-        Logger.debug('Running token blacklist cleanup');
-        cleanupBlacklist();
-      } catch (error: any) {
-        Logger.error('Error during token blacklist cleanup', undefined, { error });
-      }
-    }, 3600000);
-  }
-  */
+  /**
+   * Start the application server
+   * @throws Error if database initialization fails
+   */
+  public async start(): Promise<void> {
+    if (!this.isInitialized) {
+      throw new Error("Application not initialized. Call init() first.");
+    }
 
-  public async start() {
-    const port = parseInt(process.env.PORT || "10000", 10);
-    const name = process.env.APP_SERVER || "Teaching_Online_Server";
+    const port = parseInt(process.env.PORT || this.DEFAULT_PORT.toString(), 10);
+    const name = process.env.APP_SERVER || this.DEFAULT_SERVER_NAME;
+
     try {
-      await AppDataSource.initialize();
-      await AppDataSource2.initialize();
-      Logger.info("MySQL Data Source has been initialized!");
-      Logger.info("MongoDB Data Source has been initialized!");
-      this.app.listen(port, "0.0.0.0", () => {
-        Logger.info(`Server ${name} is running at port ${port}`);
+      await initializeDataSources();
+      
+      return new Promise((resolve, reject) => {
+        const server = this.app.listen(port, "0.0.0.0", () => {
+          Logger.info(`Server ${name} is running at port ${port}`);
+          resolve();
+        });
+
+        server.on('error', (error: any) => {
+          Logger.error("Server error:", error);
+          reject(error);
+        });
+
+        // Handle graceful shutdown
+        process.on('SIGTERM', () => this.gracefulShutdown(server));
+        process.on('SIGINT', () => this.gracefulShutdown(server));
       });
-    } catch (error) {
-      Logger.error(error);
+    } catch (error: any) {
+      Logger.error("Failed to start application:", error);
+      throw new Error("Failed to start application");
+    }
+  }
+
+  /**
+   * Handle graceful shutdown of the application
+   */
+  private async gracefulShutdown(server: any): Promise<void> {
+    Logger.info('Received shutdown signal, initiating graceful shutdown...');
+    
+    try {
+      // Close the server first
+      await new Promise((resolve) => {
+        server.close(() => {
+          Logger.info('Server closed');
+          resolve(true);
+        });
+      });
+
+      // Then close database connections
+      await closeDataSources();
+      Logger.info('Graceful shutdown completed');
+      process.exit(0);
+    } catch (error: any) {
+      Logger.error('Error during graceful shutdown:', error);
+      process.exit(1);
     }
   }
 }

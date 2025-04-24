@@ -3,6 +3,15 @@ import { Entity, ObjectId, ObjectIdColumn, Column, CreateDateColumn } from "type
 // Define Vietnam timezone offset
 const VIETNAM_TIMEZONE = "+07:00";
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     ActionType:
+ *       type: string
+ *       enum: [login, logout, view_page, submit_assignment, take_exam, join_meeting, leave_meeting, comment, other]
+ *       description: Type of user action being logged
+ */
 export enum ActionType {
     LOGIN = 'login',
     LOGOUT = 'logout',
@@ -15,6 +24,64 @@ export enum ActionType {
     OTHER = 'other'
 }
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     AuditLog:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: The auto-generated id of the audit log
+ *         user_id:
+ *           type: integer
+ *           description: The ID of the user who performed the action
+ *         username:
+ *           type: string
+ *           description: The username of the user
+ *         fullname:
+ *           type: string
+ *           description: The full name of the user
+ *         action:
+ *           $ref: '#/components/schemas/ActionType'
+ *         target_id:
+ *           type: integer
+ *           nullable: true
+ *           description: The ID of the target object (if applicable)
+ *         target_type:
+ *           type: string
+ *           nullable: true
+ *           description: The type of the target object
+ *         ip_address:
+ *           type: string
+ *           nullable: true
+ *           description: The IP address of the user
+ *         user_agent:
+ *           type: string
+ *           nullable: true
+ *           description: The user agent of the user's browser
+ *         page_url:
+ *           type: string
+ *           nullable: true
+ *           description: The URL of the page where the action occurred
+ *         details:
+ *           type: string
+ *           nullable: true
+ *           description: Additional details about the action
+ *         start_time:
+ *           type: string
+ *           format: date-time
+ *           description: The time when the action started
+ *         end_time:
+ *           type: string
+ *           format: date-time
+ *           nullable: true
+ *           description: The time when the action ended (if applicable)
+ *         duration_seconds:
+ *           type: integer
+ *           description: The duration of the action in seconds
+ */
 @Entity()
 export class AuditLog {
     @ObjectIdColumn()

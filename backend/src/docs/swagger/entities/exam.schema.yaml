@@ -24,6 +24,18 @@ components:
         due_date:
           type: string
           description: The due date of the exam
+    Success:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: "Operation successful"
+        data:
+          type: object
+          nullable: true
   securitySchemes:
     bearerAuth:
       type: http
@@ -47,9 +59,18 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Exam'
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: "Get all exams successfully"
+                data:
+                  - id: 1
+                    class_id: 1
+                    title: "Exam 1"
+                    description: "This is the first exam"
+                    type: "test"
+                    due_date: "2021-12-31T23:59:59Z"
+                    type_for_student: "common"
         '401':
           description: Unauthorized
           content:
@@ -109,6 +130,21 @@ paths:
       responses:
         "201":
           description: Exam created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: "Create exam successfully"
+                data:
+                  id: 1
+                  class_id: 1
+                  title: "Exam 1"
+                  description: "This is the first exam"
+                  type: "test"
+                  due_date: "2021-12-31T23:59:59Z"
+                  type_for_student: "common"
         '401':
           description: Unauthorized
           content:
@@ -140,7 +176,18 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Exam'
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: "Get exam by id successfully"
+                data:
+                  id: 1
+                  class_id: 1
+                  title: "Exam 1"
+                  description: "This is the first exam"
+                  type: "test"
+                  due_date: "2021-12-31T23:59:59Z"
+                  type_for_student: "common"
         '401':
           description: Unauthorized
           content:
@@ -153,6 +200,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Exam not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
     patch:
       tags:
         - Exams
@@ -174,6 +227,21 @@ paths:
       responses:
         "200":
           description: Exam updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: "Update exam successfully"
+                data:
+                  id: 1
+                  class_id: 1
+                  title: "Updated Exam"
+                  description: "This is the updated exam"
+                  type: "test"
+                  due_date: "2021-12-31T23:59:59Z"
+                  type_for_student: "common"
         '401':
           description: Unauthorized
           content:
@@ -186,6 +254,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Exam not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
     delete:
       tags:
         - Exams
@@ -201,6 +275,13 @@ paths:
       responses:
         "200":
           description: Exam deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: "Delete exam successfully"
         '401':
           description: Unauthorized
           content:
@@ -213,6 +294,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Exam not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
   /app/exams/{id}/content:
     get:
       tags:
@@ -232,11 +319,17 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  content:
-                    type: object
-                    description: The content of the exam
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: "Get exam content by id successfully"
+                data:
+                  - id: 1
+                    exam_id: 1
+                    description: "This is the first exam"
+                    title: "Exam 1"
+                    created_at: "2021-01-01T00:00:00Z"
+                    updated_at: "2021-01-01T00:00:00Z"
         '401':
           description: Unauthorized
           content:
@@ -249,6 +342,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Exam not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
     post:
       tags:
         - Exams
@@ -263,17 +362,23 @@ paths:
             type: string
       requestBody:
         required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                content:
-                  type: object
-                  description: The content to add to the exam
       responses:
         "201":
           description: Exam content created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: "Create exam content successfully"
+                data:
+                  - id: 1
+                    exam_id: 1
+                    description: "This is the first exam"
+                    title: "Exam 1"
+                    created_at: "2021-01-01T00:00:00Z"
+                    updated_at: "2021-01-01T00:00:00Z"
         '401':
           description: Unauthorized
           content:
@@ -286,6 +391,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Exam not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
     delete:
       tags:
         - Exams
@@ -301,6 +412,13 @@ paths:
       responses:
         "200":
           description: Exam content deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: "Delete exam content successfully"
         '401':
           description: Unauthorized
           content:
@@ -313,6 +431,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Exam content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
   /app/exams/content/{id}:
     patch:
       tags:
@@ -331,14 +455,34 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ExamContent'
+              type: object
+              properties:
+                content_type:
+                  type: string
+                  example: "question"
+                content:
+                  type: object
+                  example: { question: "What is 2+2?", options: ["3", "4", "5", "6"], answer: "4" }
             example:
-              exam_content_id: 1
-              title: Exam 1
-              description: This is the first exam
+              content_type: "question"
+              content: { question: "What is 2+2?", options: ["3", "4", "5", "6"], answer: "4" }
       responses:
         "200":
           description: Exam content updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: "Update exam content successfully"
+                data:
+                  id: 1
+                  exam_id: 1
+                  content_type: "question"
+                  content: { question: "What is 2+2?", options: ["3", "4", "5", "6"], answer: "4" }
+                  created_at: "2021-01-01T00:00:00Z"
+                  updated_at: "2021-01-01T00:00:00Z"
         '401':
           description: Unauthorized
           content:
@@ -351,6 +495,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Exam content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
     delete:
       tags:
         - Exams
@@ -366,6 +516,13 @@ paths:
       responses:
         "200":
           description: Exam content deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: "Delete exam content successfully"
         '401':
           description: Unauthorized
           content:
@@ -378,7 +535,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
-
+        '404':
+          description: Exam content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
   /app/exams/{classId}/{teacherId}:
     post:
       tags:
@@ -399,7 +561,6 @@ paths:
           schema:
             type: string
           description: ID of the teacher
-
       requestBody:
         required: true
         content:
@@ -433,9 +594,30 @@ paths:
                   type: string
                   description: The type of the exam for student
                   example: common
+            example:
+              title: Exam 1
+              description: This is the first exam
+              type: test
+              due_date: 2021-12-31:23:59:59
+              type_for_student: common
       responses:
         "201":
           description: Exam created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: "Create exam successfully"
+                data:
+                  id: 1
+                  class_id: 1
+                  title: "Exam 1"
+                  description: "This is the first exam"
+                  type: "test"
+                  due_date: "2021-12-31T23:59:59Z"
+                  type_for_student: "common"
         '401':
           description: Unauthorized
           content:
@@ -448,4 +630,73 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Class or teacher not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+  /app/exams/{id}/content/{exam_content_id}:
+    get:
+      tags:
+        - Exams
+      summary: Get detail exam by exam ID and exam content ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the exam
+        - name: exam_content_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID of the exam content
+      responses:
+        "200":
+          description: Detail exam retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+              example:
+                success: true
+                message: "Get detail exam successfully"
+                data:
+                  exam:
+                    id: 1
+                    class_id: 1
+                    title: "Exam 1"
+                    description: "This is the first exam"
+                    type: "test"
+                    due_date: "2021-12-31T23:59:59Z"
+                    type_for_student: "common"
+                  content:
+                    id: 1
+                    exam_id: 1
+                    content_type: "question"
+                    content: { question: "What is 2+2?", options: ["3", "4", "5", "6"], answer: "4" }
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnauthorizedError'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
+        '404':
+          description: Exam or exam content not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+
     

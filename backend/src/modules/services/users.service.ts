@@ -237,5 +237,4 @@ class UserService {
     return this.userRepository.getUserByRole(role);
   }
 }
-
 export default UserService;

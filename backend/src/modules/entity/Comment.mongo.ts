@@ -34,5 +34,5 @@ export class Comment {
     is_private: boolean
 
     @Column()
-    created_id: Date
+    created_at: Date
 }
