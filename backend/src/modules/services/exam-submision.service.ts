@@ -671,6 +671,7 @@ class ExamSubmissionService extends BaseService {
       output?: string;
       error?: string;
       input?: string;
+      compile_output?: string;
     };
   }> {
     try {
@@ -680,8 +681,7 @@ class ExamSubmissionService extends BaseService {
       const examContent = await this.examContentRepository.findById(exam_content_id);
       this.validateExists(examContent, 'exam content');
       
-      // Utility functions for encoding/decoding
-      const encoded = (str) => str ? Buffer.from(str, "binary").toString("base64") : "";
+      // Utility function for decoding - encoding is now done in submitToJudge0
       const decoded = (str) => str ? Buffer.from(str, "base64").toString() : "";
       
       // Results to return
@@ -704,12 +704,28 @@ class ExamSubmissionService extends BaseService {
           
           const userInputResult = await this.getJudge0Result(userInputRequest.token);
           
-          result.user_input_result = {
-            status: userInputResult.status,
-            output: decoded(userInputResult.stdout),
-            error: decoded(userInputResult.stderr),
-            input: data.input
-          };
+          // Check if it's a compilation error (status ID 6)
+          if (userInputResult.status.id === 6) {
+            const compileOutput = decoded(userInputResult.compile_output);
+            Logger.error(`Compilation error: ${compileOutput}`);
+            
+            result.user_input_result = {
+              status: userInputResult.status,
+              error: compileOutput || decoded(userInputResult.stderr),
+              compile_output: compileOutput,
+              input: data.input
+            };
+            
+            // Add compilation error to the main error field too
+            result.error = `Compilation error: ${compileOutput}`;
+          } else {
+            result.user_input_result = {
+              status: userInputResult.status,
+              output: decoded(userInputResult.stdout),
+              error: decoded(userInputResult.stderr),
+              input: data.input
+            };
+          }
         } catch (err) {
           const error = err as Error;
           Logger.error('Error running code with user input', undefined, {
@@ -720,6 +736,13 @@ class ExamSubmissionService extends BaseService {
           });
           
           result.error = error.message;
+          result.user_input_result = {
+            status: {
+              id: 999,
+              description: "Execution error"
+            },
+            error: error.message
+          };
         }
       }
       
@@ -744,15 +767,37 @@ class ExamSubmissionService extends BaseService {
             
             const isPassed = testcaseResult.status.id === 3; // 3 is "Accepted"
             
-            result.testcase_results.push({
-              id: testcase.id,
-              passed: isPassed,
-              score: isPassed ? testcase.score : 0,
-              status: testcaseResult.status,
-              output: decoded(testcaseResult.stdout),
-              error: decoded(testcaseResult.stderr),
-              expected_output: testcase.expected_output
-            });
+            // Check if it's a compilation error (status ID 6)
+            if (testcaseResult.status.id === 6) {
+              const compileOutput = decoded(testcaseResult.compile_output);
+              Logger.error(`Compilation error in testcase ${testcase.id}: ${compileOutput}`);
+              
+              result.testcase_results.push({
+                id: testcase.id,
+                passed: false,
+                score: 0,
+                status: testcaseResult.status,
+                error: compileOutput || decoded(testcaseResult.stderr),
+                input: testcase.input,
+                expected_output: testcase.expected_output
+              });
+              
+              // Set the main error field for the first compilation error
+              if (!result.error) {
+                result.error = `Compilation error: ${compileOutput}`;
+              }
+            } else {
+              result.testcase_results.push({
+                id: testcase.id,
+                passed: isPassed,
+                score: isPassed ? testcase.score : 0,
+                status: testcaseResult.status,
+                input: testcase.input,
+                output: decoded(testcaseResult.stdout),
+                error: decoded(testcaseResult.stderr),
+                expected_output: testcase.expected_output
+              });
+            }
           } catch (err) {
             const error = err as Error;
             Logger.error('Error running code against testcase', undefined, {
@@ -1042,7 +1087,20 @@ class ExamSubmissionService extends BaseService {
     Logger.info(`Submitting code to Judge0. Language ID: ${submission.language_id}`);
     
     try {
-      Logger.info(`Judge0 API Key present: ${!!process.env.JUDGE0_API_KEY}`);
+      // Base64 encode the code and inputs
+      const encoded = (str) => str ? Buffer.from(str, "binary").toString("base64") : "";
+      
+      const encodedSubmission = {
+        source_code: encoded(submission.source_code),
+        language_id: submission.language_id,
+        stdin: submission.stdin ? encoded(submission.stdin) : undefined,
+        expected_output: submission.expected_output ? encoded(submission.expected_output) : undefined
+      };
+      
+      // Read timeout from environment or use default (60 seconds)
+      const apiTimeout = process.env.JUDGE0_TIMEOUT ? parseInt(process.env.JUDGE0_TIMEOUT) : 60000;
+      
+      Logger.info(`Judge0 API Key present: ${!!process.env.JUDGE0_API_KEY}, using timeout: ${apiTimeout}ms`);
       const options = {
         method: "POST",
         url: "https://judge0-ce.p.rapidapi.com/submissions",
@@ -1055,7 +1113,8 @@ class ExamSubmissionService extends BaseService {
           "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
           "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
         },
-        data: submission
+        data: encodedSubmission,
+        timeout: apiTimeout // Configurable timeout
       }
       Logger.info(`Making request to: ${options.url}`);
       
@@ -1070,20 +1129,42 @@ class ExamSubmissionService extends BaseService {
         if (axiosError.response) {
           Logger.error(`Judge0 API error: ${axiosError.response.status} ${axiosError.response.statusText}`);
           Logger.error(`Response data: ${JSON.stringify(axiosError.response.data)}`);
+        } else if (axiosError.request) {
+          // The request was made but no response was received
+          Logger.error(`No response received from Judge0 API. Request: ${JSON.stringify(axiosError.request)}`);
+        } else {
+          // Something happened in setting up the request
+          Logger.error(`Error setting up Judge0 API request: ${axiosError.message}`);
         }
       }
-      throw error;
+      throw new ApiError(500, CODE_EXECUTION_FAILED.error.message, `Judge0 API error: ${(error as Error).message}`);
     }
   }
 
   private async getJudge0Result(token: string) {
     Logger.info(`Getting Judge0 result for token: ${token}`);
     
-    const maxAttempts = 15;
-    const pollingInterval = 1000; // 1 second
+    // Read settings from environment or use defaults
+    const maxAttempts = process.env.JUDGE0_MAX_ATTEMPTS ? parseInt(process.env.JUDGE0_MAX_ATTEMPTS) : 30;
+    const initialPollingInterval = process.env.JUDGE0_POLLING_INTERVAL ? parseInt(process.env.JUDGE0_POLLING_INTERVAL) : 2000;
+    const apiTimeout = process.env.JUDGE0_TIMEOUT ? parseInt(process.env.JUDGE0_TIMEOUT) : 60000;
+    
+    Logger.info(`Judge0 polling config: maxAttempts=${maxAttempts}, initialInterval=${initialPollingInterval}ms, timeout=${apiTimeout}ms`);
+    
+    // Implement exponential backoff for polling
+    const getPollingInterval = (attempt: number) => {
+      // Start with initialPollingInterval and double it every 5 attempts, capped at 10 seconds
+      const multiplier = Math.floor((attempt - 1) / 5);
+      const interval = initialPollingInterval * Math.pow(2, multiplier);
+      return Math.min(interval, 10000); // Cap at 10 seconds
+    };
+    
+    let lastResponse = null;
     
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
+        const pollingInterval = getPollingInterval(attempt);
+        
         const options = {
           method: "GET",
           url: `https://judge0-ce.p.rapidapi.com/submissions/${token}`,
@@ -1095,24 +1176,26 @@ class ExamSubmissionService extends BaseService {
             "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
             "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
           },
+          timeout: apiTimeout // Configurable timeout
         }
-        Logger.info(`Polling attempt ${attempt}/${maxAttempts} - Making request to: ${options.url}`);
+        Logger.info(`Polling attempt ${attempt}/${maxAttempts} - Making request to: ${options.url}, interval: ${pollingInterval}ms`);
         
         const response = await axios.request(options);
+        lastResponse = response.data;
 
         Logger.info(`Judge0 result received. Status ID: ${response.data.status?.id}, Description: ${response.data.status?.description}`);
         
-        // If status is not "Processing" (id=2), we can return the result
-        if (response.data.status?.id !== 2) {
+        // If status is not "Processing" (id=2) or "In Queue" (id=1), we can return the result
+        if (response.data.status?.id !== 1 && response.data.status?.id !== 2) {
           return response.data;
         }
         
         // If we're still processing and haven't reached max attempts, wait before trying again
         if (attempt < maxAttempts) {
-          Logger.info(`Code still processing. Waiting ${pollingInterval}ms before next attempt...`);
+          Logger.info(`Code still processing (${response.data.status?.description}). Waiting ${pollingInterval}ms before next attempt...`);
           await new Promise(resolve => setTimeout(resolve, pollingInterval));
         } else {
-          Logger.info(`Maximum polling attempts (${maxAttempts}) reached. Last status was "Processing".`);
+          Logger.info(`Maximum polling attempts (${maxAttempts}) reached. Last status was "${response.data.status?.description}".`);
           return response.data; // Return the last result even if it's still processing
         }
       } catch (error) {
@@ -1122,18 +1205,37 @@ class ExamSubmissionService extends BaseService {
           if (axiosError.response) {
             Logger.error(`Judge0 API error: ${axiosError.response.status} ${axiosError.response.statusText}`);
             Logger.error(`Response data: ${JSON.stringify(axiosError.response.data)}`);
+          } else if (axiosError.request) {
+            // The request was made but no response was received
+            Logger.error(`No response received from Judge0 API. Request: ${JSON.stringify(axiosError.request)}`);
+          } else {
+            // Something happened in setting up the request
+            Logger.error(`Error setting up Judge0 API request: ${axiosError.message}`);
           }
         }
+        
+        // On last attempt, throw the error; otherwise, retry after waiting
         if (attempt === maxAttempts) {
-          throw error;
+          if (lastResponse) {
+            Logger.info(`Returning last successful response despite error on final attempt`);
+            return lastResponse;
+          }
+          throw new ApiError(500, CODE_EXECUTION_FAILED.error.message, `Judge0 API error: ${(error as Error).message}`);
         }
-        // Wait before retrying after an error
-        await new Promise(resolve => setTimeout(resolve, pollingInterval));
+        
+        // Calculate backoff time for the retry
+        const retryDelay = getPollingInterval(attempt);
+        Logger.info(`Retrying after error. Waiting ${retryDelay}ms before retry ${attempt+1}/${maxAttempts}`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
     }
     
-    // This should not be reached due to the return in the loop, but TypeScript might expect a return
-    throw new Error("Failed to get Judge0 result after maximum attempts");
+    // Return the last response if we have one, otherwise throw an error
+    if (lastResponse) {
+      return lastResponse;
+    }
+    
+    throw new ApiError(500, CODE_EXECUTION_FAILED.error.message, "Failed to get Judge0 result after maximum attempts");
   }
 
   /**
