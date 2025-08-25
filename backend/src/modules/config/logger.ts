@@ -17,48 +17,77 @@ export enum LogLevel {
 export interface LogMetadata {
   traceId?: string;
   userId?: string | number;
-  // Simplified metadata
-  ctx?: string; // context information
+  module?: string; // Module/component name
+  action?: string; // Action being performed
+  duration?: number; // Duration in milliseconds
   [key: string]: any;
 }
 
 interface LogError {
   field: string;
   error: string;
+  code?: string;
 }
 
-// Create a simplified pretty stream for one-line logs
+// Create pretty stream for development environment
 const prettyStream = pretty({
   colorize: true,
   translateTime: 'HH:MM:ss.l',
-  messageFormat: '{traceId} | {ctx} | {message}',
+  messageFormat: '{traceId} | {module} | {action} | {message}',
   singleLine: true,
   ignore: 'hostname,pid',
 });
 
-// Configure the logger with options
+// Configure the logger based on environment
+const isDevelopment = process.env.NODE_ENV === 'development';
+const logLevel = process.env.LOG_LEVEL || (isDevelopment ? 'debug' : 'info');
+
 const logger = pino(
   {
-    level: process.env.LOG_LEVEL || 'info',
-    redact: ['body.password', 'body.token', 'body.secret'], // Redact sensitive fields
+    level: logLevel,
+    redact: [
+      'body.password', 
+      'body.token', 
+      'body.secret',
+      'body.apiKey',
+      'headers.authorization',
+      'headers.cookie'
+    ],
     base: {
       env: process.env.NODE_ENV || 'development',
+      version: process.env.npm_package_version || '1.0.0',
     },
+    timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
   },
-  pino.multistream([{ stream: prettyStream }])
+  isDevelopment 
+    ? pino.multistream([{ stream: prettyStream }])
+    : undefined
 );
 
-// Store active trace contexts
+// Store active trace contexts with TTL
 const traceContextStore = new Map<string, LogMetadata>();
+const TRACE_TTL = 30 * 60 * 1000; // 30 minutes
+
+// Cleanup expired traces
+setInterval(() => {
+  const now = Date.now();
+  for (const [traceId, metadata] of traceContextStore.entries()) {
+    if (metadata.startTime && (now - metadata.startTime) > TRACE_TTL) {
+      traceContextStore.delete(traceId);
+    }
+  }
+}, 5 * 60 * 1000); // Clean every 5 minutes
 
 export const Logger = {
-  // Log a message at the specified level with metadata
+  // Core logging method
   log: (level: LogLevel, message: string, metadata?: LogMetadata) => {
-    logger[level]({
+    const logData = {
       message,
       ...metadata,
-      timestamp: new Date().toISOString(),
-    });
+      level,
+    };
+    
+    logger[level](logData);
   },
 
   // Shorthand methods for different log levels
@@ -71,11 +100,7 @@ export const Logger = {
   },
 
   info: (message: string, metadata?: LogMetadata) => {
-    logger.info({
-      message,
-      ...metadata,
-      timestamp: new Date().toISOString(),
-    });
+    Logger.log(LogLevel.INFO, message, metadata);
   },
 
   warn: (message: string, metadata?: LogMetadata) => {
@@ -84,9 +109,11 @@ export const Logger = {
 
   error: (message: unknown, errors?: LogError[], metadata?: LogMetadata) => {
     let errorMessage = '';
+    let errorStack = '';
 
     if (message instanceof Error) {
       errorMessage = message.message;
+      errorStack = message.stack || '';
     } else if (typeof message === 'string') {
       errorMessage = message;
     } else {
@@ -95,22 +122,29 @@ export const Logger = {
 
     logger.error({
       message: errorMessage,
-      errors: errors?.map((err) => ({ field: err.field, error: err.error })) || [],
+      stack: errorStack,
+      errors: errors?.map((err) => ({ 
+        field: err.field, 
+        error: err.error,
+        code: err.code 
+      })) || [],
       ...metadata,
-      timestamp: new Date().toISOString(),
     });
   },
 
   fatal: (message: string, error?: Error, metadata?: LogMetadata) => {
     Logger.log(LogLevel.FATAL, message, {
       ...metadata,
-      error: error ? { message: error.message } : undefined,
+      error: error ? { 
+        message: error.message,
+        stack: error.stack 
+      } : undefined,
     });
   },
 
-  // Create and return a new trace ID
+  // Trace management
   startTrace: (initialContext: LogMetadata = {}): string => {
-    const traceId = uuidv4().slice(0, 8); // Shorter trace ID
+    const traceId = uuidv4().slice(0, 8);
     traceContextStore.set(traceId, {
       ...initialContext,
       traceId,
@@ -119,7 +153,6 @@ export const Logger = {
     return traceId;
   },
 
-  // Add data to an existing trace
   addToTrace: (traceId: string, data: LogMetadata): void => {
     if (traceContextStore.has(traceId)) {
       const existingData = traceContextStore.get(traceId) || {};
@@ -127,14 +160,22 @@ export const Logger = {
     }
   },
 
-  // End the trace and log a summary
   endTrace: (traceId: string, message?: string): void => {
     if (traceContextStore.has(traceId)) {
+      const traceData = traceContextStore.get(traceId);
+      if (traceData && traceData.startTime) {
+        const duration = Date.now() - traceData.startTime;
+        Logger.info(message || 'Trace completed', {
+          traceId,
+          duration,
+          ...traceData,
+        });
+      }
       traceContextStore.delete(traceId);
     }
   },
 
-  // Create a middleware to log HTTP requests in a simplified format
+  // HTTP request logging middleware
   requestLogger: () => {
     return (req: Request, res: Response, next: NextFunction) => {
       const startTime = Date.now();
@@ -143,23 +184,46 @@ export const Logger = {
       // Store trace ID in request for later use
       (req as any).traceId = traceId;
       
-      // Log the incoming request with minimal info
+      // Log incoming request
       Logger.info(`${req.method} ${req.originalUrl}`, {
         traceId,
-        ctx: 'request',
+        module: 'http',
+        action: 'request',
+        method: req.method,
+        url: req.originalUrl,
+        ip: req.ip || req.connection.remoteAddress,
+        userAgent: req.get('User-Agent'),
         userId: (req as any).user?.id,
+        body: req.body ? Object.keys(req.body).length : 0,
       });
       
-      // Intercept the response
+      // Intercept response
       const originalSend = res.send;
       res.send = function (body) {
         const responseTime = Date.now() - startTime;
         
-        // Simple log format for response
-        Logger.info(`${res.statusCode} ${req.method} ${req.originalUrl} ${responseTime}ms`, {
+        // Log response with performance metrics
+        Logger.info(`${res.statusCode} ${req.method} ${req.originalUrl}`, {
           traceId,
-          ctx: 'response',
+          module: 'http',
+          action: 'response',
+          statusCode: res.statusCode,
+          method: req.method,
+          url: req.originalUrl,
+          duration: responseTime,
           userId: (req as any).user?.id,
+        });
+        
+        // Record metrics
+        recordMetric('http_request_duration', responseTime, {
+          method: req.method,
+          status: res.statusCode.toString(),
+          endpoint: req.route?.path || req.originalUrl,
+        });
+        
+        recordMetric('http_requests_total', 1, {
+          method: req.method,
+          status: res.statusCode.toString(),
         });
         
         return originalSend.call(this, body);
@@ -169,40 +233,133 @@ export const Logger = {
     };
   },
 
-  // Metrics collection - simplified version
+  // Database operation logging
+  dbOperation: (operation: string, table: string, duration: number, metadata?: LogMetadata) => {
+    Logger.debug(`DB ${operation} on ${table}`, {
+      ...metadata,
+      module: 'database',
+      action: operation,
+      table,
+      duration,
+    });
+    
+    recordMetric('db_operation_duration', duration, {
+      operation,
+      table,
+    });
+  },
+
+  // Authentication logging
+  auth: (action: string, userId?: string | number, metadata?: LogMetadata) => {
+    Logger.info(`Authentication: ${action}`, {
+      ...metadata,
+      module: 'auth',
+      action,
+      userId,
+    });
+    
+    recordMetric('auth_operations_total', 1, { action });
+  },
+
+  // Business logic logging
+  business: (action: string, entity: string, metadata?: LogMetadata) => {
+    Logger.info(`Business operation: ${action} on ${entity}`, {
+      ...metadata,
+      module: 'business',
+      action,
+      entity,
+    });
+  },
+
+  // Metrics collection
   metrics: {
     counters: new Map<string, number>(),
     histograms: new Map<string, number[]>(),
+    lastReset: Date.now(),
   },
 
-  // Get metrics in simplified format
+  // Reset metrics (call periodically)
+  resetMetrics: () => {
+    Logger.metrics.counters.clear();
+    Logger.metrics.histograms.clear();
+    Logger.metrics.lastReset = Date.now();
+    Logger.info('Metrics reset', { module: 'metrics', action: 'reset' });
+  },
+
+  // Get metrics in Prometheus format
   getMetricsForPrometheus: (): string => {
     const lines: string[] = [];
+    const now = Date.now();
     
     // Export counters
     for (const [key, value] of Logger.metrics.counters.entries()) {
+      lines.push(`# HELP ${key} Total count of ${key}`);
+      lines.push(`# TYPE ${key} counter`);
       lines.push(`${key} ${value}`);
     }
     
-    // Export histogram summaries (simplified)
+    // Export histogram summaries
     for (const [key, values] of Logger.metrics.histograms.entries()) {
       if (values.length === 0) continue;
       
       const sum = values.reduce((a, b) => a + b, 0);
-      const avg = sum / values.length;
-      lines.push(`${key}_sum ${sum}`);
-      lines.push(`${key}_count ${values.length}`);
+      const count = values.length;
+      const avg = sum / count;
+      const sorted = values.sort((a, b) => a - b);
+      const p50 = sorted[Math.floor(count * 0.5)];
+      const p95 = sorted[Math.floor(count * 0.95)];
+      const p99 = sorted[Math.floor(count * 0.99)];
+      
+      lines.push(`# HELP ${key}_duration_seconds Duration of ${key} in seconds`);
+      lines.push(`# TYPE ${key}_duration_seconds histogram`);
+      lines.push(`${key}_duration_seconds_sum ${sum / 1000}`);
+      lines.push(`${key}_duration_seconds_count ${count}`);
+      lines.push(`${key}_duration_seconds_bucket{le="0.1"} ${sorted.filter(v => v <= 100).length}`);
+      lines.push(`${key}_duration_seconds_bucket{le="0.5"} ${sorted.filter(v => v <= 500).length}`);
+      lines.push(`${key}_duration_seconds_bucket{le="1.0"} ${sorted.filter(v => v <= 1000).length}`);
+      lines.push(`${key}_duration_seconds_bucket{le="5.0"} ${sorted.filter(v => v <= 5000).length}`);
+      lines.push(`${key}_duration_seconds_bucket{le="+Inf"} ${count}`);
+      
+      // Legacy metrics for backward compatibility
       lines.push(`${key}_avg ${avg}`);
+      lines.push(`${key}_p50 ${p50}`);
+      lines.push(`${key}_p95 ${p95}`);
+      lines.push(`${key}_p99 ${p99}`);
     }
+    
+    // Add metadata
+    lines.push(`# Last reset: ${new Date(Logger.metrics.lastReset).toISOString()}`);
+    lines.push(`# Current time: ${new Date(now).toISOString()}`);
     
     return lines.join('\n');
   },
+
+  // Health check
+  health: () => {
+    const activeTraces = traceContextStore.size;
+    const memoryUsage = process.memoryUsage();
+    
+    return {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      activeTraces,
+      memoryUsage: {
+        rss: Math.round(memoryUsage.rss / 1024 / 1024), // MB
+        heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024), // MB
+        heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024), // MB
+      },
+      metrics: {
+        counters: Logger.metrics.counters.size,
+        histograms: Logger.metrics.histograms.size,
+      },
+    };
+  },
 };
 
-// Simplified metric recording
+// Metric recording function
 function recordMetric(name: string, value: number, labels: Record<string, string> = {}) {
   const labelKey = Object.entries(labels)
-    .map(([k, v]) => `${k}:${v}`)
+    .map(([k, v]) => `${k}="${v}"`)
     .join(',');
   
   const metricKey = labelKey ? `${name}{${labelKey}}` : name;
@@ -213,6 +370,17 @@ function recordMetric(name: string, value: number, labels: Record<string, string
   } else {
     const values = Logger.metrics.histograms.get(metricKey) || [];
     values.push(value);
+    // Keep only last 1000 values to prevent memory issues
+    if (values.length > 1000) {
+      values.splice(0, values.length - 1000);
+    }
     Logger.metrics.histograms.set(metricKey, values);
   }
 }
+
+// Auto-reset metrics every hour
+setInterval(() => {
+  Logger.resetMetrics();
+}, 60 * 60 * 1000);
+
+export default Logger;
