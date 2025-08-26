@@ -1,6 +1,8 @@
 import "reflect-metadata";
 import express, { Express, Request, Response, NextFunction } from "express";
 import "dotenv/config";
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import { sendResponse } from "./common/interfaces/base-response";
 import { initializeDataSources, closeDataSources } from "./data-source";
 import { CommentController } from "./modules/controller/comment.controller";
@@ -25,6 +27,8 @@ import { TestcaseController } from "./modules/controller/testcase.controller";
 import { logPageView } from "./modules/middleware/audit-log.middleware";
 import { IRequest } from "./modules/types/IRequest";
 import { AuditLogController } from "./modules/controller/audit-log.controller";
+import { DuplicateLoginSocket } from "./modules/socket/duplicate-login.socket";
+import { SessionController } from "./modules/controller/session.controller";
 
 /**
  * Main application class that handles the Express server setup and configuration
@@ -33,6 +37,8 @@ import { AuditLogController } from "./modules/controller/audit-log.controller";
 export class Application {
   private static instance: Application;
   private _app: Express | undefined;
+  private _server: any;
+  private _io: Server | undefined;
   private readonly DEFAULT_PORT = 10000;
   private readonly DEFAULT_SERVER_NAME = "Teaching_Online_Server";
   private isInitialized = false;
@@ -74,14 +80,71 @@ export class Application {
 
     try {
       this._app = express();
+      this._server = createServer(this._app);
+      this.initializeSocketServer();
       this.initMiddleware();
       this.initControllers();
       this.initSwagger();
       this.initMetricsEndpoint();
       this.isInitialized = true;
+
+      // Set up graceful shutdown handlers
+      process.on('SIGTERM', () => this.gracefulShutdown());
+      process.on('SIGINT', () => this.gracefulShutdown());
+
     } catch (error: any) {
       Logger.error("Failed to initialize application:", error);
       throw new Error("Application initialization failed");
+    }
+  }
+
+  /**
+   * Initialize Socket.IO server
+   */
+  private initializeSocketServer(): void {
+    this._io = new Server(this._server, {
+      cors: {
+        origin: [
+          "http://localhost:3000",
+          "https://teaching-online-server.onrender.com",
+          "http://localhost:10000",
+          "http://localhost:5173",
+          "https://edu-space-dkn7.vercel.app",
+          "https://ghienphim.fun",
+          "https://api-service-2e9tk.ondigitalocean.app",
+          "https://edu-space-psi.vercel.app",
+          "https://api-service-2e9tk.ondigitalocean.app/api-docs"
+        ],
+        methods: ["GET", "POST"],
+        credentials: true
+      }
+    });
+
+    // Make io accessible to controllers
+    if (this._app && this._io) {
+      this._app.locals.io = this._io;
+      this._app.locals.activeSockets = new Set();
+
+      // Track connected sockets
+      this._io.on('connection', (socket) => {
+        // Add socket to tracking set
+        this._app?.locals.activeSockets.add(socket);
+        
+        // Store userId with socket when session is registered
+        socket.on('register_session', (data) => {
+          if (data && data.userId) {
+            socket['userId'] = data.userId;
+          }
+        });
+        
+        // Remove socket from tracking on disconnect
+        socket.on('disconnect', () => {
+          this._app?.locals.activeSockets.delete(socket);
+        });
+      });
+
+      // Initialize duplicate login detection
+      DuplicateLoginSocket.getInstance().initialize(this._io);
     }
   }
 
@@ -105,6 +168,7 @@ export class Application {
     // Security headers
     this._app.use(helmet());
     this._app.use(this.getSecurityPolicy());
+    
   }
 
   /**
@@ -196,17 +260,19 @@ export class Application {
       new LecturesController("/app/lectures"),
       new StudentClassesController("/app/student-classes"),
       new ExamController("/app/exams"),
-      new LecturesController("/app/lectures"),
       new NotificationController("/app/notifications"),
       new MeetController("/app/meetings"),
       new ExamSubmissionController("/app/exam-submissions"),
       new TestcaseController("/app/testcases"),
       new AuditLogController("/app/audit-logs"),
+      new SessionController("/app/sessions")
     ];
 
     protectedControllers.forEach((controller) => {
       this._app?.use(controller.path, authentication, controller.router);
     });
+
+    
   }
 
   /**
@@ -245,40 +311,43 @@ export class Application {
       await initializeDataSources();
       
       return new Promise((resolve, reject) => {
-        const server = this.app.listen(port, "0.0.0.0", () => {
+        this._server?.listen(port, "0.0.0.0", () => {
           Logger.info(`Server ${name} is running at port ${port}`);
           resolve();
         });
-
-        server.on('error', (error: any) => {
-          Logger.error("Server error:", error);
-          reject(error);
-        });
-
-        // Handle graceful shutdown
-        process.on('SIGTERM', () => this.gracefulShutdown(server));
-        process.on('SIGINT', () => this.gracefulShutdown(server));
       });
     } catch (error: any) {
-      Logger.error("Failed to start application:", error);
-      throw new Error("Failed to start application");
+      Logger.error("Failed to start server:", error);
+      throw error;
     }
   }
 
   /**
    * Handle graceful shutdown of the application
    */
-  private async gracefulShutdown(server: any): Promise<void> {
+  private async gracefulShutdown(): Promise<void> {
     Logger.info('Received shutdown signal, initiating graceful shutdown...');
     
     try {
-      // Close the server first
-      await new Promise((resolve) => {
-        server.close(() => {
-          Logger.info('Server closed');
-          resolve(true);
+      // Close the socket server first if it exists
+      if (this._io) {
+        await new Promise<void>((resolve) => {
+          this._io?.close(() => {
+            Logger.info('Socket.IO server closed');
+            resolve();
+          });
         });
-      });
+      }
+      
+      // Close the HTTP server
+      if (this._server) {
+        await new Promise<void>((resolve) => {
+          this._server.close(() => {
+            Logger.info('HTTP server closed');
+            resolve();
+          });
+        });
+      }
 
       // Then close database connections
       await closeDataSources();
