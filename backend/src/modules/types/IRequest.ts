@@ -7,6 +7,7 @@ export interface IRequest extends Request {
         fullname: string;
         email: string;
         role: Array<string>;
-    }
+    };
     auditLogId?: string;
+    auditLogTimeout?: NodeJS.Timeout;
 }

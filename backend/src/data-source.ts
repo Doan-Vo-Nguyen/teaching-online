@@ -1,7 +1,7 @@
 import { DataSource } from "typeorm";
 import "reflect-metadata";
 import 'dotenv/config';
-import { Logger } from "./modules/config/logger";
+import { Logger } from "./modules/config/logger.js";
 
 /**
  * Configuration for MySQL database connection
@@ -16,7 +16,6 @@ const mysqlConfig = {
     synchronize: process.env.NODE_ENV !== 'production', 
     logging: false,
     entities: ['src/**/entity/*.entity.{ts,js}'],
-    migrations: ['src/database/migrations/*.{ts,js}'],
     subscribers: ['src/database/subscribers/*.{ts,js}'],
 };
 
@@ -29,7 +28,6 @@ const mongoConfig = {
     synchronize: process.env.NODE_ENV !== 'production',
     logging: false,
     entities: ['src/**/entity/*.mongo.ts'],
-    migrations: ['src/database/migrations/*.{ts,js}'],
     subscribers: ['src/database/subscribers/*.{ts,js}'],
     useUnifiedTopology: true,
     useNewUrlParser: true,
