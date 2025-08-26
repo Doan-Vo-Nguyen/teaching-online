@@ -182,10 +182,11 @@ export class Application {
         "http://localhost:10000",
         "http://localhost:5173",
         "https://edu-space-dkn7.vercel.app",
-        "https://ghienphim.fun",
-        "https://api-service-9cy27.ondigitalocean.app",
+        "https://api-service-2e9tk.ondigitalocean.app",
         "https://edu-space-psi.vercel.app",
-        "https://api-service-9cy27.ondigitalocean.app/api-docs"
+        "https://api-service-2e9tk.ondigitalocean.app/api-docs",
+        "https://teaching-online-fe.vercel.app"
+        
       ],
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
