@@ -107,7 +107,7 @@ export const Logger = {
     Logger.log(LogLevel.WARN, message, metadata);
   },
 
-  error: (message: unknown, errors?: LogError[], metadata?: LogMetadata) => {
+  error: (message: unknown, errors?: LogError[] | LogError | any, metadata?: LogMetadata) => {
     let errorMessage = '';
     let errorStack = '';
 
@@ -120,14 +120,36 @@ export const Logger = {
       errorMessage = JSON.stringify(message, null, 2);
     }
 
+    // Xử lý errors một cách an toàn
+    let processedErrors: any[] = [];
+    if (errors) {
+      if (Array.isArray(errors)) {
+        processedErrors = errors.map((err) => ({ 
+          field: err.field, 
+          error: err.error,
+          code: err.code 
+        }));
+      } else if (typeof errors === 'object' && errors !== null) {
+        // Nếu errors là một object đơn lẻ, chuyển thành mảng
+        processedErrors = [{
+          field: errors.field || 'unknown',
+          error: errors.error || errors.message || JSON.stringify(errors),
+          code: errors.code
+        }];
+      } else {
+        // Nếu errors là primitive value, chuyển thành object
+        processedErrors = [{
+          field: 'error',
+          error: String(errors),
+          code: undefined
+        }];
+      }
+    }
+
     logger.error({
       message: errorMessage,
       stack: errorStack,
-      errors: errors?.map((err) => ({ 
-        field: err.field, 
-        error: err.error,
-        code: err.code 
-      })) || [],
+      errors: processedErrors,
       ...metadata,
     });
   },

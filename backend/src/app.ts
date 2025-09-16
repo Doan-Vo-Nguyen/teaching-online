@@ -185,7 +185,7 @@ export class Application {
         "https://api-service-2e9tk.ondigitalocean.app",
         "https://edu-space-psi.vercel.app",
         "https://api-service-2e9tk.ondigitalocean.app/api-docs",
-        "https://teaching-online-fe.vercel.app"
+        "https://hpedtechcenter.vercel.app"
         
       ],
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
