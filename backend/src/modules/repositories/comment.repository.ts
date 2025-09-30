@@ -20,7 +20,7 @@ export class CommentRepository implements ICommentRepository {
 
     async update(comment_id: number, comment: CommentDTO): Promise<Comment> {
         await this.repository.update(comment_id, comment);
-        return this.repository.findOneBy({comment_id});
+        return this.findById(comment_id);
     }
 
     async delete(comment_id: number): Promise<Comment> {

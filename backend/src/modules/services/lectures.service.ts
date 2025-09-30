@@ -41,18 +41,9 @@ class LecturesService {
   }
 
   public async getLectureById(lecture_id: number) {
-    if (!lecture_id) {
-      throw new ApiError(
-        400,
-        FIELD_REQUIRED.error.message,
-        FIELD_REQUIRED.error.details
-      );
-    }
-
+    this.validateRequiredField(lecture_id, 'lecture_id');
     const lecture = await this.lecturesRepository.findById(lecture_id);
-    if (!lecture) {
-      throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
-    }
+    this.throwIfLectureNotFound(lecture);
 
     const lectureContent =
       await this.lecturesContentRepository.findById(lecture_id);
@@ -437,6 +428,22 @@ class LecturesService {
         ctx: 'email',
         error
       });
+    }
+  }
+
+  private validateRequiredField(value: any, fieldName: string): void {
+    if (!value) {
+      throw new ApiError(
+        400,
+        FIELD_REQUIRED.error.message,
+        FIELD_REQUIRED.error.details
+      );
+    }
+  }
+
+  private throwIfLectureNotFound(lecture: any): void {
+    if (!lecture) {
+      throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
     }
   }
 }

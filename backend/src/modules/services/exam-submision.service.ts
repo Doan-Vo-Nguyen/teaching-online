@@ -682,7 +682,7 @@ class ExamSubmissionService extends BaseService {
       this.validateExists(examContent, 'exam content');
       
       // Utility function for decoding - encoding is now done in submitToJudge0
-      const decoded = (str) => str ? Buffer.from(str, "base64").toString() : "";
+      const decoded = (str) => str ? Buffer.from(str, "base64").toString("utf8") : "";
       
       // Results to return
       const result: {
@@ -703,6 +703,11 @@ class ExamSubmissionService extends BaseService {
           });
           
           const userInputResult = await this.getJudge0Result(userInputRequest.token);
+          
+          Logger.info(`User input result status: ${userInputResult.status.id} - ${userInputResult.status.description}`);
+          Logger.info(`User input stdout: ${userInputResult.stdout || 'None'}`);
+          Logger.info(`User input stderr: ${userInputResult.stderr || 'None'}`);
+          Logger.info(`User input compile_output: ${userInputResult.compile_output || 'None'}`);
           
           // Check if it's a compilation error (status ID 6)
           if (userInputResult.status.id === 6) {
@@ -764,6 +769,11 @@ class ExamSubmissionService extends BaseService {
             });
             
             const testcaseResult = await this.getJudge0Result(testcaseRequest.token);
+            
+            Logger.info(`Testcase ${testcase.id} result status: ${testcaseResult.status.id} - ${testcaseResult.status.description}`);
+            Logger.info(`Testcase ${testcase.id} stdout: ${testcaseResult.stdout || 'None'}`);
+            Logger.info(`Testcase ${testcase.id} stderr: ${testcaseResult.stderr || 'None'}`);
+            Logger.info(`Testcase ${testcase.id} compile_output: ${testcaseResult.compile_output || 'None'}`);
             
             const isPassed = testcaseResult.status.id === 3; // 3 is "Accepted"
             
@@ -890,6 +900,12 @@ class ExamSubmissionService extends BaseService {
       if (data.language_id) {
         const language = await this.languageRepository.findById(data.language_id);
         this.validateExists(language, 'language');
+        Logger.info(`Using language: ${language.name} (ID: ${language.id})`);
+        
+        // Log warning for potentially problematic language IDs
+        if (data.language_id === 70 || data.language_id === 71) {
+          Logger.warn(`Python language detected (ID: ${data.language_id}). Make sure Judge0 supports this language ID.`);
+        }
       }
     } catch (error) {
       this.handleError(error, 'validateExamSubmissionData');
@@ -1085,10 +1101,13 @@ class ExamSubmissionService extends BaseService {
     expected_output?: string;
   }) {
     Logger.info(`Submitting code to Judge0. Language ID: ${submission.language_id}`);
+    Logger.info(`Source code preview: ${submission.source_code.substring(0, 200)}...`);
+    Logger.info(`Stdin: ${submission.stdin || 'None'}`);
+    Logger.info(`Expected output: ${submission.expected_output || 'None'}`);
     
     try {
-      // Base64 encode the code and inputs
-      const encoded = (str) => str ? Buffer.from(str, "binary").toString("base64") : "";
+      // Base64 encode the code and inputs - using UTF-8 encoding instead of binary
+      const encoded = (str) => str ? Buffer.from(str, "utf8").toString("base64") : "";
       
       const encodedSubmission = {
         source_code: encoded(submission.source_code),
@@ -1096,6 +1115,10 @@ class ExamSubmissionService extends BaseService {
         stdin: submission.stdin ? encoded(submission.stdin) : undefined,
         expected_output: submission.expected_output ? encoded(submission.expected_output) : undefined
       };
+      
+      Logger.info(`Encoded source code length: ${encodedSubmission.source_code.length}`);
+      Logger.info(`Encoded stdin: ${encodedSubmission.stdin || 'None'}`);
+      Logger.info(`Encoded expected output: ${encodedSubmission.expected_output || 'None'}`);
       
       // Read timeout from environment or use default (60 seconds)
       const apiTimeout = process.env.JUDGE0_TIMEOUT ? parseInt(process.env.JUDGE0_TIMEOUT) : 60000;
@@ -1461,6 +1484,61 @@ class ExamSubmissionService extends BaseService {
       };
       
       await this.saveTestcaseResult(exam_content_id, resultWithSubmissionId);
+    }
+  }
+
+  //==============================
+  // DEBUGGING UTILITIES
+  //==============================
+
+  /**
+   * Debug method to check language mapping and Judge0 compatibility
+   * @param language_id The language ID to check
+   */
+  public async debugLanguageMapping(language_id: number): Promise<{
+    database_language: any;
+    judge0_mapping: any;
+    recommendations: string[];
+  }> {
+    try {
+      const language = await this.languageRepository.findById(language_id);
+      const recommendations: string[] = [];
+      
+      if (!language) {
+        recommendations.push(`Language ID ${language_id} not found in database`);
+        return {
+          database_language: null,
+          judge0_mapping: null,
+          recommendations
+        };
+      }
+
+      // Check if this is a Python language
+      if (language.name.includes('Python')) {
+        recommendations.push('Python detected - ensure Judge0 supports this language ID');
+        recommendations.push('Check if Python version matches Judge0 expectations');
+      }
+
+      // Check if this is C++
+      if (language.name.includes('C++')) {
+        recommendations.push('C++ detected - this should work with Judge0');
+      }
+
+      return {
+        database_language: language,
+        judge0_mapping: {
+          suggested_id: language_id,
+          note: 'Verify this ID matches Judge0 API documentation'
+        },
+        recommendations
+      };
+    } catch (error) {
+      Logger.error(`Error in debugLanguageMapping: ${(error as Error).message}`);
+      return {
+        database_language: null,
+        judge0_mapping: null,
+        recommendations: [`Error: ${(error as Error).message}`]
+      };
     }
   }
 

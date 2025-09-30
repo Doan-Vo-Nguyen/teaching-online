@@ -15,7 +15,7 @@ export const validate = (requestField: string[]) => {
     const invalidField = checkField(REQUIRE_FIELDS || []);
 
     if (invalidField) {
-      res.status(400).json(INVALID_REQUEST);
+      return res.status(400).json(INVALID_REQUEST);
     }
 
     next();

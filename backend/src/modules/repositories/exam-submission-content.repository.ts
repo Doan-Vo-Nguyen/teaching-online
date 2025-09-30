@@ -20,7 +20,7 @@ export class ExamSubmissionContentRepository extends BaseRepository<ExamSubmissi
     }
     async update(id: number, examSubmissionContent: ExamSubmissionContent) {
         await this.repository.update(id, examSubmissionContent);
-        return this.repository.findOneBy({ id });
+        return this.findById(id);
     }
     async delete(id: number) {
         const examSubmissionContent = await this.repository.findOneBy({ id });

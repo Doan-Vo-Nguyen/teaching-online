@@ -139,3 +139,5 @@ export const verifyRefreshToken = async (req: IRequest, res: Response, next: Nex
 export const authorAdmin = authorize(['admin']);
 export const authorTeacher = authorize(['teacher']);
 export const authorAdOrTeacher = authorize(['admin', 'teacher']);
+export const authorReceptionist = authorize(['receptionist']);
+export const authorAdOrReceptionist = authorize(['admin', 'receptionist']);

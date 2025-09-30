@@ -17,4 +17,5 @@ export interface IStudentClassesRepository
   getAllClassesByStudentJoined(student_id: number): Promise<StudentClasses[]>; // Get all classes by student joined
   enrollClass(student_id: number, class_id: number): Promise<StudentClasses>; // Enroll a class
   leaveClass(student_id: number, class_id: number): Promise<StudentClasses>;
+  getAllStudentClassesByClassSignature(class_signature: string): Promise<StudentClasses[]>;
 }

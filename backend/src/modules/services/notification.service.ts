@@ -20,37 +20,21 @@ class NotificationService {
     }
 
     public async getNotificationById(notification_id: number) {
-        if (!notification_id) {
-            throw new ApiError(
-                400,
-                FIELD_REQUIRED.error.message,
-                FIELD_REQUIRED.error.details
-            );
-        }
+        this.validateRequiredField(notification_id, 'notification_id');
         const notificationData = await this.notificationRepository.findById(notification_id);
-        if (!notificationData) {
-            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
-        }
+        this.throwIfNotificationNotFound(notificationData);
         return notificationData;
     }
 
     // * when creating a notification, send mail to all students in the class
     public async createNotification(teacherId: number, classId: number, notificationData: any) {
-        if (!teacherId || !classId || !notificationData) {
-            throw new ApiError(
-                400,
-                FIELD_REQUIRED.error.message,
-                FIELD_REQUIRED.error.details
-            );
-        }
+        this.validateRequiredField(teacherId, 'teacherId');
+        this.validateRequiredField(classId, 'classId');
+        this.validateRequiredField(notificationData, 'notificationData');
         const teacher = await this.userRepository.findById(teacherId);
-        if (!teacher) {
-            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
-        }
+        this.throwIfUserNotFound(teacher);
         const classData = await this.classesRepository.findById(classId);
-        if (!classData) {
-            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
-        }
+        this.throwIfClassNotFound(classData);
         const students = await this.studentClassesRepository.find({ class_id: classId });
         if (!students) {
             throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
@@ -158,6 +142,34 @@ class NotificationService {
             error
         });
        }
+    }
+
+    private validateRequiredField(value: any, fieldName: string): void {
+        if (!value) {
+            throw new ApiError(
+                400,
+                FIELD_REQUIRED.error.message,
+                FIELD_REQUIRED.error.details
+            );
+        }
+    }
+
+    private throwIfNotificationNotFound(notificationData: any): void {
+        if (!notificationData) {
+            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+        }
+    }
+
+    private throwIfUserNotFound(user: any): void {
+        if (!user) {
+            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+        }
+    }
+
+    private throwIfClassNotFound(classData: any): void {
+        if (!classData) {
+            throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+        }
     }
 
 }

@@ -11,7 +11,7 @@ export interface IUserRepository extends IBaseRepository<Users> {
     findByEmail(email: string): Promise<Users>
     comparePassword(email: string, plainPass: string): Promise<boolean>
     generateToken(email: string): Promise<string>
-    findByUsernameEmail(username: string, email: string): Promise<Users>
+    findByUsernameEmail(identifier: string): Promise<Users>
     changePassword(id: number, newPassword: string): Promise<Users>
     forgotPassword(email: string): Promise<Users>
     joinClass(user_id: number, class_join_code: number): Promise<Users>

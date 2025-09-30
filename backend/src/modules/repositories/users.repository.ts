@@ -18,6 +18,13 @@ export class UserRepository extends BaseRepository<Users> {
         return this.repository.find(options);
     }
 
+    async findWithRelations(options: any, relations: string[] = []): Promise<Users[]> {
+        return this.repository.find({
+            ...options,
+            relations
+        });
+    }
+
     async findById(user_id: number): Promise<Users> {
         return this.repository.findOneBy({ user_id });
     }
@@ -32,16 +39,16 @@ export class UserRepository extends BaseRepository<Users> {
 
     async update(user_id: number, user: UserDTO): Promise<Users> {
         await this.repository.update(user_id, user);
-        return this.repository.findOneBy({ user_id });
+        return this.findById(user_id);
     }
 
     async delete(user_id: number): Promise<Users> {
-        const user = await this.repository.findOneBy({ user_id });
+        const user = await this.findById(user_id);
         return this.repository.remove(user);
     }
 
     async updateRole(user_id: number, role: Role): Promise<Users> {
-        const user = await this.repository.findOneBy({ user_id });
+        const user = await this.findById(user_id);
         user.role = role;
         return this.repository.save(user);
     }
@@ -53,21 +60,14 @@ export class UserRepository extends BaseRepository<Users> {
         return user;
     }
 
-    async findByUsernameEmail(username: string, email: string): Promise<Users> {
+    async findByUsernameEmail(identifier: string): Promise<Users> {
         const user = await this.repository.findOne({
-            where: { username}
+            where: [
+                { username: identifier },
+                { email: identifier }
+            ]
         });
-        if (user) {
-            return user;
-        }
-
-        let userByEmail = await this.repository.findOne({
-            where: { email}
-        });
-        if (userByEmail) {
-            return userByEmail;
-        }
-        return null;
+        return user;
     }
 
     async findByEmail(email: string): Promise<Users> {

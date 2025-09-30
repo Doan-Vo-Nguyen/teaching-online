@@ -22,6 +22,9 @@ export class Classes {
     @Column()
     teacher_id: number
 
+    @Column({type: "varchar", length: 10, nullable: true})
+    class_signature: string
+
     @CreateDateColumn()
     created_at: Date
 
@@ -30,7 +33,7 @@ export class Classes {
 
     @ManyToOne(() => Users, user => user.teachingClasses, { onDelete: 'CASCADE' }) // Relation with Users n-1
     @JoinColumn({name: "teacher_id"}) // Column name in the database
-    teacher: Relation<Users>
+    teacher: Relation<Users>    
 
     @OneToMany(() => StudentClasses, studentClasses => studentClasses.class) // Relation with StudentClasses 1-n
     studentClasses: StudentClasses[]

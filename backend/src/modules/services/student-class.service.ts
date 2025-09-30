@@ -37,13 +37,7 @@ class StudentClassesService {
 
   public async getStudentJoinedClasses(student_id: number, class_id: number) {
     const classes = await this.classesRepository.findById(class_id);
-    if (!classes) {
-      throw new ApiError(
-        404,
-        STUDENT_NOT_FOUND.error.message,
-        STUDENT_NOT_FOUND.error.details
-      );
-    }
+    this.throwIfClassNotFound(classes);
     return await this.studentClassesRepository.getStudentJoinedClasses(
       student_id,
       class_id
@@ -52,19 +46,27 @@ class StudentClassesService {
 
   public async getAllStudentByClass(class_id: number) {
     const classes = await this.classesRepository.findById(class_id);
-    if (!classes) {
-      throw new ApiError(
-        404,
-        STUDENT_NOT_FOUND.error.message,
-        STUDENT_NOT_FOUND.error.details
-      );
-    }
+    this.throwIfClassNotFound(classes);
     const studentClasses = await this.studentClassesRepository.getAllStudentByClass(class_id);
     return studentClasses;
   }
 
   public async getAllClassesByStudentJoined(student_id: number) {
     return await this.studentClassesRepository.getAllClassesByStudentJoined(student_id);
+  }
+
+  public async getALlStudentClassesByClassSignature(class_signature: string) {
+    return await this.studentClassesRepository.getAllStudentClassesByClassSignature(class_signature);
+  }
+
+  private throwIfClassNotFound(classData: any): void {
+    if (!classData) {
+      throw new ApiError(
+        404,
+        STUDENT_NOT_FOUND.error.message,
+        STUDENT_NOT_FOUND.error.details
+      );
+    }
   }
 }
 

@@ -29,6 +29,7 @@ import { IRequest } from "./modules/types/IRequest";
 import { AuditLogController } from "./modules/controller/audit-log.controller";
 import { DuplicateLoginSocket } from "./modules/socket/duplicate-login.socket";
 import { SessionController } from "./modules/controller/session.controller";
+import AttendanceController from "./modules/controller/attendance.controller";
 
 /**
  * Main application class that handles the Express server setup and configuration
@@ -40,8 +41,19 @@ export class Application {
   private _server: any;
   private _io: Server | undefined;
   private readonly DEFAULT_PORT = 10000;
-  private readonly DEFAULT_SERVER_NAME = "Teaching_Online_Server";
+  private readonly DEFAULT_SERVER_NAME = "HPEdtechCenter";
   private isInitialized = false;
+  
+  private readonly ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "https://teaching-online-server.onrender.com",
+    "http://localhost:10000",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "https://api-service-2e9tk.ondigitalocean.app",,
+    "https://api-service-2e9tk.ondigitalocean.app/api-docs",
+    "https://hpedtechcenter.vercel.app"
+  ];
 
   /**
    * Private constructor to enforce singleton pattern
@@ -104,17 +116,7 @@ export class Application {
   private initializeSocketServer(): void {
     this._io = new Server(this._server, {
       cors: {
-        origin: [
-          "http://localhost:3000",
-          "https://teaching-online-server.onrender.com",
-          "http://localhost:10000",
-          "http://localhost:5173",
-          "https://edu-space-dkn7.vercel.app",
-          "https://ghienphim.fun",
-          "https://api-service-2e9tk.ondigitalocean.app",
-          "https://edu-space-psi.vercel.app",
-          "https://api-service-2e9tk.ondigitalocean.app/api-docs"
-        ],
+        origin: this.ALLOWED_ORIGINS,
         methods: ["GET", "POST"],
         credentials: true
       }
@@ -176,18 +178,7 @@ export class Application {
    */
   private getCorsConfig() {
     return cors({
-      origin: [
-        "http://localhost:3000",
-        "https://teaching-online-server.onrender.com",
-        "http://localhost:10000",
-        "http://localhost:5173",
-        "https://edu-space-dkn7.vercel.app",
-        "https://api-service-2e9tk.ondigitalocean.app",
-        "https://edu-space-psi.vercel.app",
-        "https://api-service-2e9tk.ondigitalocean.app/api-docs",
-        "https://hpedtechcenter.vercel.app"
-        
-      ],
+      origin: this.ALLOWED_ORIGINS,
       methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
       allowedHeaders: ["Content-Type", "Authorization"],
       credentials: true,
@@ -266,7 +257,8 @@ export class Application {
       new ExamSubmissionController("/app/exam-submissions"),
       new TestcaseController("/app/testcases"),
       new AuditLogController("/app/audit-logs"),
-      new SessionController("/app/sessions")
+      new SessionController("/app/sessions"),
+      new AttendanceController("/app/attendance")
     ];
 
     protectedControllers.forEach((controller) => {

@@ -20,6 +20,7 @@ export class StudentClassesController extends BaseController {
     this.router.get("/", this.getAllStudentClasses);
     this.router.get("/student/:id", validParam("id"), this.getAllClassesByStudentJoined);
     this.router.get("/class/:id", validParam("id"), this.getAllStudentByClass);
+    this.router.get("/class-signature/:signature", this.getAllStudentClassesByClassSignature);
   }
 
   private readonly getAllStudentClasses = async (
@@ -134,6 +135,21 @@ export class StudentClassesController extends BaseController {
         "Get all classes by student joined successfully",
         studentClasses
       );
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  private readonly getAllStudentClassesByClassSignature = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      const classSignature = req.params.signature;
+      const studentClasses =
+        await this.studentClassService.getALlStudentClassesByClassSignature(classSignature);
+      return sendResponse(res, true, 200, "Get all student classes by class signature successfully", studentClasses);
     } catch (error) {
       next(error);
     }

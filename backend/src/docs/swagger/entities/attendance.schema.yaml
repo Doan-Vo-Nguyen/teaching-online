@@ -1,0 +1,225 @@
+tags:
+  - name: Attendance
+    description: API cho quản lý lịch học và điểm danh
+
+paths:
+  /app/attendance/import:
+    post:
+      tags: [Attendance]
+      summary: Import schedules from Excel
+      description: |
+        Import lịch học từ file Excel. Có thể upload file (multipart/form-data) hoặc gửi base64 trong body.
+
+        Lưu ý: Tính năng import tạm thời không khuyến nghị sử dụng vì dễ phát sinh lỗi dữ liệu. Vui lòng ưu tiên dùng các endpoint nhập tay (Create schedule, Bulk create schedules).
+      deprecated: true
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+          application/json:
+            schema:
+              type: object
+              properties:
+                file_base64:
+                  type: string
+                  description: Base64 nội dung file Excel
+      responses:
+        '200':
+          description: Import thành công
+        '400':
+          description: Thiếu file
+
+  /app/attendance/schedules:
+    get:
+      tags: [Attendance]
+      summary: Get schedules
+      description: Lấy danh sách lịch học theo bộ lọc
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: class_id
+          schema:
+            type: integer
+        - in: query
+          name: class_signature
+          schema:
+            type: string
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date-time
+        - in: query
+          name: day_of_week
+          schema:
+            type: string
+            example: Monday
+        - in: query
+          name: date_time
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Danh sách lịch học
+
+    post:
+      tags: [Attendance]
+      summary: Create schedule
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [class_signature, start_time, end_time]
+              properties:
+                class_signature: { type: string }
+                start_time: { type: string, format: date-time, description: ISO 8601 UTC }
+                end_time: { type: string, format: date-time, description: ISO 8601 UTC }
+                date_time: { type: string, format: date, nullable: true, description: yyyy-MM-dd }
+                day_of_week: { type: string, nullable: true, example: Monday }
+                room: { type: string }
+                note: { type: string }
+      responses:
+        '201':
+          description: Tạo lịch thành công
+
+  /app/attendance/schedules/bulk:
+    post:
+      tags: [Attendance]
+      summary: Bulk create schedules (manual input)
+      description: Tạo nhiều lịch học cùng lúc bằng cách nhập tay theo danh sách items.
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [class_signature, items]
+              properties:
+                class_signature: { type: string }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    required: [start_time, end_time]
+                    properties:
+                      start_time: { type: string, format: date-time, description: ISO 8601 UTC }
+                      end_time: { type: string, format: date-time, description: ISO 8601 UTC }
+                      date_time: { type: string, format: date, nullable: true, description: yyyy-MM-dd }
+                      day_of_week: { type: string, nullable: true, example: Monday }
+                      room: { type: string, nullable: true }
+                      note: { type: string, nullable: true }
+      responses:
+        '201':
+          description: Tạo lịch hàng loạt thành công
+
+  /app/attendance/schedules/{id}:
+    patch:
+      tags: [Attendance]
+      summary: Update schedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                class_id: { type: integer }
+                start_time: { type: string, format: date-time }
+                end_time: { type: string, format: date-time }
+                room: { type: string }
+                note: { type: string }
+      responses:
+        '200':
+          description: Cập nhật thành công
+
+    delete:
+      tags: [Attendance]
+      summary: Delete schedule
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '204':
+          description: Xóa thành công
+
+  /app/attendance/attendance/{scheduleId}/check-in:
+    post:
+      tags: [Attendance]
+      summary: Check-in student
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: scheduleId
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_id]
+              properties:
+                student_id: { type: integer }
+      responses:
+        '200':
+          description: Check-in thành công
+
+  /app/attendance/attendance/{scheduleId}/check-out:
+    post:
+      tags: [Attendance]
+      summary: Check-out student
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: scheduleId
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_id]
+              properties:
+                student_id: { type: integer }
+      responses:
+        '200':
+          description: Check-out thành công
+
+

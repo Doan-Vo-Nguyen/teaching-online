@@ -204,4 +204,13 @@ export class ExamSubmissionController extends BaseController {
         const details = await this.examSubmissionService.getDetailsExamSubmission(submissionId, req.query);
         return this.sendSuccess(res, 200, "Fetched exam submission details successfully", details);
     };
+
+    private readonly debugLanguageMapping = async (
+        req: Request,
+        res: Response
+    ) => {
+        const languageId = this.parseId(req.params.languageId);
+        const debugInfo = await this.examSubmissionService.debugLanguageMapping(languageId);
+        return this.sendSuccess(res, 200, "Language mapping debug info retrieved", debugInfo);
+    };
 }

@@ -7,6 +7,7 @@ export class ClassesDTO {
     class_code: string
     teacher: any
     teacher_id: number
+    class_signature: string
     created_at: Date
     updated_at: Date
 }
@@ -22,4 +23,7 @@ export class ClassesDTOPost {
     @IsNumber()
     @IsNotEmpty()
     teacher_id: number
+
+    @IsString()
+    class_signature: string
 }

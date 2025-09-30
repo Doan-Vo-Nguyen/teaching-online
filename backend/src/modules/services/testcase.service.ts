@@ -5,6 +5,7 @@ import { ApiError } from "../types/ApiError";
 import { Logger } from "../config/logger";
 import { IExamContentRepository } from "../interfaces/exam-content.interface";
 import { ExamContentRepository } from "../repositories/exam-content.repository";
+import { ExamContent } from "../entity/ExamContent.entity";
 
 class TestcaseService {
     private readonly testcaseRepository: ITestCaseRepository = new TestCaseRepository();
@@ -13,9 +14,7 @@ class TestcaseService {
     public async getTestcaseById(id: number) {
         try {
             const testcase = await this.testcaseRepository.getTestcaseById(id);
-            if (!testcase) {
-                throw new ApiError(404, "Testcase not found", "Testcase not found");
-            }
+            this.throwIfTestcaseNotFound(testcase);
             return testcase;
         } catch (error) {
             Logger.error(error);
@@ -25,13 +24,9 @@ class TestcaseService {
 
     public async createTestcase(exam_content_id: number, testcase: TestCase) {
         try {
-            if(!exam_content_id) {
-                throw new ApiError(400, "Exam content id is required", "Exam content id is required");
-            }
+            this.validateRequiredField(exam_content_id, 'exam_content_id');
             const examContent = await this.examContentRepository.findById(exam_content_id);
-            if(!examContent) {
-                throw new ApiError(404, "Exam content not found", "Exam content not found");
-            }
+            this.throwIfExamContentNotFound(examContent);
             const result = await this.testcaseRepository.createTestcase(exam_content_id, testcase);
             return result;
         } catch (error) {
@@ -42,9 +37,7 @@ class TestcaseService {
 
     public async updateTestcase(id: number, exam_content_id: number, testcase: TestCase) {
         try {
-            if(!id) {
-                throw new ApiError(400, "Testcase id is required", "Testcase id is required");
-            }
+            this.validateRequiredField(id, "id");
             const result = await this.testcaseRepository.updateTestcase(id, exam_content_id, testcase);
             return result;
         } catch (error) {
@@ -55,14 +48,12 @@ class TestcaseService {
 
     public async deleteTestcase(id: number) {
         try {
-            if(!id) {
-                throw new ApiError(400, "Testcase id is required", "Testcase id is required");
-            }
+            this.validateRequiredField(id, "id");
             const result = await this.testcaseRepository.deleteTestcase(id);
             return result;
         } catch (error) {
             Logger.error(error);
-            throw error;
+            throw error;    
         }
     }
 
@@ -85,6 +76,24 @@ class TestcaseService {
             throw error;
         }
     }
-}   
+
+    private validateRequiredField(value: any, fieldName: string): void {
+        if (!value) {
+            throw new ApiError(400, `${fieldName} is required`, `${fieldName} is required`);
+        }
+    }
+
+    private throwIfTestcaseNotFound(testcase: any): void {
+        if (!testcase) {
+            throw new ApiError(404, "Testcase not found", "Testcase not found");
+        }
+    }
+
+    private throwIfExamContentNotFound(examContent: any): void {
+        if (!examContent) {
+            throw new ApiError(404, "Exam content not found", "Exam content not found");
+        }
+    }
+}
 
 export default TestcaseService;

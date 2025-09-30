@@ -33,9 +33,10 @@ export class StudentClassesRepository extends BaseRepository<StudentClasses> {
     student_id: number,
     class_id: number
   ): Promise<StudentClasses> {
-    const studentClass = new StudentClasses();
-    studentClass.student_id = student_id;
-    studentClass.class_id = class_id;
+    const studentClass = this.repository.create({
+      student_id,
+      class_id
+    });
     return this.repository.save(studentClass);
   }
 
@@ -62,5 +63,9 @@ export class StudentClassesRepository extends BaseRepository<StudentClasses> {
   ): Promise<StudentClasses> {
     const studentClass = await this.repository.findOneBy({ student_id, class_id });
     return this.repository.remove(studentClass);
+  }
+
+  async getAllStudentClassesByClassSignature(class_signature: string): Promise<StudentClasses[]> {
+    return this.repository.find({ where: { class: { class_signature } } });
   }
 }

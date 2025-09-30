@@ -26,7 +26,7 @@ export class LecturesRepository extends BaseRepository<Lectures> {
 
     async update(lecture_id: number, lecture: Lectures): Promise<Lectures> {
         await this.repository.update(lecture_id, lecture);
-        return this.repository.findOneBy({ lecture_id });
+        return this.findById(lecture_id);
     }
 
     async delete(lecture_id: number): Promise<Lectures> {

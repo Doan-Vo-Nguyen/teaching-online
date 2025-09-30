@@ -4,7 +4,7 @@ import { UserRepository } from "../repositories/users.repository";
 import { ClassesRepository } from "../repositories/classes.repository";
 import { StudentClassesRepository } from "../repositories/student-classes.repository";
 import { generateRandomCode } from "../utils/GenerateCode";
-import { ApiError, badRequest, notFound, conflict, forbidden } from "../types/ApiError";
+import { badRequest, notFound, conflict, forbidden } from "../types/ApiError";
 import { Role } from "../constant/index";
 import {
   USER_NOT_EXISTS,
@@ -62,26 +62,27 @@ class UserService {
   public async getUserById(userId: number) {
     this.validateField(userId, FIELD_REQUIRED);
     const user = await this.userRepository.findById(userId);
-    if (!user)
-      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
+    this.throwIfUserNotFound(user);
     return user;
   }
 
   public async getUserByName(fullname: string) {
     this.validateField(fullname, FIELD_REQUIRED);
     const user = await this.userRepository.findByName(fullname);
-    if (!user)
-      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
+    this.throwIfUserNotFound(user);
     return user;
   }
 
   public async createUser(userData: any) {
     const { username, email, password } = userData;
-    const existedUser = await this.userRepository.findByUsernameEmail(
-      username,
-      email
-    );
-    if (existedUser) this.handleExistingUser(existedUser, username, email);
+    // Check if username already exists
+    const existedUserByUsername = await this.userRepository.findByUsernameEmail(username);
+    if (existedUserByUsername) this.handleExistingUser(existedUserByUsername, username, email);
+    
+    // Check if email already exists
+    const existedUserByEmail = await this.userRepository.findByEmail(email);
+    if (existedUserByEmail) this.handleExistingUser(existedUserByEmail, username, email);
+    
     userData.password = bcrypt.hashSync(password, saltRound);
     const newUser = await this.userRepository.save(userData);
     if (!newUser) throw badRequest(CREATED_USER_FAILED.error.message);
@@ -91,8 +92,7 @@ class UserService {
   public async updateUser(id: number, userData: any) {
     this.validateField(id, FIELD_REQUIRED);
     const user = await this.userRepository.findById(id);
-    if (!user)
-      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
+    this.throwIfUserNotFound(user);
     if (userData.password)
       userData.password = bcrypt.hashSync(userData.password, saltRound);
     else delete userData.password;
@@ -106,8 +106,7 @@ class UserService {
     this.validateField(userId, FIELD_REQUIRED);
     this.validateField(role, FIELD_REQUIRED);
     const user = await this.userRepository.findById(userId);
-    if (!user)
-      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
+    this.throwIfUserNotFound(user);
     return await this.userRepository.update(userId, {
       role,
       updated_at: new Date(),
@@ -117,8 +116,7 @@ class UserService {
   public async deleteUser(userId: number) {
     this.validateField(userId, FIELD_REQUIRED);
     const user = await this.userRepository.findById(userId);
-    if (!user)
-      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
+    this.throwIfUserNotFound(user);
     return await this.userRepository.delete(userId);
   }
 
@@ -235,6 +233,12 @@ class UserService {
 
   public getUserByRole(role: Role) {
     return this.userRepository.getUserByRole(role);
+  }
+
+  private throwIfUserNotFound(user: any): void {
+    if (!user) {
+      throw notFound(USER_NOT_EXISTS.error.message, USER_NOT_EXISTS.error.details);
+    }
   }
 }
 export default UserService;

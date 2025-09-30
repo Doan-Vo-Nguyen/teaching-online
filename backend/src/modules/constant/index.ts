@@ -6,6 +6,8 @@ export enum Role {
     ADMIN = 'admin',
     TEACHER = 'teacher',
     STUDENT = 'student',
+    RECEPTIONIST = 'receptionist',
+    
 }
 
 export enum LectureType {

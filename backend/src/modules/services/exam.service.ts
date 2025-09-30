@@ -31,9 +31,7 @@ class ExamService {
 
     public async getAllExams(): Promise<Exam[]> {
         const exams = await this.examRepository.find({});
-        if (exams.length === 0) {
-            throw notFound(EXAM_NOT_FOUND.error.message, EXAM_NOT_FOUND.error.details);
-        }
+        this.throwIfExamsNotFound(exams);
         return exams;
     }
 
@@ -42,9 +40,7 @@ class ExamService {
     }
 
     public async createExam(exam: Exam): Promise<Exam> {
-        if (!exam) {
-            throw badRequest(EXAM_FIELD_REQUIRED.error.message, EXAM_FIELD_REQUIRED.error.details);
-        }
+        this.validateRequiredField(exam, 'exam');
         return await this.examRepository.save(exam);
     }
 
@@ -169,6 +165,24 @@ class ExamService {
 
     public async getDetailExam(id: number, exam_content_id: number): Promise<ExamContent> {
         return await this.examContentRepository.getDetailExam(id, exam_content_id);
+    }
+
+    private validateRequiredField(value: any, fieldName: string): void {
+        if (!value) {
+            throw badRequest(EXAM_FIELD_REQUIRED.error.message, EXAM_FIELD_REQUIRED.error.details);
+        }
+    }
+
+    private throwIfExamsNotFound(exams: any[]): void {
+        if (!exams || exams.length === 0) {
+            throw notFound(EXAM_NOT_FOUND.error.message, EXAM_NOT_FOUND.error.details);
+        }
+    }
+
+    private throwIfExamNotFound(exam: any): void {
+        if (!exam) {
+            throw notFound(EXAM_NOT_FOUND.error.message, EXAM_NOT_FOUND.error.details);
+        }
     }
 }
 

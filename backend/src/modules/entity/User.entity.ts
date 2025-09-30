@@ -42,7 +42,7 @@ export class Users {
     @Column({type: "varchar", length: 50, nullable: true})
     address: string
 
-    @Column({type: "varchar", length: 50, unique: true})
+    @Column({type: "varchar", length: 50, unique: true, nullable: true})
     email: string
 
     @Column({type: "varchar", length: 100, nullable: true})

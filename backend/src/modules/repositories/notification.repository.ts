@@ -21,7 +21,7 @@ export class NotificationRepository extends BaseRepository<Notification> {
 
     async update(notification_id: number, notification: Notification): Promise<Notification> {
         await this.repository.update(notification_id, notification);
-        return this.repository.findOneBy({ notification_id });
+        return this.findById(notification_id);
     }
 
     async delete(notification_id: number): Promise<Notification> {

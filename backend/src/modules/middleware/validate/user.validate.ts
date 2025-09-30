@@ -1,12 +1,14 @@
 import { NextFunction, Request, Response } from "express";
 import { INVALID_REQUEST, WRONG_BOTH_PHONE_EMAIL, WRONG_EMAIL_FORMAT, WRONG_PHONE_FORMAT } from "../../DTO/resDto/BaseErrorDto";
 
-const REQUIRE_FIELDS = ['username', 'password', 'email', 'fullname', 'phone', 'address'];   // Required fields for user creation
+const REQUIRE_FIELDS = ['username', 'password', 'fullname'];   // Required fields; email/phone/address optional
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;   // Email format regex
 const phoneRegex = /^0\d{9}$/;  // Phone format regex
+const usernameRegex = /^[a-zA-Z0-9._@-]{3,30}$/;  // Username format regex (allow '@')
 
 export const validateCreate = (req: Request, res: Response, next: NextFunction) => {
     const data = {...req.body};
+    const { username } = data as { username: string };
     const { email } = data as { email: string };
     const { phone } = data as { phone: string };
     let RESPONSE_JSON = {... INVALID_REQUEST};
@@ -20,6 +22,11 @@ export const validateCreate = (req: Request, res: Response, next: NextFunction) 
             field,
             message: `${field} is required`
         }));
+        return res.status(400).json(RESPONSE_JSON);
+    }
+
+    const invalidUsername = checkFormatUsername(username);
+    if(invalidUsername) {
         return res.status(400).json(RESPONSE_JSON);
     }
 
@@ -39,8 +46,21 @@ export const validateCreate = (req: Request, res: Response, next: NextFunction) 
         return fields.filter(field => !data[field]);
     }
 
-    function checkFormatEmail(email: string) {
-        if(!emailRegex.test(email)) {
+    function checkFormatUsername(username: string) {
+        if(!usernameRegex.test(username)) {
+            RESPONSE_JSON.error.message = "Invalid username format";
+            RESPONSE_JSON.error.validationErrors.push({
+                field: 'username',
+                message: 'Invalid username format',
+            });
+            return true;
+        }
+        return false;
+    }
+
+    function checkFormatEmail(email?: string) {
+        // Email is optional; only validate when provided
+        if(email && !emailRegex.test(email)) {
             RESPONSE_JSON.error.message = "Invalid email format";
             RESPONSE_JSON.error.validationErrors.push({
                 field: 'email',
@@ -51,8 +71,9 @@ export const validateCreate = (req: Request, res: Response, next: NextFunction) 
         return false;
     }
 
-    function checkFormatPhone(phone: string) {
-        if(!phoneRegex.test(phone)) {
+    function checkFormatPhone(phone?: string) {
+        // Phone is optional; only validate when provided
+        if(phone && !phoneRegex.test(phone)) {
             RESPONSE_JSON.error.message = "Invalid phone format";
             RESPONSE_JSON.error.validationErrors.push({
                 field: 'phone',

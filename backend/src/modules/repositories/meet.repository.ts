@@ -12,7 +12,7 @@ export class MeetRepository extends BaseRepository<Meet> {
 
     async updateMeeting(id: number, meet: Meet): Promise<Meet> {
         await this.repository.update(id, meet);
-        return this.findMeetingById(id);
+        return this.findById(id);
     }
 
     async deleteMeeting(id: number): Promise<Meet> {

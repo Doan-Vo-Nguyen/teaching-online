@@ -23,7 +23,7 @@ export class TestCaseRepository extends BaseRepository<TestCase> {
     }
     async updateTestcase(id: number, exam_content_id: number, testcase: TestCase): Promise<TestCase> {
         await this.repository.update(id, { ...testcase, exam_content_id });
-        return this.repository.findOne({ where: { id } });
+        return this.findById(id);
     }
     async deleteTestcase(id: number): Promise<void> {
         await this.repository.delete(id);

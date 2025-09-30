@@ -34,17 +34,9 @@ class ClassesService {
   }
 
   public async getClassById(class_id: number) {
-    if (!class_id) {
-      throw new ApiError(
-        400,
-        FIELD_REQUIRED.error.message,
-        FIELD_REQUIRED.error.details
-      );
-    }
+    this.validateRequiredField(class_id, 'class_id');
     const classData = await this.classesRepository.findById(class_id);
-    if (!classData) {
-      throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
-    }
+    this.throwIfClassNotFound(classData);
     const teacher = await this.userRepository.findById(classData.teacher_id);
     return {
       ...classData,
@@ -53,13 +45,7 @@ class ClassesService {
   }
 
   public async createClass(classData: ClassesDTO) {
-    if (!classData) {
-      throw new ApiError(
-        400,
-        FIELD_REQUIRED.error.message,
-        FIELD_REQUIRED.error.details
-      );
-    }
+    this.validateRequiredField(classData, 'classData');
     classData.class_code = generateRandomCode();
     const classEntity = {
       ...classData,
@@ -69,6 +55,7 @@ class ClassesService {
       exams: [], // or provide the appropriate value
       notifications: [], // or provide the appropriate value
       meets: [], // or provide the appropriate value
+      attendanceSchedules: [],
     };
     const newClasses = await this.classesRepository.save(classEntity);
     if (!newClasses) {
@@ -82,56 +69,28 @@ class ClassesService {
   }
 
   public async updateClass(id: number, classData: ClassesDTO) {
-    if (!id) {
-      throw new ApiError(
-        400,
-        FIELD_REQUIRED.error.message,
-        FIELD_REQUIRED.error.details
-      );
-    }
+    this.validateRequiredField(id, 'id');
     const existedClass = await this.classesRepository.findById(id);
-    if (!existedClass) {
-      throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
-    }
+    this.throwIfClassNotFound(existedClass);
     const updatedClass = await this.classesRepository.update(id, classData);
     return updatedClass;
   }
 
   public async deleteClass(id: number) {
-    if (!id) {
-      throw new ApiError(
-        400,
-        FIELD_REQUIRED.error.message,
-        FIELD_REQUIRED.error.details
-      );
-    }
+    this.validateRequiredField(id, 'id');
     const existedClass = await this.classesRepository.findById(id);
-    if (!existedClass) {
-      throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
-    }
+    this.throwIfClassNotFound(existedClass);
     await this.classesRepository.delete(id);
   }
 
   public async findByClassCode(class_code: string) {
-    if (!class_code) {
-      throw new ApiError(
-        400,
-        FIELD_REQUIRED.error.message,
-        FIELD_REQUIRED.error.details
-      );
-    }
+    this.validateRequiredField(class_code, 'class_code');
     const classes = await this.classesRepository.findByClassCode(class_code);
     return classes;
   }
 
   public async getClassByTeacherId(teacher_id: number) {
-    if (!teacher_id) {
-      throw new ApiError(
-        400,
-        FIELD_REQUIRED.error.message,
-        FIELD_REQUIRED.error.details
-      );
-    }
+    this.validateRequiredField(teacher_id, 'teacher_id');
     const classes =
       await this.classesRepository.getClassByTeacherId(teacher_id);
     const classesWithTeacher = await Promise.all(
@@ -181,6 +140,22 @@ class ClassesService {
       teacher: teacher.fullname,
       students,
     };
+  }
+
+  private validateRequiredField(value: any, fieldName: string): void {
+    if (!value) {
+      throw new ApiError(
+        400,
+        FIELD_REQUIRED.error.message,
+        FIELD_REQUIRED.error.details
+      );
+    }
+  }
+
+  private throwIfClassNotFound(classData: any): void {
+    if (!classData) {
+      throw new ApiError(404, NOT_FOUND.error.message, NOT_FOUND.error.details);
+    }
   }
 }
 export default ClassesService;

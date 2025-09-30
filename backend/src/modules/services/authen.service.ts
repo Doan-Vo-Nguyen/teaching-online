@@ -39,18 +39,28 @@ export class AuthenService {
    * @param password - User's password
    * @returns Access and refresh tokens
    */
-  public async authenticate(email: string, password: string) {
-    this.validateCredentials(email, password);
-    
-    const user = await this.validateUser(email);
-    await this.validatePassword(email, password);
+  public async authenticate(identifier: string, password: string) {
+    this.validateCredentials(identifier, password);
+
+    const user = await this.validateUser(identifier);
+    await this.validatePassword(user, password);
 
     const [accessToken, refreshToken] = await Promise.all([
-      this.userRepository.generateToken(email),
+      user.generateAuthToken(),
       this.generateRefreshToken(user.user_id)
     ]);
     
-    return { accessToken, refreshToken };
+    return { 
+      accessToken, 
+      refreshToken,
+      user: {
+        user_id: user.user_id,
+        username: user.username,
+        fullname: user.fullname,
+        email: user.email,
+        role: user.role
+      }
+    };
   }
 
   /**
@@ -84,7 +94,7 @@ export class AuthenService {
     const token = crypto.randomBytes(40).toString('hex');
     const expiresAt = new Date(Date.now() + REFRESH_TOKEN_EXPIRE * 1000);
 
-    const refreshToken = await this.refreshTokenRepository.create({
+    const savedToken = await this.refreshTokenRepository.create({
       user_id,
       token,
       expires_at: expiresAt,
@@ -92,7 +102,6 @@ export class AuthenService {
       id: 0
     });
 
-    const savedToken = await this.refreshTokenRepository.save(refreshToken);
     return savedToken.token;
   }
 
@@ -103,7 +112,8 @@ export class AuthenService {
    */
   public async verifyRefreshToken(token: string): Promise<string> {
     const refreshToken = await this.validateRefreshToken(token);
-    return this.userRepository.generateToken(refreshToken.user.email);
+    const user = await this.userRepository.findById(refreshToken.user_id);
+    return user.generateAuthToken();
   }
 
   /**
@@ -159,22 +169,23 @@ export class AuthenService {
   }
 
   // Private helper methods
-  private validateCredentials(email: string, password: string) {
-    if (!email || !password) {
+  private validateCredentials(identifier: string, password: string) {
+    if (!identifier || !password) {
       throw badRequest(FIELD_REQUIRED.error.message);
     }
   }
 
-  private async validateUser(email: string) {
-    const user = await this.userRepository.findByEmail(email);
+  private async validateUser(identifier: string) {
+    // Cho phép đăng nhập bằng username hoặc email
+    const user = await this.userRepository.findByUsernameEmail(identifier);
     if (!user) {
       throw unauthorized(LOGIN_FAILED.error.message);
     }
     return user;
   }
 
-  private async validatePassword(email: string, password: string) {
-    const isValid = await this.userRepository.comparePassword(email, password);
+  private async validatePassword(user: any, password: string) {
+    const isValid = await bcrypt.compare(password, user.password);
     if (!isValid) {
       throw unauthorized(LOGIN_FAILED.error.message);
     }
@@ -244,10 +255,7 @@ export class AuthenService {
   }
 
   private async validateUserAndCode(email: string, code: string) {
-    const user = await this.userRepository.findByEmail(email);
-    if (!user) {
-      throw notFound(USER_NOT_EXISTS.error.message);
-    }
+    const user = await this.validateUserExists(email);
     if (user.code !== code) {
       throw badRequest(INVALID_RESET_CODE.error.message);
     }

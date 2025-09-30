@@ -19,7 +19,8 @@ export class AuthenController extends BaseController {
     }
 
     public initRoutes(): void {
-        this.router.post('/login', validate(['email', 'password']), this.authenticate);
+        // Cho phép đăng nhập bằng email hoặc username: chỉ bắt buộc password, identifier sẽ tự kiểm tra
+        this.router.post('/login', validate(['password']), this.authenticate);
         this.router.post('/register', validate(['fullname', 'email', 'password']), this.register);
         this.router.post('/forgot-password', this.forgotPassword)
         this.router.put('/reset-password', validate(['code', 'password']), this.resetPassword);
@@ -29,24 +30,25 @@ export class AuthenController extends BaseController {
 
     private readonly authenticate = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { email, password } = req.body;
-            const authResult = await this._authenService.authenticate(email, password);
-            
-            // For audit logging purposes, we'll add auditLogin middleware after successful authentication
-            const user = await this._userRepository.findByEmail(email);
+            const { password } = req.body;
+            const identifier = (req.body.email || req.body.username || '').trim();
+            const authResult = await this._authenService.authenticate(identifier, password);
             
             // Attach user data to the response for audit logging middleware
             res.locals.userData = {
-                id: user.user_id,
-                username: user.username,
-                fullname: user.fullname,
-                email: user.email,
-                role: [user.role]
+                id: authResult.user.user_id,
+                username: authResult.user.username,
+                fullname: authResult.user.fullname,
+                email: authResult.user.email,
+                role: [authResult.user.role]
             };
             
             // Add audit logging middleware for this specific request
             return logLogin(req as IRequest, res, () => {
-                return sendResponse(res, true, HTTP_OK, "Login successfully", authResult);
+                return sendResponse(res, true, HTTP_OK, "Login successfully", {
+                    accessToken: authResult.accessToken,
+                    refreshToken: authResult.refreshToken
+                });
             });
         } catch (error) {
             next(error);
