@@ -46,6 +46,7 @@ export const USER_NOT_EXISTS = BaseErrorDto("User does not exist", null, HTTP_NO
 export const USER_EXISTS = BaseErrorDto("User have already existed", null, HTTP_CONFLICT);
 export const USERNAME_EXISTS = BaseErrorDto("Username is already taken", null, HTTP_CONFLICT);
 export const EMAIL_EXISTS = BaseErrorDto("Email is already existed", null, HTTP_CONFLICT);
+export const PARENT_PHONE_EXISTS = BaseErrorDto("Parent phone is already used", "Số điện thoại phụ huynh đã được sử dụng", HTTP_CONFLICT);
 export const CREATED_USER_FAILED = BaseErrorDto("Create user failed", null, HTTP_INTERNAL_SERVER_ERROR);
 export const WRONG_OLD_PASSWORD = BaseErrorDto("Wrong old password", "Old password is incorrect", HTTP_BAD_REQUEST);
 export const NOT_STUDENT = BaseErrorDto("Not a student", "You are not a student", HTTP_FORBIDDEN);

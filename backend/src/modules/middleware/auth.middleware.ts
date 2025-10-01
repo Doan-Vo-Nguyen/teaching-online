@@ -141,3 +141,4 @@ export const authorTeacher = authorize(['teacher']);
 export const authorAdOrTeacher = authorize(['admin', 'teacher']);
 export const authorReceptionist = authorize(['receptionist']);
 export const authorAdOrReceptionist = authorize(['admin', 'receptionist']);
+export const authorAdOrReceptionistOrTeacher = authorize(['admin', 'teacher', 'receptionist'])

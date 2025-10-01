@@ -8,7 +8,9 @@ export interface IUserRepository extends IBaseRepository<Users> {
     updateRole(user_id: number, role: string): Promise<Users>
     findByIds(ids: number[]): Promise<Users[]>
     findByName(fullname: string): Promise<Users>
+    findByUsername(username: string): Promise<Users>
     findByEmail(email: string): Promise<Users>
+    findByParentPhone(parent_phone: string): Promise<Users>
     comparePassword(email: string, plainPass: string): Promise<boolean>
     generateToken(email: string): Promise<string>
     findByUsernameEmail(identifier: string): Promise<Users>

@@ -10,8 +10,11 @@ export interface IAttendanceRepository extends IBaseRepository<AttendanceSchedul
     updateSchedule(id: number, data: Partial<AttendanceSchedule>): Promise<AttendanceSchedule>;
     deleteSchedule(id: number): Promise<void>;
 
-    checkIn(sessionId: number, studentId: number): Promise<AttendanceRecord>;
+    checkIn(sessionId: number, studentId: number, status?: 'present' | 'late' | 'absent' | 'excused' | 'other'): Promise<AttendanceRecord>;
     checkOut(sessionId: number, studentId: number): Promise<AttendanceRecord>;
+
+    // Query records
+    listRecords(sessionId: number, studentId?: number): Promise<AttendanceRecord[]>;
 
     deleteAllByClassSignature(class_signature: string): Promise<number>;
     bulkInsert(items: Array<Partial<AttendanceSchedule>>): Promise<AttendanceSchedule[]>;

@@ -51,6 +51,12 @@ export class Users {
     @Column({type: "varchar", length: 10, nullable: true, unique: true})
     phone: string
 
+    @Column({type: "varchar", length: 10, nullable: true, unique: true})
+    parent_phone: string
+
+    @Column({type: "varchar", length: 50, nullable: true})
+    parent_name: string
+
     @Column({type: "char", length: 6, nullable: true})
     code: string
 

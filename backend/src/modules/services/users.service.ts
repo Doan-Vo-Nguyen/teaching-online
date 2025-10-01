@@ -11,7 +11,7 @@ import {
   FIELD_REQUIRED,
   USERNAME_EXISTS,
   EMAIL_EXISTS,
-  USER_EXISTS,
+  PARENT_PHONE_EXISTS,
   CREATED_USER_FAILED,
   WRONG_OLD_PASSWORD,
   NOT_STUDENT,
@@ -74,14 +74,29 @@ class UserService {
   }
 
   public async createUser(userData: any) {
-    const { username, email, password } = userData;
+    const { username, email, password, parent_phone } = userData;
+    
     // Check if username already exists
-    const existedUserByUsername = await this.userRepository.findByUsernameEmail(username);
-    if (existedUserByUsername) this.handleExistingUser(existedUserByUsername, username, email);
+    const existedUserByUsername = await this.userRepository.findByUsername(username);
+    if (existedUserByUsername) {
+      throw conflict(USERNAME_EXISTS.error.message, USERNAME_EXISTS.error.details);
+    }
     
     // Check if email already exists
-    const existedUserByEmail = await this.userRepository.findByEmail(email);
-    if (existedUserByEmail) this.handleExistingUser(existedUserByEmail, username, email);
+    if (email) {
+      const existedUserByEmail = await this.userRepository.findByEmail(email);
+      if (existedUserByEmail) {
+        throw conflict(EMAIL_EXISTS.error.message, EMAIL_EXISTS.error.details);
+      }
+    }
+    
+    // Check if parent_phone already exists
+    if (parent_phone) {
+      const existedUserByParentPhone = await this.userRepository.findByParentPhone(parent_phone);
+      if (existedUserByParentPhone) {
+        throw conflict(PARENT_PHONE_EXISTS.error.message, PARENT_PHONE_EXISTS.error.details);
+      }
+    }
     
     userData.password = bcrypt.hashSync(password, saltRound);
     const newUser = await this.userRepository.save(userData);
@@ -179,17 +194,6 @@ class UserService {
     if (!field) throw badRequest(error.error.message, error.error.details);
   }
 
-  private handleExistingUser(
-    existedUser: any,
-    username: string,
-    email: string
-  ) {
-    if (existedUser.username === username)
-      throw conflict(USERNAME_EXISTS.error.message, USERNAME_EXISTS.error.details);
-    if (existedUser.email === email)
-      throw conflict(EMAIL_EXISTS.error.message, EMAIL_EXISTS.error.details);
-    throw conflict(USER_EXISTS.error.message, USER_EXISTS.error.details);
-  }
 
   private validateUserForClassJoin(user: any) {
     if (!user)

@@ -21,8 +21,8 @@ export class AttendanceRecord {
     @Column({type: "datetime", nullable: true})
     check_out_at: Date | null
 
-    @Column({type: "enum", enum: ['present', 'late', 'absent', 'excused'], default: 'present'})
-    status: 'present' | 'late' | 'absent' | 'excused'
+    @Column({type: "enum", enum: ['present', 'late', 'absent', 'excused', 'other'], default: 'present'})
+    status: 'present' | 'late' | 'absent' | 'excused' | 'other'
 
     @Column({type: "varchar", length: 255, nullable: true})
     note: string | null

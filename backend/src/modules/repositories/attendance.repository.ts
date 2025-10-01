@@ -44,16 +44,17 @@ export class AttendanceRepository extends BaseRepository<AttendanceSchedule> imp
         }
     }
 
-    async checkIn(sessionId: number, studentId: number): Promise<AttendanceRecord> {
+    async checkIn(sessionId: number, studentId: number, status?: 'present' | 'late' | 'absent' | 'excused' | 'other'): Promise<AttendanceRecord> {
         const recRepo = AppDataSource.getRepository(AttendanceRecord);
         let record = await recRepo.findOne({ where: { session_id: sessionId, student_id: studentId } });
         if (!record) {
-            record = recRepo.create({ session_id: sessionId, student_id: studentId, check_in_at: new Date(), status: 'present' } as AttendanceRecord);
+            record = recRepo.create({ session_id: sessionId, student_id: studentId, check_in_at: new Date(), status: (status ?? 'present') } as AttendanceRecord);
         } else {
             record.check_in_at = new Date();
+            if (status) record.status = status as any;
         }
-        const saved: AttendanceRecord = await recRepo.save(record as AttendanceRecord);
-        return saved as AttendanceRecord;
+        const saved: AttendanceRecord = await recRepo.save(record);
+        return saved;
     }
 
     async checkOut(sessionId: number, studentId: number): Promise<AttendanceRecord> {
@@ -66,6 +67,14 @@ export class AttendanceRepository extends BaseRepository<AttendanceSchedule> imp
         }
         const saved: AttendanceRecord = await recRepo.save(record as AttendanceRecord);
         return saved as AttendanceRecord;
+    }
+
+    async listRecords(sessionId: number, studentId?: number): Promise<AttendanceRecord[]> {
+        const recRepo = AppDataSource.getRepository(AttendanceRecord);
+        const where: any = { session_id: sessionId };
+        if (studentId) where.student_id = studentId;
+        const items = await recRepo.find({ where, order: { student_id: 'ASC' } });
+        return items as AttendanceRecord[];
     }
 
     // Header không còn start/end, nếu cần key tự nhiên hãy dựa vào (class_signature, name, room)

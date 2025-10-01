@@ -60,6 +60,13 @@ export class UserRepository extends BaseRepository<Users> {
         return user;
     }
 
+    async findByUsername(username: string): Promise<Users> {
+        const user = await this.repository.findOne({
+            where: { username }
+        });
+        return user;
+    }
+
     async findByUsernameEmail(identifier: string): Promise<Users> {
         const user = await this.repository.findOne({
             where: [
@@ -73,6 +80,13 @@ export class UserRepository extends BaseRepository<Users> {
     async findByEmail(email: string): Promise<Users> {
         const user = await this.repository.findOne({
             where: { email }
+        });
+        return user;
+    }
+
+    async findByParentPhone(parent_phone: string): Promise<Users> {
+        const user = await this.repository.findOne({
+            where: { parent_phone }
         });
         return user;
     }

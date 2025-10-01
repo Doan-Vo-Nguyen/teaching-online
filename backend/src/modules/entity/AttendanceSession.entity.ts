@@ -16,8 +16,8 @@ export class AttendanceSession {
     @Column({type: "datetime"})
     end_at: Date
 
-    @Column({type: "varchar", length: 50, nullable: true})
-    room: string | null
+    @Column({type: "enum", enum: ['STEM', 'SCRATCH'], nullable: true})
+    room: 'STEM' | 'SCRATCH' | null
 
     @Column({type: "enum", enum: ['planned','canceled','done'], default: 'planned'})
     status: 'planned' | 'canceled' | 'done'

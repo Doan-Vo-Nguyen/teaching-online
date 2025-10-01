@@ -42,7 +42,7 @@ class AttendanceService {
   // BỎ import: chuyển sang nhập tay (bao gồm tạo 1 hoặc nhiều bản ghi)
   public async createSchedulesManually(payload: { class_signature: string; items: Array<{
     name?: string | null;
-    room?: string | null;
+    room?: 'STEM' | 'SCRATCH' | string | null;
     capacity?: number | null;
     teacher_id?: number | null;
     note?: string | null;
@@ -57,10 +57,14 @@ class AttendanceService {
 
     const parsedItems: Array<any> = [];
     for (const it of payload.items) {
+      const normalizedRoom = this.normalizeRoom(it.room ?? null);
+      if (it.room != null && normalizedRoom == null) {
+        throw new ApiError(400, 'VALIDATION_FAILED', { field: 'room', message: 'Room phải là STEM hoặc SCRATCH' } as any);
+      }
       parsedItems.push({
         class_signature: payload.class_signature,
         name: it.name ?? null,
-        room: it.room ?? null,
+        room: normalizedRoom,
         capacity: it.capacity ?? null,
         teacher_id: it.teacher_id ?? null,
         note: it.note ?? null,
@@ -104,7 +108,7 @@ class AttendanceService {
         class_signature: String(r.class_signature || r.Class_Signature || r["class signature"] || "").trim(),
         start_time: String(r.start_time || r.Start_Time || r["start time"] || "").trim(),
         end_time: String(r.end_time || r.End_Time || r["end time"] || "").trim(),
-        room: (r.room || r.Room || null) ? String(r.room || r.Room).trim() : null,
+        room: this.normalizeRoom(r.room || r.Room || null),
         note: (r.note || r.Note || null) ? String(r.note || r.Note).trim() : null,
         student_fullname: String(r.student_fullname || r.Student_Fullname || r["student fullname"] || "").trim(),
         student_dob: String(r.student_dob || r.Student_DOB || r["student dob"] || "").trim(),
@@ -297,10 +301,14 @@ class AttendanceService {
 
   public async createSchedule(data: any & { class_signature?: string; }) {
     this.validateRequiredField(data, 'class_signature');
+    const normalizedRoom = this.normalizeRoom(data.room ?? null);
+    if (data.room != null && normalizedRoom == null) {
+      throw new ApiError(400, 'VALIDATION_FAILED', { field: 'room', message: 'Room phải là STEM hoặc SCRATCH' } as any);
+    }
     const created = await this.attendanceRepository.createSchedule({
       class_signature: data.class_signature,
       name: data.name ?? null,
-      room: data.room ?? null,
+      room: normalizedRoom,
       capacity: data.capacity ?? null,
       teacher_id: data.teacher_id ?? null,
       note: data.note ?? null,
@@ -317,7 +325,7 @@ class AttendanceService {
     return await this.sessionRepository.listBySchedule(scheduleId);
   }
 
-  public async createSessions(scheduleId: number, items: Array<{ start_at: string | Date; end_at: string | Date; room?: string | null; status?: 'planned'|'canceled'|'done'; }>) {
+  public async createSessions(scheduleId: number, items: Array<{ start_at: string | Date; end_at: string | Date; room?: 'STEM' | 'SCRATCH' | string | null; status?: 'planned'|'canceled'|'done'; }>) {
     this.validateRequiredField({ scheduleId }, 'scheduleId');
     if (!Array.isArray(items) || items.length === 0) {
       throw new ApiError(400, FIELD_REQUIRED.error.message, FIELD_REQUIRED.error.details);
@@ -329,7 +337,11 @@ class AttendanceService {
       if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime()) || end <= start) {
         throw new ApiError(400, 'VALIDATION_FAILED', { message: 'Thời gian buổi không hợp lệ' } as any);
       }
-      parsed.push({ start_at: start, end_at: end, room: it.room ?? null, status: it.status ?? 'planned' });
+      const normalizedRoom = this.normalizeRoom(it.room ?? null);
+      if (it.room != null && normalizedRoom == null) {
+        throw new ApiError(400, 'VALIDATION_FAILED', { field: 'room', message: 'Room phải là STEM hoặc SCRATCH' } as any);
+      }
+      parsed.push({ start_at: start, end_at: end, room: normalizedRoom, status: it.status ?? 'planned' });
     }
     return await this.sessionRepository.createMany(scheduleId, parsed);
   }
@@ -341,7 +353,7 @@ class AttendanceService {
     return await this.sessionRepository.updateSession(sessionId, data);
   }
 
-  public async regenerateSessions(scheduleId: number, items: Array<{ start_at: string | Date; end_at: string | Date; room?: string | null; status?: 'planned'|'canceled'|'done'; }>) {
+  public async regenerateSessions(scheduleId: number, items: Array<{ start_at: string | Date; end_at: string | Date; room?: 'STEM' | 'SCRATCH' | string | null; status?: 'planned'|'canceled'|'done'; }>) {
     this.validateRequiredField({ scheduleId }, 'scheduleId');
     await this.sessionRepository.deleteBySchedule(scheduleId);
     return await this.createSessions(scheduleId, items);
@@ -475,6 +487,13 @@ class AttendanceService {
     return (!direct || isNaN(direct.getTime())) ? null : direct;
   }
 
+  private normalizeRoom(input: unknown): 'STEM' | 'SCRATCH' | null {
+    if (input == null) return null;
+    const v = String(input).trim().toUpperCase();
+    if (v === 'STEM' || v === 'SCRATCH') return v as 'STEM' | 'SCRATCH';
+    return null;
+  }
+
   public async updateSchedule(id: number, data: any) {
     this.validateRequiredField({ id }, 'id');
     const updated = await this.attendanceRepository.updateSchedule(id, data);
@@ -486,16 +505,24 @@ class AttendanceService {
     await this.attendanceRepository.deleteSchedule(id);
   }
 
-  public async checkIn(sessionId: number, studentId: number) {
+  public async checkIn(sessionId: number, studentId: number, status?: 'present'|'late'|'absent'|'excused'|'other') {
     this.validateRequiredField({ sessionId, studentId }, 'sessionId');
     this.validateRequiredField({ sessionId, studentId }, 'studentId');
-    return this.attendanceRepository.checkIn(sessionId, studentId);
+    if (status && !['present','late','absent','excused','other'].includes(status)) {
+      throw new ApiError(400, 'VALIDATION_FAILED', { field: 'status', message: 'Trạng thái không hợp lệ' } as any);
+    }
+    return this.attendanceRepository.checkIn(sessionId, studentId, status);
   }
 
   public async checkOut(sessionId: number, studentId: number) {
     this.validateRequiredField({ sessionId, studentId }, 'sessionId');
     this.validateRequiredField({ sessionId, studentId }, 'studentId');
     return this.attendanceRepository.checkOut(sessionId, studentId);
+  }
+
+  public async getRecords(sessionId: number, studentId?: number) {
+    this.validateRequiredField({ sessionId }, 'sessionId');
+    return this.attendanceRepository.listRecords(sessionId, studentId);
   }
 }
 

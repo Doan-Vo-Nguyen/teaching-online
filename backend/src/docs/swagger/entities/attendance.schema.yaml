@@ -174,7 +174,7 @@ paths:
         '204':
           description: Xóa thành công
 
-  /app/attendance/attendance/{scheduleId}/check-in:
+  /app/attendance/sessions/{sessionId}/check-in:
     post:
       tags: [Attendance]
       summary: Check-in student
@@ -182,7 +182,7 @@ paths:
         - bearerAuth: []
       parameters:
         - in: path
-          name: scheduleId
+          name: sessionId
           required: true
           schema: { type: integer }
       requestBody:
@@ -194,11 +194,15 @@ paths:
               required: [student_id]
               properties:
                 student_id: { type: integer }
+                status:
+                  type: string
+                  description: Trạng thái điểm danh
+                  enum: [present, late, absent, excused, other]
       responses:
         '200':
           description: Check-in thành công
 
-  /app/attendance/attendance/{scheduleId}/check-out:
+  /app/attendance/sessions/{sessionId}/check-out:
     post:
       tags: [Attendance]
       summary: Check-out student
@@ -206,7 +210,7 @@ paths:
         - bearerAuth: []
       parameters:
         - in: path
-          name: scheduleId
+          name: sessionId
           required: true
           schema: { type: integer }
       requestBody:
@@ -221,5 +225,24 @@ paths:
       responses:
         '200':
           description: Check-out thành công
+
+  /app/attendance/sessions/{sessionId}/records:
+    get:
+      tags: [Attendance]
+      summary: List attendance records of a session
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema: { type: integer }
+        - in: query
+          name: student_id
+          required: false
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Danh sách attendance records
 
 

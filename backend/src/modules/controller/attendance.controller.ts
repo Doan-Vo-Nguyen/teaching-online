@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import BaseController from "../abstracts/base-controller";
-import { authorAdOrReceptionist, authentication } from "../middleware/auth.middleware";
+import { authorAdOrReceptionist, authentication, authorAdOrReceptionistOrTeacher } from "../middleware/auth.middleware";
 import { sendResponse } from "../../common/interfaces/base-response";
 import AttendanceService from "../services/attendance.service";
 import multer from "multer";
@@ -17,20 +17,21 @@ export class AttendanceController extends BaseController {
 
   public initRoutes(): void {
     // Bỏ import file, chuyển sang nhập tay
-    this.router.get("/schedules", authentication, authorAdOrReceptionist, this.getSchedules);
+    this.router.get("/schedules", authentication, authorAdOrReceptionistOrTeacher, this.getSchedules);
     this.router.post("/schedules", authentication, authorAdOrReceptionist, this.createSchedule);
     this.router.post("/schedules/bulk", authentication, authorAdOrReceptionist, this.createSchedulesBulk);
     this.router.patch("/schedules/:id", authentication, authorAdOrReceptionist, this.updateSchedule);
     this.router.delete("/schedules/:id", authentication, authorAdOrReceptionist, this.deleteSchedule);
 
     // Sessions
-    this.router.get("/schedules/:scheduleId/sessions", authentication, authorAdOrReceptionist, this.listSessions);
-    this.router.post("/schedules/:scheduleId/sessions", authentication, authorAdOrReceptionist, this.createSessions);
-    this.router.post("/schedules/:scheduleId/sessions:regenerate", authentication, authorAdOrReceptionist, this.regenerateSessions);
-    this.router.patch("/schedules/:scheduleId/sessions/:sessionId", authentication, authorAdOrReceptionist, this.updateSession);
+    this.router.get("/schedules/:scheduleId/sessions", authentication, authorAdOrReceptionistOrTeacher, this.listSessions);
+    this.router.post("/schedules/:scheduleId/sessions", authentication, authorAdOrReceptionistOrTeacher, this.createSessions);
+    this.router.post("/schedules/:scheduleId/sessions:regenerate", authentication, authorAdOrReceptionistOrTeacher, this.regenerateSessions);
+    this.router.patch("/schedules/:scheduleId/sessions/:sessionId", authentication, authorAdOrReceptionistOrTeacher, this.updateSession);
 
-    this.router.post("/attendance/:sessionId/check-in", authentication, authorAdOrReceptionist, this.checkInStudent);
-    this.router.post("/attendance/:sessionId/check-out", authentication, authorAdOrReceptionist, this.checkOutStudent);
+    this.router.post("/sessions/:sessionId/check-in", authentication, authorAdOrReceptionistOrTeacher, this.checkInStudent);
+    this.router.post("/sessions/:sessionId/check-out", authentication, authorAdOrReceptionistOrTeacher, this.checkOutStudent);
+    this.router.get("/sessions/:sessionId/records", authentication, authorAdOrReceptionistOrTeacher, this.listRecords);
 
     // Enrollments
     this.router.get("/schedules/:scheduleId/enrollments", authentication, authorAdOrReceptionist, this.listEnrollments);
@@ -143,7 +144,8 @@ export class AttendanceController extends BaseController {
     try {
       const sessionId = parseInt(req.params.sessionId, 10);
       const studentId = parseInt((req.body?.student_id || req.query?.student_id) as string, 10);
-      const record = await this.attendanceService.checkIn(sessionId, studentId);
+      const status = (req.body?.status || req.query?.status) as any;
+      const record = await this.attendanceService.checkIn(sessionId, studentId, status);
       return sendResponse(res, true, 200, "Check-in successfully", record);
     } catch (error) {
       next(error);
@@ -159,6 +161,15 @@ export class AttendanceController extends BaseController {
     } catch (error) {
       next(error);
     }
+  };
+
+  private readonly listRecords = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const sessionId = parseInt(req.params.sessionId, 10);
+      const studentId = req.query?.student_id ? parseInt(String(req.query.student_id), 10) : undefined;
+      const items = await this.attendanceService.getRecords(sessionId, studentId);
+      return sendResponse(res, true, 200, "Get attendance records successfully", items);
+    } catch (error) { next(error); }
   };
 
   // ---- Enrollments ----
