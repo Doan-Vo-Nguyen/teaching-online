@@ -1,7 +1,8 @@
 import { authentication } from './../middleware/auth.middleware';
 import BaseController from "../abstracts/base-controller";
 import ExamSubmissionService from "../services/exam-submision.service";
-import { Request, Response, NextFunction } from "express";
+import { ExamSubmissionServiceFactory } from "../services/exam-submission.service.factory";
+import { Request, Response } from "express";
 import { Logger } from '../config/logger';
 import { trackApiAction, trackControllerAction } from '../middleware/api-tracking.middleware';
 import { logExamStart } from '../middleware/audit-log.middleware';
@@ -15,7 +16,7 @@ export class ExamSubmissionController extends BaseController {
         examSubmissionService?: ExamSubmissionService
     ) {
         super(path);
-        this.examSubmissionService = examSubmissionService || new ExamSubmissionService();
+        this.examSubmissionService = examSubmissionService || ExamSubmissionServiceFactory.getInstance();
         // Create a tracker specific to this controller
         this.track = trackControllerAction('ExamSubmissionController');
         this.initRoutes();
@@ -172,6 +173,7 @@ export class ExamSubmissionController extends BaseController {
         req: Request,
         res: Response
     ) => {
+        console.log(req.params);
         const submissionId = this.parseId(req.params.id);
         await this.examSubmissionService.deleteExamSubmission(submissionId);
         return this.sendSuccess(res, 200, "Deleted exam submission successfully", null);
@@ -181,6 +183,7 @@ export class ExamSubmissionController extends BaseController {
         req: Request,
         res: Response
     ) => {
+        console.log(req.params);
         const submissionId = this.parseId(req.params.submissionId);
         const contentId = this.parseId(req.params.id);
         await this.examSubmissionService.deleteExamSubmissionContent(submissionId, contentId);
@@ -190,7 +193,7 @@ export class ExamSubmissionController extends BaseController {
     private readonly runCode = async (
         req: Request,
         res: Response
-    ) => {
+    ) => {        
         const examContentId = this.parseId(req.params.examContentId);
         const result = await this.examSubmissionService.runCode(examContentId, req.body);
         return this.sendSuccess(res, 200, "Code executed successfully", result);
@@ -209,7 +212,7 @@ export class ExamSubmissionController extends BaseController {
         req: Request,
         res: Response
     ) => {
-        const languageId = this.parseId(req.params.languageId);
+        const languageId = req.params.languageId; // Keep as string for OneCompiler format
         const debugInfo = await this.examSubmissionService.debugLanguageMapping(languageId);
         return this.sendSuccess(res, 200, "Language mapping debug info retrieved", debugInfo);
     };

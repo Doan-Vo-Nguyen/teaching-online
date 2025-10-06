@@ -2,6 +2,8 @@ import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, Pri
 import { Exam } from "./Exam.entity";
 import { TestCase } from "./Testcase.entity";
 import { ExamSubmissionContentDetails } from "./ExamSubmissionContentDetails.entity";
+import { LanguageCode } from "./LanguageCode.entity";
+
 @Entity({schema: "teaching"})
 export class ExamContent {
     @PrimaryGeneratedColumn()
@@ -9,6 +11,9 @@ export class ExamContent {
 
     @Column()
     exam_id: number
+
+    @Column({type: "int", nullable: true})
+    language_id: number
 
     @Column({type: "text", nullable: true})
     title: string
@@ -22,6 +27,10 @@ export class ExamContent {
     @ManyToOne(() => Exam, exam => exam.examContents, { onDelete: 'CASCADE' }) // Relation with Exam n-1
     @JoinColumn({name: "exam_id"}) // Column name in the database
     exam: Relation<Exam>
+
+    @ManyToOne(() => LanguageCode, language => language.examContents, { onDelete: 'SET NULL', nullable: true }) // Relation with LanguageCode n-1
+    @JoinColumn({name: "language_id"}) // Column name in the database
+    language: Relation<LanguageCode>
 
     @OneToMany(() => TestCase, testcase => testcase.examContent)
     testcases: TestCase[]

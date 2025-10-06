@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, Relation } from "typeorm";
 import { ExamSubmission } from "./Exam_submission.entity";
 import { ExamSubmissionContentDetails } from "./ExamSubmissionContentDetails.entity";
+import { LanguageCode } from "./LanguageCode.entity";
 
 @Entity({schema: "teaching"})
 export class ExamSubmissionContent {
@@ -9,6 +10,9 @@ export class ExamSubmissionContent {
 
     @Column()
     exam_submission_id: number
+
+    @Column({type: "int", nullable: true})
+    language_id: number
 
     @Column({type: "text", nullable: true})
     file_content: string
@@ -19,6 +23,10 @@ export class ExamSubmissionContent {
     @ManyToOne(() => ExamSubmission, examSubmission => examSubmission.examSubmissionContents, { onDelete: 'CASCADE', nullable: true }) // Relation with ExamSubmission n-1
     @JoinColumn({name: "exam_submission_id"}) // Column name in the database
     examSubmission?: Relation<ExamSubmission>
+
+    @ManyToOne(() => LanguageCode, language => language.examSubmissionContents, { onDelete: 'SET NULL', nullable: true }) // Relation with LanguageCode n-1
+    @JoinColumn({name: "language_id"}) // Column name in the database
+    language?: Relation<LanguageCode>
 
     @OneToMany(() => ExamSubmissionContentDetails, examSubmissionContentDetails => examSubmissionContentDetails.examSubmissionContent)
     examSubmissionContentDetails?: Relation<ExamSubmissionContentDetails>

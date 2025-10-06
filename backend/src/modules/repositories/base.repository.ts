@@ -15,7 +15,7 @@ export abstract class BaseRepository<T> implements IBaseRepository<T> {
     }
 
     // Dynamically find by primary key
-    async findById(id: number): Promise<T | null> {
+    async findById(id: number | string): Promise<T | null> {
         const primaryColumns = this.repository.metadata.primaryColumns;
         if (primaryColumns.length !== 1) {
           throw new Error(`Entity must have exactly one primary column.`);
@@ -29,12 +29,12 @@ export abstract class BaseRepository<T> implements IBaseRepository<T> {
         return this.repository.save(entity);
     }
 
-    async update(id: number, entity: Partial<T>): Promise<T> {
-        await this.repository.update(id, entity as any);
+    async update(id: number | string, entity: Partial<T>): Promise<T> {
+        await this.repository.update(id as any, entity as any);
         return this.findById(id);
     }
 
-    async delete(id: number): Promise<T> {
+    async delete(id: number | string): Promise<T> {
         const primaryColumns = this.repository.metadata.primaryColumns;
         if (primaryColumns.length !== 1) {
           throw new Error(`Entity must have exactly one primary column.`);

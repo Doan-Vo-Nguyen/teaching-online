@@ -10,8 +10,12 @@ export class LanguageCodeRepository extends BaseRepository<LanguageCode> {
         return this.repository.findOneBy({ name })
     }
 
-    async findById(id: number): Promise<LanguageCode> {
+    async findById(id: string): Promise<LanguageCode> {
         return this.repository.findOneBy({ id })
+    }
+
+    async findByLanguageId(language_id: number): Promise<LanguageCode> {
+        return this.repository.findOneBy({ language_id })
     }
 }
 

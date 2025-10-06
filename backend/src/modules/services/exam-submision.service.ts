@@ -1,8 +1,6 @@
 import { Logger } from "../config/logger";
 import {
-  CODE_EXECUTION_FAILED,
   EXAM_SUBMISSION_ERROR,
-  EXAM_SUBMISSION_FIELD_REQUIRED,
 } from "../DTO/resDto/BaseErrorDto";
 import { ExamSubmission } from "../entity/Exam_submission.entity";
 import { ExamSubmissionContent } from "../entity/Exam_Submission_Content.entity";
@@ -21,7 +19,6 @@ import { ITestCaseRepository } from "../interfaces/testcase.interface";
 import { TestCaseRepository } from "../repositories/testcase.repository";
 import { ExamContentRepository } from "../repositories/exam-content.repository";
 import { IExamContentRepository } from "../interfaces/exam-content.interface";
-import axios, { AxiosError } from "axios";
 import { ExamSubmissionContentDetails } from "../entity/ExamSubmissionContentDetails.entity";
 import { IExamSubmissionContentDetailsRepository } from "../interfaces/exam-submisison-content-details.interface";
 import { ExamSubmissionContentDetailsRepository } from "../repositories/exam-submission-content-details.repository";
@@ -30,6 +27,7 @@ import { IExamRepository } from "../interfaces/exam.interface";
 import { ExamRepository } from "../repositories/exam.repository";
 import { BaseService } from "../abstracts/base-service";
 import { cacheManager } from "../utils/cache-manager";
+import { OneCompilerService } from "./onecompiler.service";
 
 /**
  * Service for handling exam submissions
@@ -49,6 +47,7 @@ class ExamSubmissionService extends BaseService {
   private readonly examSubmissionContentDetailsRepository: IExamSubmissionContentDetailsRepository;
   private readonly examContentRepository: IExamContentRepository;
   private readonly examRepository: IExamRepository;
+  private readonly oneCompilerService: OneCompilerService;
 
   /**
    * Constructor with dependency injection
@@ -62,7 +61,8 @@ class ExamSubmissionService extends BaseService {
     testcaseRepository: ITestCaseRepository = new TestCaseRepository(),
     examSubmissionContentDetailsRepository: IExamSubmissionContentDetailsRepository = new ExamSubmissionContentDetailsRepository(),
     examContentRepository: IExamContentRepository = new ExamContentRepository(),
-    examRepository: IExamRepository = new ExamRepository()
+    examRepository: IExamRepository = new ExamRepository(),
+    oneCompilerService: OneCompilerService = new OneCompilerService()
   ) {
     super();
     this.examSubmissionRepository = examSubmissionRepository;
@@ -74,6 +74,7 @@ class ExamSubmissionService extends BaseService {
     this.examSubmissionContentDetailsRepository = examSubmissionContentDetailsRepository;
     this.examContentRepository = examContentRepository;
     this.examRepository = examRepository;
+    this.oneCompilerService = oneCompilerService;
   }
 
   //==============================
@@ -263,7 +264,7 @@ class ExamSubmissionService extends BaseService {
     exam_id: number,
     student_id: number,
     class_id: number,
-    data: { file_content: string; grade?: number; feed_back?: string }
+    data: { file_content: string; grade?: number; feed_back?: string; language_id?: string }
   ): Promise<ExamSubmission> {
     try {
       this.validateRequired(data, 'data');
@@ -298,10 +299,24 @@ class ExamSubmissionService extends BaseService {
       let newExamSubmission: ExamSubmission;
       
       if (existedExamSubmission) {
+        // Convert OneCompiler language_id string to database language_id number
+        let dbLanguageId = null;
+        if (data.language_id) {
+          try {
+            const language = await this.languageRepository.findById(data.language_id);
+            if (language) {
+              dbLanguageId = language.language_id;
+            }
+          } catch (error) {
+            Logger.warn(`Could not find language in database for OneCompiler ID: ${data.language_id}`);
+          }
+        }
+
         await this.examSubmissionContentRepository.createExamSubmissionContentByExamSubmissionId(
           existedExamSubmission.exam_submission_id,
           {
             file_content: data.file_content,
+            language_id: dbLanguageId,
             exam_submission_id: existedExamSubmission.exam_submission_id,
             id: 0,
             created_at: new Date(),
@@ -320,7 +335,8 @@ class ExamSubmissionService extends BaseService {
         
         await this.createExamSubmissionContent(
           newExamSubmission.exam_submission_id,
-          data.file_content
+          data.file_content,
+          data.language_id
         );
       }
       
@@ -342,7 +358,7 @@ class ExamSubmissionService extends BaseService {
       file_content: string;
       grade?: number;
       feed_back?: string;
-      language_id?: number;
+      language_id?: string;
       detailed_testcase_results?: string | {
         testcase_id: number;
         score: number;
@@ -389,11 +405,25 @@ class ExamSubmissionService extends BaseService {
             existedExamSubmission
           );
 
+        // Convert OneCompiler language_id string to database language_id number
+        let dbLanguageId = null;
+        if (data.language_id) {
+          try {
+            const language = await this.languageRepository.findById(data.language_id);
+            if (language) {
+              dbLanguageId = language.language_id;
+            }
+          } catch (error) {
+            Logger.warn(`Could not find language in database for OneCompiler ID: ${data.language_id}`);
+          }
+        }
+
         // Create new content entry
         submissionContent = await this.examSubmissionContentRepository.createExamSubmissionContentByExamSubmissionId(
           existedExamSubmission.exam_submission_id,
           {
             file_content: data.file_content,
+            language_id: dbLanguageId,
             exam_submission_id: existedExamSubmission.exam_submission_id,
             id: 0,
             created_at: new Date(),
@@ -432,7 +462,8 @@ class ExamSubmissionService extends BaseService {
         // Then create exam submission content with file_content
         submissionContent = await this.createExamSubmissionContent(
           newExamSubmission.exam_submission_id,
-          data.file_content
+          data.file_content,
+          data.language_id
         );
         
         Logger.info(`New submission content created (ID: ${submissionContent.id})`);
@@ -644,7 +675,7 @@ class ExamSubmissionService extends BaseService {
     exam_content_id: number,
     data: {
       file_content: string;
-      language_id: number;
+      language_id: string;
       input?: string;
     }
   ): Promise<{ 
@@ -681,8 +712,7 @@ class ExamSubmissionService extends BaseService {
       const examContent = await this.examContentRepository.findById(exam_content_id);
       this.validateExists(examContent, 'exam content');
       
-      // Utility function for decoding - encoding is now done in submitToJudge0
-      const decoded = (str) => str ? Buffer.from(str, "base64").toString("utf8") : "";
+      // OneCompiler returns plain text, no need for base64 decoding
       
       // Results to return
       const result: {
@@ -693,52 +723,46 @@ class ExamSubmissionService extends BaseService {
         user_input_result?: any;
       } = {};
       
-      // Handle user-provided input if it exists
+      // Handle user-provided input only (skip empty-stdin auto run for performance)
       if (data.input) {
         try {
-          const userInputRequest = await this.submitToJudge0({
+          const userInputResult = await this.oneCompilerService.executeCode({
             source_code: data.file_content,
             language_id: data.language_id,
             stdin: data.input
           });
           
-          const userInputResult = await this.getJudge0Result(userInputRequest.token);
-          
-          Logger.info(`User input result status: ${userInputResult.status.id} - ${userInputResult.status.description}`);
-          Logger.info(`User input stdout: ${userInputResult.stdout || 'None'}`);
-          Logger.info(`User input stderr: ${userInputResult.stderr || 'None'}`);
-          Logger.info(`User input compile_output: ${userInputResult.compile_output || 'None'}`);
-          
-          // Check if it's a compilation error (status ID 6)
-          if (userInputResult.status.id === 6) {
-            const compileOutput = decoded(userInputResult.compile_output);
-            Logger.error(`Compilation error: ${compileOutput}`);
+          // Check if it's an execution error (OneCompiler returns various success statuses)
+          if (userInputResult.status === 'failed' || userInputResult.exception) {
+            const errorMessage = userInputResult.exception || userInputResult.stderr || 'Execution failed';
+            Logger.error(`Execution error: ${errorMessage}`);
             
             result.user_input_result = {
-              status: userInputResult.status,
-              error: compileOutput || decoded(userInputResult.stderr),
-              compile_output: compileOutput,
+              status: {
+                id: 6,
+                description: "Execution error"
+              },
+              error: errorMessage,
+              compile_output: userInputResult.exception,
               input: data.input
             };
             
-            // Add compilation error to the main error field too
-            result.error = `Compilation error: ${compileOutput}`;
+            // Add execution error to the main error field too
+            result.error = `Execution error: ${errorMessage}`;
           } else {
             result.user_input_result = {
-              status: userInputResult.status,
-              output: decoded(userInputResult.stdout),
-              error: decoded(userInputResult.stderr),
+              status: {
+                id: 3,
+                description: "Accepted"
+              },
+              output: userInputResult.stdout,
+              error: userInputResult.stderr,
               input: data.input
             };
           }
         } catch (err) {
           const error = err as Error;
-          Logger.error('Error running code with user input', undefined, {
-            exam_content_id,
-            language_id: data.language_id,
-            ctx: 'judge0',
-            error: error.message
-          });
+          Logger.error(`Error running code with user input | ${error.message}`);
           
           result.error = error.message;
           result.user_input_result = {
@@ -759,74 +783,114 @@ class ExamSubmissionService extends BaseService {
       if (testcases && testcases.length > 0) {
         result.testcase_results = [];
         
-        for (const testcase of testcases) {
-          try {
-            const testcaseRequest = await this.submitToJudge0({
-              source_code: data.file_content,
-              language_id: data.language_id,
-              stdin: testcase.input,
-              expected_output: testcase.expected_output
-            });
+        // Use batch execution for better performance
+        try {
+          // Batch execution (fast path)
+          const testcaseResults = await this.oneCompilerService.executeCodeBatch({
+            source_code: data.file_content,
+            language_id: data.language_id,
+            test_cases: testcases.map(tc => ({
+              input: tc.input,
+              expected_output: tc.expected_output
+            }))
+          });
+          
+          for (let i = 0; i < testcases.length; i++) {
+            const testcase = testcases[i];
+            const testcaseResult = testcaseResults[i] || testcaseResults[0]; // Fallback to first result if batch failed
             
-            const testcaseResult = await this.getJudge0Result(testcaseRequest.token);
+            // Trim testcase detail logs
             
-            Logger.info(`Testcase ${testcase.id} result status: ${testcaseResult.status.id} - ${testcaseResult.status.description}`);
-            Logger.info(`Testcase ${testcase.id} stdout: ${testcaseResult.stdout || 'None'}`);
-            Logger.info(`Testcase ${testcase.id} stderr: ${testcaseResult.stderr || 'None'}`);
-            Logger.info(`Testcase ${testcase.id} compile_output: ${testcaseResult.compile_output || 'None'}`);
+            // OneCompiler returns various success statuses, not just 'success'
+            const isSuccess = testcaseResult.status !== 'failed' && !testcaseResult.exception;
             
-            const isPassed = testcaseResult.status.id === 3; // 3 is "Accepted"
-            
-            // Check if it's a compilation error (status ID 6)
-            if (testcaseResult.status.id === 6) {
-              const compileOutput = decoded(testcaseResult.compile_output);
-              Logger.error(`Compilation error in testcase ${testcase.id}: ${compileOutput}`);
+            // Check if it's an execution error
+            if (testcaseResult.status === 'failed' || testcaseResult.exception) {
+              const errorMessage = testcaseResult.exception || testcaseResult.stderr || 'Execution failed';
+              Logger.error(`Execution error in testcase ${testcase.id}: ${errorMessage}`);
               
               result.testcase_results.push({
                 id: testcase.id,
                 passed: false,
                 score: 0,
-                status: testcaseResult.status,
-                error: compileOutput || decoded(testcaseResult.stderr),
+                status: {
+                  id: 6,
+                  description: "Execution error"
+                },
+                error: errorMessage,
                 input: testcase.input,
                 expected_output: testcase.expected_output
               });
               
-              // Set the main error field for the first compilation error
+              // Set the main error field for the first execution error
               if (!result.error) {
-                result.error = `Compilation error: ${compileOutput}`;
+                result.error = `Execution error: ${errorMessage}`;
               }
             } else {
+              // Use the new success logic
+              const finalIsPassed = isSuccess && 
+                (!testcase.expected_output || testcaseResult.stdout?.trim() === testcase.expected_output?.trim());
+              
+              result.testcase_results.push({
+                id: testcase.id,
+                passed: finalIsPassed,
+                score: finalIsPassed ? testcase.score : 0,
+                status: {
+                  id: finalIsPassed ? 3 : 4,
+                  description: finalIsPassed ? "Accepted" : "Wrong Answer"
+                },
+                input: testcase.input,
+                output: testcaseResult.stdout,
+                error: testcaseResult.stderr,
+                expected_output: testcase.expected_output
+              });
+            }
+          }
+        } catch (err) {
+          // Fallback (parallelize individual execution for speed)
+          Logger.warn('Batch execution failed, falling back to parallel individual execution');
+          const parallelResults = await Promise.allSettled(
+            testcases.map(tc => this.oneCompilerService.executeCode({
+              source_code: data.file_content,
+              language_id: data.language_id,
+              stdin: tc.input
+            }))
+          );
+          
+          for (let i = 0; i < testcases.length; i++) {
+            const testcase = testcases[i];
+            const settled = parallelResults[i];
+            if (settled.status === 'fulfilled') {
+              const testcaseResult = settled.value;
+              const isSuccess = testcaseResult.status !== 'failed' && !testcaseResult.exception;
+              const isPassed = isSuccess && (!testcase.expected_output || testcaseResult.stdout?.trim() === testcase.expected_output?.trim());
               result.testcase_results.push({
                 id: testcase.id,
                 passed: isPassed,
                 score: isPassed ? testcase.score : 0,
-                status: testcaseResult.status,
+                status: {
+                  id: isSuccess ? (isPassed ? 3 : 4) : 6,
+                  description: isSuccess ? (isPassed ? "Accepted" : "Wrong Answer") : "Execution error"
+                },
                 input: testcase.input,
-                output: decoded(testcaseResult.stdout),
-                error: decoded(testcaseResult.stderr),
+                output: testcaseResult.stdout,
+                error: testcaseResult.stderr || testcaseResult.exception,
                 expected_output: testcase.expected_output
               });
+            } else {
+              const errorMessage = (settled.reason as Error)?.message || 'Unknown error';
+              Logger.error(`Error running code against testcase ${testcase.id} | ${errorMessage}`);
+              result.testcase_results.push({
+                id: testcase.id,
+                passed: false,
+                score: 0,
+                status: {
+                  id: 999,
+                  description: "Execution error"
+                },
+                error: errorMessage
+              });
             }
-          } catch (err) {
-            const error = err as Error;
-            Logger.error('Error running code against testcase', undefined, {
-              exam_content_id,
-              testcase_id: testcase.id,
-              ctx: 'judge0',
-              error: error.message
-            });
-            
-            result.testcase_results.push({
-              id: testcase.id,
-              passed: false,
-              score: 0,
-              status: {
-                id: 999,
-                description: "Execution error"
-              },
-              error: error.message
-            });
           }
         }
         
@@ -890,7 +954,7 @@ class ExamSubmissionService extends BaseService {
    */
   private async validateExamSubmissionData(data: {
     file_content: string;
-    language_id?: number;
+    language_id?: string;
     stdin?: string;
     expected_output?: string;
   }): Promise<void> {
@@ -898,13 +962,17 @@ class ExamSubmissionService extends BaseService {
       this.validateRequired(data.file_content, 'file_content');
       
       if (data.language_id) {
-        const language = await this.languageRepository.findById(data.language_id);
-        this.validateExists(language, 'language');
-        Logger.info(`Using language: ${language.name} (ID: ${language.id})`);
+        // Validate that the language is supported by OneCompiler
+        const isSupported = this.oneCompilerService.isLanguageSupported(data.language_id);
+        if (!isSupported) {
+          throw new ApiError(400, 'Unsupported language', `Language '${data.language_id}' is not supported by OneCompiler`);
+        }
+        
+        Logger.info(`Using language: ${data.language_id}`);
         
         // Log warning for potentially problematic language IDs
-        if (data.language_id === 70 || data.language_id === 71) {
-          Logger.warn(`Python language detected (ID: ${data.language_id}). Make sure Judge0 supports this language ID.`);
+        if (data.language_id === 'python' || data.language_id === 'python2') {
+          Logger.warn(`Python language detected (ID: ${data.language_id}). Make sure OneCompiler supports this language ID.`);
         }
       }
     } catch (error) {
@@ -975,15 +1043,30 @@ class ExamSubmissionService extends BaseService {
    */
   private async createExamSubmissionContent(
     exam_submission_id: number,
-    file_content: string
+    file_content: string,
+    language_id?: string
   ): Promise<ExamSubmissionContent> {
     try {
       this.validateRequired(exam_submission_id, 'exam_submission_id');
       this.validateRequired(file_content, 'file_content');
       
+      // Convert OneCompiler language_id string to database language_id number
+      let dbLanguageId = null;
+      if (language_id) {
+        try {
+          const language = await this.languageRepository.findById(language_id);
+          if (language) {
+            dbLanguageId = language.language_id;
+          }
+        } catch (error) {
+          Logger.warn(`Could not find language in database for OneCompiler ID: ${language_id}`);
+        }
+      }
+
       return await this.examSubmissionContentRepository.save({
         exam_submission_id,
         file_content,
+        language_id: dbLanguageId,
         id: 0,
         created_at: new Date(),
       });
@@ -1094,172 +1177,6 @@ class ExamSubmissionService extends BaseService {
     }
   }
 
-  private async submitToJudge0(submission: {
-    source_code: string;
-    language_id: number;
-    stdin?: string;
-    expected_output?: string;
-  }) {
-    Logger.info(`Submitting code to Judge0. Language ID: ${submission.language_id}`);
-    Logger.info(`Source code preview: ${submission.source_code.substring(0, 200)}...`);
-    Logger.info(`Stdin: ${submission.stdin || 'None'}`);
-    Logger.info(`Expected output: ${submission.expected_output || 'None'}`);
-    
-    try {
-      // Base64 encode the code and inputs - using UTF-8 encoding instead of binary
-      const encoded = (str) => str ? Buffer.from(str, "utf8").toString("base64") : "";
-      
-      const encodedSubmission = {
-        source_code: encoded(submission.source_code),
-        language_id: submission.language_id,
-        stdin: submission.stdin ? encoded(submission.stdin) : undefined,
-        expected_output: submission.expected_output ? encoded(submission.expected_output) : undefined
-      };
-      
-      Logger.info(`Encoded source code length: ${encodedSubmission.source_code.length}`);
-      Logger.info(`Encoded stdin: ${encodedSubmission.stdin || 'None'}`);
-      Logger.info(`Encoded expected output: ${encodedSubmission.expected_output || 'None'}`);
-      
-      // Read timeout from environment or use default (60 seconds)
-      const apiTimeout = process.env.JUDGE0_TIMEOUT ? parseInt(process.env.JUDGE0_TIMEOUT) : 60000;
-      
-      Logger.info(`Judge0 API Key present: ${!!process.env.JUDGE0_API_KEY}, using timeout: ${apiTimeout}ms`);
-      const options = {
-        method: "POST",
-        url: "https://judge0-ce.p.rapidapi.com/submissions",
-        params: {
-          base64_encoded: "true",
-          fields: "*",
-        },
-        headers: {
-          "content-type": "application/json",
-          "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
-          "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
-        },
-        data: encodedSubmission,
-        timeout: apiTimeout // Configurable timeout
-      }
-      Logger.info(`Making request to: ${options.url}`);
-      
-      const response = await axios.request(options);
-
-      Logger.info(`Judge0 submission successful. Token: ${response.data.token}`);
-      return response.data;
-    } catch (error) {
-      Logger.error(`Error in submitToJudge0: ${(error as Error).message}`);
-      if (axios.isAxiosError(error)) {
-        const axiosError = error as AxiosError;
-        if (axiosError.response) {
-          Logger.error(`Judge0 API error: ${axiosError.response.status} ${axiosError.response.statusText}`);
-          Logger.error(`Response data: ${JSON.stringify(axiosError.response.data)}`);
-        } else if (axiosError.request) {
-          // The request was made but no response was received
-          Logger.error(`No response received from Judge0 API. Request: ${JSON.stringify(axiosError.request)}`);
-        } else {
-          // Something happened in setting up the request
-          Logger.error(`Error setting up Judge0 API request: ${axiosError.message}`);
-        }
-      }
-      throw new ApiError(500, CODE_EXECUTION_FAILED.error.message, `Judge0 API error: ${(error as Error).message}`);
-    }
-  }
-
-  private async getJudge0Result(token: string) {
-    Logger.info(`Getting Judge0 result for token: ${token}`);
-    
-    // Read settings from environment or use defaults
-    const maxAttempts = process.env.JUDGE0_MAX_ATTEMPTS ? parseInt(process.env.JUDGE0_MAX_ATTEMPTS) : 30;
-    const initialPollingInterval = process.env.JUDGE0_POLLING_INTERVAL ? parseInt(process.env.JUDGE0_POLLING_INTERVAL) : 2000;
-    const apiTimeout = process.env.JUDGE0_TIMEOUT ? parseInt(process.env.JUDGE0_TIMEOUT) : 60000;
-    
-    Logger.info(`Judge0 polling config: maxAttempts=${maxAttempts}, initialInterval=${initialPollingInterval}ms, timeout=${apiTimeout}ms`);
-    
-    // Implement exponential backoff for polling
-    const getPollingInterval = (attempt: number) => {
-      // Start with initialPollingInterval and double it every 5 attempts, capped at 10 seconds
-      const multiplier = Math.floor((attempt - 1) / 5);
-      const interval = initialPollingInterval * Math.pow(2, multiplier);
-      return Math.min(interval, 10000); // Cap at 10 seconds
-    };
-    
-    let lastResponse = null;
-    
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      try {
-        const pollingInterval = getPollingInterval(attempt);
-        
-        const options = {
-          method: "GET",
-          url: `https://judge0-ce.p.rapidapi.com/submissions/${token}`,
-          params: {
-            base64_encoded: "true",
-            fields: "*",
-          },
-          headers: {
-            "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
-            "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
-          },
-          timeout: apiTimeout // Configurable timeout
-        }
-        Logger.info(`Polling attempt ${attempt}/${maxAttempts} - Making request to: ${options.url}, interval: ${pollingInterval}ms`);
-        
-        const response = await axios.request(options);
-        lastResponse = response.data;
-
-        Logger.info(`Judge0 result received. Status ID: ${response.data.status?.id}, Description: ${response.data.status?.description}`);
-        
-        // If status is not "Processing" (id=2) or "In Queue" (id=1), we can return the result
-        if (response.data.status?.id !== 1 && response.data.status?.id !== 2) {
-          return response.data;
-        }
-        
-        // If we're still processing and haven't reached max attempts, wait before trying again
-        if (attempt < maxAttempts) {
-          Logger.info(`Code still processing (${response.data.status?.description}). Waiting ${pollingInterval}ms before next attempt...`);
-          await new Promise(resolve => setTimeout(resolve, pollingInterval));
-        } else {
-          Logger.info(`Maximum polling attempts (${maxAttempts}) reached. Last status was "${response.data.status?.description}".`);
-          return response.data; // Return the last result even if it's still processing
-        }
-      } catch (error) {
-        Logger.error(`Error in getJudge0Result attempt ${attempt}: ${(error as Error).message}`);
-        if (axios.isAxiosError(error)) {
-          const axiosError = error as AxiosError;
-          if (axiosError.response) {
-            Logger.error(`Judge0 API error: ${axiosError.response.status} ${axiosError.response.statusText}`);
-            Logger.error(`Response data: ${JSON.stringify(axiosError.response.data)}`);
-          } else if (axiosError.request) {
-            // The request was made but no response was received
-            Logger.error(`No response received from Judge0 API. Request: ${JSON.stringify(axiosError.request)}`);
-          } else {
-            // Something happened in setting up the request
-            Logger.error(`Error setting up Judge0 API request: ${axiosError.message}`);
-          }
-        }
-        
-        // On last attempt, throw the error; otherwise, retry after waiting
-        if (attempt === maxAttempts) {
-          if (lastResponse) {
-            Logger.info(`Returning last successful response despite error on final attempt`);
-            return lastResponse;
-          }
-          throw new ApiError(500, CODE_EXECUTION_FAILED.error.message, `Judge0 API error: ${(error as Error).message}`);
-        }
-        
-        // Calculate backoff time for the retry
-        const retryDelay = getPollingInterval(attempt);
-        Logger.info(`Retrying after error. Waiting ${retryDelay}ms before retry ${attempt+1}/${maxAttempts}`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
-      }
-    }
-    
-    // Return the last response if we have one, otherwise throw an error
-    if (lastResponse) {
-      return lastResponse;
-    }
-    
-    throw new ApiError(500, CODE_EXECUTION_FAILED.error.message, "Failed to get Judge0 result after maximum attempts");
-  }
 
   /**
    * Get detailed exam submission information including testcase results
@@ -1492,43 +1409,47 @@ class ExamSubmissionService extends BaseService {
   //==============================
 
   /**
-   * Debug method to check language mapping and Judge0 compatibility
+   * Debug method to check language mapping and OneCompiler compatibility
    * @param language_id The language ID to check
    */
-  public async debugLanguageMapping(language_id: number): Promise<{
+  public async debugLanguageMapping(language_id: string): Promise<{
     database_language: any;
-    judge0_mapping: any;
+    onecompiler_mapping: any;
     recommendations: string[];
   }> {
     try {
-      const language = await this.languageRepository.findById(language_id);
+      // For OneCompiler format, we don't need to look up in database
+      const language = null; // We'll work directly with the language_id string
       const recommendations: string[] = [];
       
-      if (!language) {
-        recommendations.push(`Language ID ${language_id} not found in database`);
-        return {
-          database_language: null,
-          judge0_mapping: null,
-          recommendations
-        };
+      // Check OneCompiler support
+      const isSupported = this.oneCompilerService.isLanguageSupported(language_id);
+      
+      if (!isSupported) {
+        recommendations.push(`Language ID ${language_id} is not supported by OneCompiler`);
+        recommendations.push('Consider updating the language mapping in OneCompilerService');
+      } else {
+        const oneCompilerId = this.oneCompilerService.getOneCompilerLanguageId(language_id);
+        recommendations.push(`Language mapped to OneCompiler ID: ${oneCompilerId}`);
       }
 
       // Check if this is a Python language
-      if (language.name.includes('Python')) {
-        recommendations.push('Python detected - ensure Judge0 supports this language ID');
-        recommendations.push('Check if Python version matches Judge0 expectations');
+      if (language_id.includes('python')) {
+        recommendations.push('Python detected - ensure OneCompiler supports this language ID');
+        recommendations.push('Check if Python version matches OneCompiler expectations');
       }
 
       // Check if this is C++
-      if (language.name.includes('C++')) {
-        recommendations.push('C++ detected - this should work with Judge0');
+      if (language_id.includes('cpp')) {
+        recommendations.push('C++ detected - this should work with OneCompiler');
       }
 
       return {
-        database_language: language,
-        judge0_mapping: {
-          suggested_id: language_id,
-          note: 'Verify this ID matches Judge0 API documentation'
+        database_language: null, // No database lookup needed for OneCompiler format
+        onecompiler_mapping: {
+          supported: isSupported,
+          onecompiler_id: isSupported ? this.oneCompilerService.getOneCompilerLanguageId(language_id) : null,
+          note: isSupported ? 'Language is supported by OneCompiler' : 'Language is not supported by OneCompiler'
         },
         recommendations
       };
@@ -1536,7 +1457,7 @@ class ExamSubmissionService extends BaseService {
       Logger.error(`Error in debugLanguageMapping: ${(error as Error).message}`);
       return {
         database_language: null,
-        judge0_mapping: null,
+        onecompiler_mapping: null,
         recommendations: [`Error: ${(error as Error).message}`]
       };
     }
