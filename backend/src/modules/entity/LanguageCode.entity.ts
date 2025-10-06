@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryColumn, OneToMany, Relation, PrimaryGeneratedColumn } from "typeorm";
+import { Entity, Column, OneToMany, Relation, PrimaryGeneratedColumn } from "typeorm";
 import { ExamContent } from "./ExamContent.entity";
 import { ExamSubmissionContent } from "./Exam_Submission_Content.entity";
 
