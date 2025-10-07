@@ -262,7 +262,8 @@ export class OneCompilerService {
   }
 
   /**
-   * Execute code with multiple test cases (batch execution)
+   * Execute code with multiple test cases (parallel individual execution)
+   * Note: OneCompiler doesn't support true batch execution with different inputs
    */
   public async executeCodeBatch(data: {
     source_code: string;
@@ -287,79 +288,63 @@ export class OneCompilerService {
 
       const oneCompilerLanguageId = this.getOneCompilerLanguageId(data.language_id);
       Logger.info(`Input language_id: ${data.language_id} -> OneCompiler ID: ${oneCompilerLanguageId}`);
+      Logger.info(`Executing ${data.test_cases.length} testcases in parallel`);
       
-      const requestData = {
-        access_token: this.API_KEY,
-        language: oneCompilerLanguageId,
-        stdin: data.test_cases[0]?.input || '',
-        files: [
-          {
-            name: this.getFileName(oneCompilerLanguageId),
-            content: data.source_code.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+      // Execute each testcase individually in parallel
+      const parallelResults = await Promise.allSettled(
+        data.test_cases.map(async (testCase, index) => {
+          try {
+            const result = await this.executeCode({
+              source_code: data.source_code,
+              language_id: data.language_id,
+              stdin: testCase.input,
+              expected_output: testCase.expected_output
+            });
+            
+            return {
+              stdout: result.stdout || '',
+              stderr: result.stderr,
+              exception: result.exception,
+              executionTime: result.executionTime || 0,
+              status: result.status,
+              stdin: testCase.input,
+              error: result.error
+            };
+          } catch (error) {
+            Logger.error(`Error executing testcase ${index}: ${(error as Error).message}`);
+            return {
+              stdout: '',
+              stderr: null,
+              exception: (error as Error).message,
+              executionTime: 0,
+              status: 'failed',
+              stdin: testCase.input,
+              error: (error as Error).message
+            };
           }
-        ]
-      };
-
-      const url = `${this.API_BASE_URL}/run`;
+        })
+      );
       
-      const cacheKey = this.buildCacheKey("batch", {
-        language: oneCompilerLanguageId,
-        inputs: data.test_cases.map(tc => ({ in: tc.input, exp: tc.expected_output })),
-        content: requestData.files[0]?.content || ""
+      // Process results
+      const results = parallelResults.map((settled, index) => {
+        if (settled.status === 'fulfilled') {
+          return settled.value;
+        } else {
+          Logger.error(`Testcase ${index} failed: ${(settled.reason as Error).message}`);
+          return {
+            stdout: '',
+            stderr: null,
+            exception: (settled.reason as Error).message,
+            executionTime: 0,
+            status: 'failed',
+            stdin: data.test_cases[index]?.input || '',
+            error: (settled.reason as Error).message
+          };
+        }
       });
-      const cached = this.getFromCache<Array<{
-        stdout: string;
-        stderr: string | null;
-        exception: string | null;
-        executionTime: number;
-        status: string;
-        stdin: string;
-        error?: string;
-      }>>(cacheKey);
-      if (cached) {
-        return cached;
-      }
-
-      const options = {
-        method: 'POST',
-        url: url,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-RapidAPI-Host': this.API_HOST,
-          'X-RapidAPI-Key': this.API_KEY,
-        },
-        data: requestData,
-        timeout: this.TIMEOUT,
-        httpsAgent: this.httpsAgent,
-        validateStatus: (status) => status < 500,
-      }
       
-      const response = await axios.request(options);
-      this.logRateLimit(response.headers as any);
-      
-      if (Array.isArray(response.data)) {
-        const results = response.data.map((result, index) => ({
-          stdout: result.stdout || '',
-          stderr: result.stderr,
-          exception: result.exception,
-          executionTime: result.executionTime || 0,
-          status: result.status,
-          stdin: result.stdin || data.test_cases[index]?.input || '',
-          error: result.error
-        }));
-        this.saveToCache(cacheKey, results);
-        return results;
-      } else {
-        return [{
-          stdout: response.data.stdout || '',
-          stderr: response.data.stderr,
-          exception: response.data.exception,
-          executionTime: response.data.executionTime || 0,
-          status: response.data.status,
-          stdin: data.test_cases[0]?.input || '',
-          error: response.data.error
-        }];
-      }
+      Logger.info(`Completed ${results.length} testcase executions`);
+      return results;
 
     } catch (error) {
       Logger.error(`Error in OneCompiler executeCodeBatch: ${(error as Error).message}`);

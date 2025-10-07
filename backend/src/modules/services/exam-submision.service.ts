@@ -783,72 +783,10 @@ class ExamSubmissionService extends BaseService {
       if (testcases && testcases.length > 0) {
         result.testcase_results = [];
         
-        // Use batch execution for better performance
+        // Use parallel individual execution for better reliability
+        // Batch execution has issues with different inputs per testcase
         try {
-          // Batch execution (fast path)
-          const testcaseResults = await this.oneCompilerService.executeCodeBatch({
-            source_code: data.file_content,
-            language_id: data.language_id,
-            test_cases: testcases.map(tc => ({
-              input: tc.input,
-              expected_output: tc.expected_output
-            }))
-          });
-          
-          for (let i = 0; i < testcases.length; i++) {
-            const testcase = testcases[i];
-            const testcaseResult = testcaseResults[i] || testcaseResults[0]; // Fallback to first result if batch failed
-            
-            // Trim testcase detail logs
-            
-            // OneCompiler returns various success statuses, not just 'success'
-            const isSuccess = testcaseResult.status !== 'failed' && !testcaseResult.exception;
-            
-            // Check if it's an execution error
-            if (testcaseResult.status === 'failed' || testcaseResult.exception) {
-              const errorMessage = testcaseResult.exception || testcaseResult.stderr || 'Execution failed';
-              Logger.error(`Execution error in testcase ${testcase.id}: ${errorMessage}`);
-              
-              result.testcase_results.push({
-                id: testcase.id,
-                passed: false,
-                score: 0,
-                status: {
-                  id: 6,
-                  description: "Execution error"
-                },
-                error: errorMessage,
-                input: testcase.input,
-                expected_output: testcase.expected_output
-              });
-              
-              // Set the main error field for the first execution error
-              if (!result.error) {
-                result.error = `Execution error: ${errorMessage}`;
-              }
-            } else {
-              // Use the new success logic
-              const finalIsPassed = isSuccess && 
-                (!testcase.expected_output || testcaseResult.stdout?.trim() === testcase.expected_output?.trim());
-              
-              result.testcase_results.push({
-                id: testcase.id,
-                passed: finalIsPassed,
-                score: finalIsPassed ? testcase.score : 0,
-                status: {
-                  id: finalIsPassed ? 3 : 4,
-                  description: finalIsPassed ? "Accepted" : "Wrong Answer"
-                },
-                input: testcase.input,
-                output: testcaseResult.stdout,
-                error: testcaseResult.stderr,
-                expected_output: testcase.expected_output
-              });
-            }
-          }
-        } catch (err) {
-          // Fallback (parallelize individual execution for speed)
-          Logger.warn('Batch execution failed, falling back to parallel individual execution');
+          Logger.info(`Running ${testcases.length} testcases in parallel`);
           const parallelResults = await Promise.allSettled(
             testcases.map(tc => this.oneCompilerService.executeCode({
               source_code: data.file_content,
@@ -864,6 +802,9 @@ class ExamSubmissionService extends BaseService {
               const testcaseResult = settled.value;
               const isSuccess = testcaseResult.status !== 'failed' && !testcaseResult.exception;
               const isPassed = isSuccess && (!testcase.expected_output || testcaseResult.stdout?.trim() === testcase.expected_output?.trim());
+              
+              Logger.info(`Testcase ${testcase.id}: input="${testcase.input}", expected="${testcase.expected_output}", actual="${testcaseResult.stdout?.trim()}", passed=${isPassed}`);
+              
               result.testcase_results.push({
                 id: testcase.id,
                 passed: isPassed,
@@ -892,6 +833,9 @@ class ExamSubmissionService extends BaseService {
               });
             }
           }
+        } catch (err) {
+          Logger.error(`Error in parallel testcase execution: ${(err as Error).message}`);
+          throw err;
         }
         
         // Calculate total grade
