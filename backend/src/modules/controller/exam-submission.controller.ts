@@ -57,6 +57,9 @@ export class ExamSubmissionController extends BaseController {
 
         // Resource: get details exam submission
         this.router.get("/:id/details", authentication, this.track('getDetailsExamSubmission'), this.asyncHandler(this.getDetailsExamSubmission));
+        
+        // Resource: teacher update grade and feedback for a student
+        this.router.put("/exams/:examId/students/:studentId/classes/:classId/grade", authentication, this.track('updateStudentGrade'), this.asyncHandler(this.updateStudentGrade));
     }
 
     private readonly getAllExamSubmissions = async (
@@ -173,7 +176,7 @@ export class ExamSubmissionController extends BaseController {
         req: Request,
         res: Response
     ) => {
-        console.log(req.params);
+        (req.params);
         const submissionId = this.parseId(req.params.id);
         await this.examSubmissionService.deleteExamSubmission(submissionId);
         return this.sendSuccess(res, 200, "Deleted exam submission successfully", null);
@@ -183,7 +186,7 @@ export class ExamSubmissionController extends BaseController {
         req: Request,
         res: Response
     ) => {
-        console.log(req.params);
+        (req.params);
         const submissionId = this.parseId(req.params.submissionId);
         const contentId = this.parseId(req.params.id);
         await this.examSubmissionService.deleteExamSubmissionContent(submissionId, contentId);
@@ -215,5 +218,24 @@ export class ExamSubmissionController extends BaseController {
         const languageId = req.params.languageId; // Keep as string for OneCompiler format
         const debugInfo = await this.examSubmissionService.debugLanguageMapping(languageId);
         return this.sendSuccess(res, 200, "Language mapping debug info retrieved", debugInfo);
+    };
+
+    private readonly updateStudentGrade = async (
+        req: Request,
+        res: Response
+    ) => {
+        const examId = this.parseId(req.params.examId);
+        const studentId = this.parseId(req.params.studentId);
+        const classId = this.parseId(req.params.classId);
+        const { grade, feed_back } = req.body;
+        
+        const updatedSubmission = await this.examSubmissionService.updateStudentGradeAndFeedback(
+            examId,
+            studentId,
+            classId,
+            grade,
+            feed_back
+        );
+        return this.sendSuccess(res, 200, "Updated student grade and feedback successfully", updatedSubmission);
     };
 }

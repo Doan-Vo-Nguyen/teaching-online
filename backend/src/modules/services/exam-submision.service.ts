@@ -145,7 +145,12 @@ class ExamSubmissionService extends BaseService {
       this.validateRequired(student_id, 'student_id');
       this.validateRequired(class_id, 'class_id');
       
-      const cacheKey = `${this.CACHE_PREFIX}student:${student_id}:class:${class_id}:exam:${exam_id}`;
+      // Resolve class_id from exam to avoid mismatch from client
+      const exam = await this.examRepository.findById(exam_id);
+      this.validateExists(exam, 'exam');
+      const resolvedClassId = exam.class_id;
+
+      const cacheKey = `${this.CACHE_PREFIX}student:${student_id}:class:${resolvedClassId}:exam:${exam_id}`;
       
       return await cacheManager.getOrSet(
         cacheKey,
@@ -154,13 +159,13 @@ class ExamSubmissionService extends BaseService {
             await this.studentClassRepository.findByStudentId(student_id);
           this.validateExists(existedStudentClass, 'student class');
     
-          const existedClass = await this.classRepository.findById(class_id);
+          const existedClass = await this.classRepository.findById(resolvedClassId);
           this.validateExists(existedClass, 'class');
     
           const studentClass =
             await this.studentClassRepository.findByUserIdAndClassId(
               student_id,
-              class_id
+              resolvedClassId
             );
           if (!studentClass) {
             throw new ApiError(
@@ -169,14 +174,12 @@ class ExamSubmissionService extends BaseService {
               "Student class record not found"
             );
           }
-    
           const examSubmission =
             await this.examSubmissionRepository.findByExamIdAndStudentClassId(
               exam_id,
               studentClass.student_class_id
             );
           this.validateExists(examSubmission, 'exam submission');
-    
           const examSubmissionContents =
             await this.examSubmissionContentRepository.findByExamSubmissionId(
               examSubmission.exam_submission_id
@@ -888,6 +891,77 @@ class ExamSubmissionService extends BaseService {
       return updatedSubmission;
     } catch (error) {
       this.handleError(error, 'updateExamSubmissionWithGrade');
+    }
+  }
+
+  /**
+   * Update student grade and feedback by teacher
+   * @param exam_id The ID of the exam
+   * @param student_id The ID of the student
+   * @param class_id The ID of the class
+   * @param grade The grade to assign
+   * @param feedback The feedback to provide
+   * @returns The updated exam submission
+   */
+  public async updateStudentGradeAndFeedback(
+    exam_id: number,
+    student_id: number,
+    class_id: number,
+    grade: number,
+    feedback: string
+  ): Promise<ExamSubmission> {
+    try {
+      this.validateRequired(exam_id, 'exam_id');
+      this.validateRequired(student_id, 'student_id');
+      this.validateRequired(class_id, 'class_id');
+      this.validateRequired(grade, 'grade');
+      this.validateRequired(feedback, 'feedback');
+      
+      // Get student class to find student_class_id
+      const studentClass = await this.studentClassRepository.findByUserIdAndClassId(
+        student_id,
+        class_id
+      );
+      
+      if (!studentClass) {
+        throw new ApiError(
+          404,
+          "Student is not enrolled in this class",
+          "Student class record not found"
+        );
+      }
+      
+      // Find the exam submission
+      const examSubmission = await this.examSubmissionRepository.findByExamIdAndStudentClassId(
+        exam_id,
+        studentClass.student_class_id
+      );
+      
+      if (!examSubmission) {
+        throw new ApiError(
+          404,
+          "Exam submission not found",
+          "No submission found for this student and exam"
+        );
+      }
+      
+      // Update the submission with grade and feedback
+      const updatedSubmission = await this.examSubmissionRepository.update(
+        examSubmission.exam_submission_id,
+        {
+          ...examSubmission,
+          grade,
+          feed_back: feedback,
+          updated_at: new Date()
+        }
+      );
+      
+      // Invalidate related caches
+      this.invalidateCache(exam_id, student_id, class_id);
+      
+      return updatedSubmission;
+    } catch (error) {
+      this.handleError(error, 'updateStudentGradeAndFeedback');
     }
   }
 
