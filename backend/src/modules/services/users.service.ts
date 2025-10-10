@@ -11,7 +11,6 @@ import {
   FIELD_REQUIRED,
   USERNAME_EXISTS,
   EMAIL_EXISTS,
-  PARENT_PHONE_EXISTS,
   CREATED_USER_FAILED,
   WRONG_OLD_PASSWORD,
   NOT_STUDENT,
@@ -74,7 +73,7 @@ class UserService {
   }
 
   public async createUser(userData: any) {
-    const { username, email, password, parent_phone } = userData;
+    const { username, email, password } = userData;
     
     // Check if username already exists
     const existedUserByUsername = await this.userRepository.findByUsername(username);
@@ -89,14 +88,7 @@ class UserService {
         throw conflict(EMAIL_EXISTS.error.message, EMAIL_EXISTS.error.details);
       }
     }
-    
-    // Check if parent_phone already exists
-    if (parent_phone) {
-      const existedUserByParentPhone = await this.userRepository.findByParentPhone(parent_phone);
-      if (existedUserByParentPhone) {
-        throw conflict(PARENT_PHONE_EXISTS.error.message, PARENT_PHONE_EXISTS.error.details);
-      }
-    }
+    // Cho phép trùng số điện thoại phụ huynh
     
     userData.password = bcrypt.hashSync(password, saltRound);
     const newUser = await this.userRepository.save(userData);

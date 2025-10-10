@@ -48,10 +48,10 @@ export class Users {
     @Column({type: "varchar", length: 100, nullable: true})
     profile_picture: string
 
-    @Column({type: "varchar", length: 10, nullable: true, unique: true})
+    @Column({type: "varchar", length: 10, nullable: true})
     phone: string
 
-    @Column({type: "varchar", length: 10, nullable: true, unique: true})
+    @Column({type: "varchar", length: 10, nullable: true})
     parent_phone: string
 
     @Column({type: "varchar", length: 50, nullable: true})
