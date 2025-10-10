@@ -34,11 +34,11 @@ export class AttendanceController extends BaseController {
     this.router.get("/sessions/:sessionId/records", authentication, authorAdOrReceptionistOrTeacher, this.listRecords);
 
     // Enrollments
-    this.router.get("/schedules/:scheduleId/enrollments", authentication, authorAdOrReceptionist, this.listEnrollments);
-    this.router.post("/schedules/:scheduleId/enrollments", authentication, authorAdOrReceptionist, this.addEnrollments);
-    this.router.delete("/schedules/:scheduleId/enrollments/:studentId", authentication, authorAdOrReceptionist, this.removeEnrollment);
+    this.router.get("/schedules/:scheduleId/enrollments", authentication, authorAdOrReceptionistOrTeacher, this.listEnrollments);
+    this.router.post("/schedules/:scheduleId/enrollments", authentication, authorAdOrReceptionistOrTeacher, this.addEnrollments);
+    this.router.delete("/schedules/:scheduleId/enrollments/:studentId", authentication, authorAdOrReceptionistOrTeacher, this.removeEnrollment);
     // download template
-    this.router.get("/import/template", authentication, authorAdOrReceptionist, this.downloadTemplate);
+    this.router.get("/import/template", authentication, authorAdOrReceptionistOrTeacher, this.downloadTemplate);
   }
 
   // route nhập tay hàng loạt
